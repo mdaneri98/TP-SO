@@ -1,7 +1,7 @@
 #include <video.h>
 #include <font.h>
 #include <string.h>
-#include <keyboard.h>
+#include <lib.h>
 
 static char buffer[64] = { '0' };
 
@@ -50,8 +50,9 @@ struct vbe_mode_info_structure* screenData = (void*)0x5C00; //Configurado en sys
 static uint16_t penX = 0, penY = 0;
 static Color penColor = {0x7F, 0x7F, 0x7F};    // 3 bytes de color.
 static uint8_t bytesPerPixel = 3;
+static uint8_t fontSize = 1;
 
-static void* getPtrToPixel(uint16_t x, uint16_t y) {
+void* getPtrToPixel(uint16_t x, uint16_t y) {
     /*
     Punto (x,y) en la pantalla. Como la memoria es continua, para llegar a ese punto es mediante la sig. ecuación:
     */
@@ -59,19 +60,19 @@ static void* getPtrToPixel(uint16_t x, uint16_t y) {
 }
 
 
-uint16_t scr_getWidth(void) {
+uint16_t scrGetWidth(void) {
     return screenData->width;
 }
 
-uint16_t scr_getHeight(void) {
+uint16_t scrGetHeight(void) {
     return screenData->height;
 }
 
-uint16_t scr_getPenX(void) {
+uint16_t scrGetPenX(void) {
     return penX;
 }
 
-uint16_t scr_getPenY(void) {
+uint16_t scrGetPenY(void) {
     return penY;
 }
 
@@ -110,7 +111,7 @@ void scr_drawRect(uint16_t x, uint16_t y, uint16_t width, uint16_t height, Color
     }
 }
 
-void scr_drawLine(uint16_t fromX, uint16_t fromY, uint16_t toX, uint16_t toY, Color color) {
+void scrDrawLine(uint16_t fromX, uint16_t fromY, uint16_t toX, uint16_t toY, Color color) {
     unsigned int dx = toX < fromX ? (fromX - toX) : (toX - fromX);
     unsigned int dy = toY < fromY ? (fromY - toY) : (toY - fromY);
     
@@ -160,8 +161,8 @@ void scr_drawLine(uint16_t fromX, uint16_t fromY, uint16_t toX, uint16_t toY, Co
 
 void scr_setPenPosition(uint16_t x, uint16_t y) {
     // We clamp the pen (x,y) to ensure there is enough space to draw a char in that position.
-    uint16_t maxX = screenData->width - CHAR_WIDTH;
-    uint16_t maxY = screenData->height - CHAR_HEIGHT;
+    uint16_t maxX = screenData->width - CHAR_WIDTH*fontSize;
+    uint16_t maxY = screenData->height - CHAR_HEIGHT*fontSize;
 
     penX = x < maxX ? x : maxX;
     penY = y < maxY ? y : maxY;
@@ -175,45 +176,44 @@ void scr_printNewline(void) {
     penX = 0; // pen x is set to full left.
 
     // If there is space for another line, we simply advance the pen y. Otherwise, we move up the entire screen and clear the lower part.
-    if (penY + (2*CHAR_HEIGHT) <= screenData->height) {
-        penY += CHAR_HEIGHT;
+    if (penY + (2*CHAR_HEIGHT*fontSize) <= screenData->height) {
+        penY += CHAR_HEIGHT*fontSize;
     } else {
         void* dst = (void*)((uint64_t)screenData->framebuffer);
 
         // Apunta a la segunda línea de la pantalla. Linea ~ HEIGHT de un char.(son varias lineas de pixeles)
-        void* src = (void*)(dst + bytesPerPixel * (CHAR_HEIGHT * (uint64_t)screenData->width));
+        void* src = (void*)(dst + bytesPerPixel * (CHAR_HEIGHT*fontSize * (uint64_t)screenData->width));
 
         // 3 * width * (toda la pantalla - una linea)
-        uint64_t len = bytesPerPixel * ((uint64_t)screenData->width * (screenData->height - CHAR_HEIGHT));
+        uint64_t len = bytesPerPixel * ((uint64_t)screenData->width * (screenData->height - CHAR_HEIGHT*fontSize));
         
         memcpy(dst, src, len);
-        memset(dst+len, 0, bytesPerPixel * (uint64_t)screenData->width * CHAR_HEIGHT);
+        memset(dst+len, 0, bytesPerPixel * (uint64_t)screenData->width * CHAR_HEIGHT*fontSize);
     }
 }
 
+void scrPrintStringWithColor(char *str, Color color){
+    Color defaultColor = penColor;
+    scr_setPenColor(color);
+    scrPrint(str);
+    scr_setPenColor(defaultColor);
+}
 
 // Lo tengo que terminar de implementar, el 
 //cursor se mueve bien pero tengo que ver como pintar de negro todo el pixel
 void scr_backspace(){
-    if(penX < 0x00 && penY == CHAR_HEIGHT) // Está en el inicio de la pantalla, no se puede hacer balckspace
+    if(penX < 0x00 && penY == CHAR_HEIGHT*fontSize) // Está en el inicio de la pantalla, no se puede hacer balckspace
         return;
-    penX -= CHAR_WIDTH;
+    penX -= CHAR_WIDTH*fontSize;
     if (penX < 0x00){
-        penX = screenData->width - CHAR_WIDTH;
-        penY -= CHAR_HEIGHT;
+        penX = screenData->width - CHAR_WIDTH*fontSize;
+        penY = penY - CHAR_HEIGHT*fontSize;
     }
     Color black = {0x00, 0x00, 0x00};
-    for (int h=0; h<16; h++) {
-    		Color* pos = (Color*)getPtrToPixel(penX, penY+h);
-    		pos[0] = black;
-    		pos[1] = black;
-    		pos[2] = black;
-    		pos[3] = black;
-    		pos[4] = black;
-    		pos[5] = black;
-    		pos[6] = black;
-    		pos[7] = black;
-    		pos[8] = black;
+    for (int h=0; h<CHAR_HEIGHT*fontSize; h++) {
+        Color* pos = (Color*)getPtrToPixel(penX, penY+h);
+        for(int i=0; i<CHAR_WIDTH*fontSize ;i++)
+            pos[i] = black;
     }
 }
 
@@ -226,38 +226,57 @@ void scr_printChar(char c) {
         scr_backspace();
         return;
     }
-
+    if(c == '\t'){
+        scrPrint("   ");
+        return;
+    }
+    
     if (c >= FIRST_CHAR && c <= LAST_CHAR) {
-	    const char* data = font + 32*(c-33);
-	    for (int h=0; h<16; h++) {
-    		Color* pos = (Color*)getPtrToPixel(penX, penY+h);
-    		if (*data & 0b00000001) pos[0] = penColor;
-    		if (*data & 0b00000010) pos[1] = penColor;
-    		if (*data & 0b00000100) pos[2] = penColor;
-    		if (*data & 0b00001000) pos[3] = penColor;
-    		if (*data & 0b00010000) pos[4] = penColor;
-    		if (*data & 0b00100000) pos[5] = penColor;
-    		if (*data & 0b01000000) pos[6] = penColor;
-    		if (*data & 0b10000000) pos[7] = penColor;
-    		data++;
-    		if (*data & 0b00000001) pos[8] = penColor;
-    		data++;
+        int w, offset = 0, j;
+	    char* data = font + 32*(c-33);
+	    for (int h=0; h<CHAR_HEIGHT; h++) {
+            offset = h*(fontSize-1);
+            for(j=0; j<fontSize ;j++){
+                char *auxData = data;
+                Color* pos = (Color*)getPtrToPixel(penX, penY + h + offset--);
+                w = 0;
+                for(int i=0; i<fontSize ;i++, w++)
+                    if (*auxData & 0b00000001) pos[w] = penColor;
+                for(int i=0; i<fontSize ;i++, w++)
+                    if (*auxData & 0b00000010) pos[w] = penColor;
+                for(int i=0; i<fontSize ;i++, w++)
+                    if (*auxData & 0b00000100) pos[w] = penColor;
+                for(int i=0; i<fontSize ;i++, w++)
+                    if (*auxData & 0b00001000) pos[w] = penColor;
+                for(int i=0; i<fontSize ;i++, w++)
+                    if (*auxData & 0b00010000) pos[w] = penColor;
+                for(int i=0; i<fontSize ;i++, w++)
+                    if (*auxData & 0b00100000) pos[w] = penColor;
+                for(int i=0; i<fontSize ;i++, w++)
+                    if (*auxData & 0b01000000) pos[w] = penColor;
+                for(int i=0; i<fontSize ;i++, w++)
+                    if (*auxData & 0b10000000) pos[w] = penColor;
+                auxData++;
+                for(int i=0; i<fontSize ;i++, w++)
+                    if (*auxData & 0b00000001) pos[w++] = penColor;
+            }
+            data += 2;
     	}
     }
 
-    penX += CHAR_WIDTH;
-    if (penX > screenData->width - CHAR_WIDTH)
+    penX += CHAR_WIDTH*fontSize;
+    if (penX > screenData->width - CHAR_WIDTH*fontSize)
         scr_printNewline();
 }
 
-uint32_t scr_print(char* s) {
+uint32_t scrPrint(char* s) {
     for (; *s != 0; s++)
 		scr_printChar(*s);
     return penX | ((uint32_t)penY << 16);
 }
 
 /*uint32_t scr_println(char* s) {
-    scr_print(s);
+    scrPrint(s);
     scr_printNewline();
     return penX | ((uint32_t)penY << 16);
 }*/
@@ -302,5 +321,10 @@ static uint32_t toBase(uint64_t value, char * buffer, uint32_t base)
 void scr_printBase(uint64_t value, uint32_t base)
 {
     toBase(value, buffer, base);
-    scr_print(buffer);
+    scrPrint(buffer);
+}
+
+void scrChangeFont(uint64_t newSize){
+    if(newSize > 0 && newSize < 6)
+        fontSize = newSize;
 }

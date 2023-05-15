@@ -8,12 +8,15 @@ GLOBAL _hlt
 
 GLOBAL _irq00Handler
 GLOBAL _irq01Handler
-GLOBAL _irq02Handler
-GLOBAL _irq03Handler
-GLOBAL _irq04Handler
-GLOBAL _irq05Handler
+
+GLOBAL hasRegDump
+GLOBAL inforeg
 
 GLOBAL _exception0Handler
+GLOBAL _exception5Handler
+GLOBAL _exception6Handler
+GLOBAL _exception14Handler
+
 
 GLOBAL _syscallsHandler
 
@@ -21,6 +24,10 @@ EXTERN irqDispatcher
 EXTERN exceptionDispatcher
 
 EXTERN syscallsDispatcher
+EXTERN timer_handler
+EXTERN addKey
+EXTERN getStackBase
+
 
 SECTION .text
 
@@ -60,47 +67,76 @@ SECTION .text
 	pop rax
 %endmacro
 
-%macro irqHandlerMaster 1
-	pushState
+%macro endHardwareInterrupt 0
 
-	mov rdi, %1 ; pasaje de parametro
-	call irqDispatcher
+	mov al, 0x20
+	out 0x20, al
 
-	; signal pic EOI (End of Interrupt)
-	mov al, 20h
-	out 20h, al
-
-	popState
-	iretq
 %endmacro
 
 
 
 %macro exceptionHandler 1
-	pushState
+	
+	mov [regdump + 8*0], rax
+	mov [regdump + 8*1], rbx
+	mov [regdump + 8*2], rcx
+	mov [regdump + 8*3], rdx
+	mov [regdump + 8*4], rdi
+	mov [regdump + 8*5], rsi
+	mov [regdump + 8*6], rbp
+	
+	mov [regdump + 8*8], r8
+	mov [regdump + 8*9], r9
+	mov [regdump + 8*10], r10
+	mov [regdump + 8*11], r11
+	mov [regdump + 8*12], r12
+	mov [regdump + 8*13], r13
+	mov [regdump + 8*14], r14
+	mov [regdump + 8*15], r15
 
-	mov rdi, %1 ; pasaje de parametro
+	mov rax, %1						; Check if it's a page fault (It pushes in the stack an error code)
+	cmp rax, 14
+	jne .continue
+	mov rdx, [rsp]					; Error code number
+	add rsp, 8						; Locates the stack where it should be
+
+.continue:
+	mov rax, [rsp+8+8+8]			; RSP Location
+	mov [regdump + 8*7], rax		; RSP
+
+	mov rax, [rsp+8+8]				; RFlags location
+	mov [regdump + 8*16], rax		; RFlags
+
+	mov rax, [rsp]					; RIP to the instruction that
+	mov [regdump + 8*17], rax		;triggered the exception
+
+	mov rsi, regdump				; Pointer to the vector that contains the registers info
+	mov rdi, %1						; Exception ID
 	call exceptionDispatcher
 
-	popState
+	call getStackBase
+
+	mov [rsp+8+8+8], rax
+	mov rax, [userSpace]
+	mov [rsp], rax
 	iretq
 %endmacro
 
 _syscallsHandler:
-	pushState
-	mov rbp, rsp	
+	push rbp
+	mov rbp, rsp
 
 	mov r9, r8
-	mov r8, r10
-	mov r10, rdx
+	mov r8, rcx
+	mov rcx, rdx
 	mov rdx, rsi
 	mov rsi, rdi
 	mov rdi, rax
-	call syscallsDispatcher		;
-	
-	mov rsp, rbp
-	popState
+	call syscallsDispatcher
 
+	mov rsp, rbp
+	pop rbp
 	iretq
 
 _hlt:
@@ -129,39 +165,92 @@ picSlaveMask:
 	push    rbp
     mov     rbp, rsp
     mov     ax, di  ; ax = mascara de 16 bits
-    out	0A1h,al
+    out		0A1h,al
     pop     rbp
     retn
 
 
+
+
 ;8254 Timer (Timer Tick)
 _irq00Handler:
-	irqHandlerMaster 0
+	pushState
+
+	call timer_handler
+
+	endHardwareInterrupt
+	popState
+	iretq
+
+
 
 ;Keyboard
 _irq01Handler:
-	irqHandlerMaster 1
+	pushState
+	mov rax, 0
+	in al, 60h
 
-;Programmable Interval Timer (PIT) 
-_irq02Handler:
-	irqHandlerMaster 2
+	cmp al, 0x38		; Check if it's the left-alt scancode
+	jne .continue
 
-;Serial Port 2 and 4
-_irq03Handler:
-	irqHandlerMaster 3
+; If it's the left-alt, we execute save the register's state
+; https://wiki.osdev.org/Interrupt_Service_Routines For the location of rsp
 
-;Serial Port 1 and 3
-_irq04Handler:
-	irqHandlerMaster 4
+	mov rax, [rsp+8*14]			; RAX Location
 
-;USB
-_irq05Handler:
-	irqHandlerMaster 5
+	mov [inforeg + 8*1], rax
+	mov [inforeg + 8*2], rbx
+	mov [inforeg + 8*3], rcx
+	mov [inforeg + 8*4], rdx
+	mov [inforeg + 8*5], rdi
+	mov [inforeg + 8*6], rsi
+	mov [inforeg + 8*7], rbp
+	mov rax, rsp 
+	add rax, 8*15+8+8+8			; pushState + rip + cs + rflags = RSP value in stack
+	mov [inforeg + 8*8], rax	; RSP value
+	mov [inforeg + 8*9], r8
+	mov [inforeg + 8*10], r9
+	mov [inforeg + 8*11], r10
+	mov [inforeg + 8*12], r11
+	mov [inforeg + 8*13], r12
+	mov [inforeg + 8*14], r13
+	mov [inforeg + 8*15], r14
+	mov [inforeg + 8*16], r15
+
+	mov rax, [rsp + 8*15]		; RIP location
+	mov [inforeg], rax
+
+	mov BYTE [hasRegDump], 1	; Flag para el inforeg
+
+	jmp .end
+
+.continue:
+	cmp al, 0xB8		; If it's the left-alt release, skip the keyboard interrupt handler
+	je .end
+
+	mov rdi, rax
+	call addKey
+
+.end:
+	endHardwareInterrupt
+	popState
+	iretq
+
+
 
 
 ;Zero Division Exception
 _exception0Handler:
 	exceptionHandler 0
+
+_exception5Handler:
+	exceptionHandler 5
+
+_exception6Handler:
+	exceptionHandler 6
+
+_exception14Handler:
+	exceptionHandler 14
 
 haltcpu:
 	cli
@@ -169,6 +258,11 @@ haltcpu:
 	ret
 
 
+section .rodata
+	userSpace dq 0x400000
 
 SECTION .bss
 	aux resq 1
+	inforeg resq 17
+	regdump resq 18
+	hasRegDump resb 1

@@ -7,5 +7,7 @@ void timer_handler();
 int ticks_elapsed();
 int seconds_elapsed();
 void sleep(uint64_t millis);
+// void restart();
+int aboutToRestart();
 
 #endif

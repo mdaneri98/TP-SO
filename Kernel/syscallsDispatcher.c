@@ -1,74 +1,216 @@
 #include <stdint.h>
 #include <video.h>
 #include <kernelSyscalls.h>
+#include <keyboard.h>
 #include <string.h>
+#include <time.h>
+#include <speaker.h>
+#include <libasm.h>
+#include <memory.h>
 
-uint64_t arqSysRead(uint64_t fd, uint64_t buff, uint64_t dim, uint64_t nil1, uint64_t nil2, uint64_t nil3);
+#define STDIN 0
+#define STDOUT 1
+#define STDERR 2
+#define TOTAL_SYSCALLS 16
+#define AUX_BUFF_DIM 512
 
-uint64_t arqSysWrite(uint64_t buff, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5);
+#define ERROR -1
 
-uint64_t arqSysClear(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
+#define DEFAULT_FREQUENCY 1500
+
+static uint64_t arqSysRead(uint64_t buff, uint64_t dim, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4);
+
+static uint64_t arqSysWrite(uint64_t fd, uint64_t buff, uint64_t count, uint64_t nil1, uint64_t nil2, uint64_t nil3);
+static uint64_t arqSysMemoryDump(uint64_t direction, uint64_t buffer, uint64_t nil1, uint64_t nil2, uint64_t  nil3, uint64_t nil4);
+static uint64_t arqSysGetRegistersInfo(uint64_t buffer, uint64_t nil1, uint64_t  nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5);
+static uint64_t arqSysClear(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
+static uint64_t arqSysBeep(uint64_t millis, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5);
+static uint64_t arqSysSleep(uint64_t millis, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5);
+static uint64_t arqSysClock(uint64_t hours, uint64_t minutes, uint64_t seconds, uint64_t nil1, uint64_t nil2, uint64_t nil3);
+static uint64_t arqSysScreenHeight(uint64_t height, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5);
+static uint64_t arqSysScreenWidth(uint64_t width, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5);
+static uint64_t arqSysGameRead(uint64_t data, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5);
+static uint64_t arqSysgetPtrToPixel(uint64_t x, uint64_t y, uint64_t color, uint64_t nil1, uint64_t nil2, uint64_t nil3);
+static uint64_t arqSysDrawLine(uint64_t fromX, uint16_t fromY, uint16_t toX, uint16_t toY, uint64_t color, uint64_t nil1);
+static uint64_t arqSysGetPenX(uint64_t x, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5);
+static uint64_t arqSysGetPenY(uint64_t y, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5);
+static uint64_t arqSysChangeFontSize(uint64_t newSize, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5);
+
 
 typedef uint64_t (*SyscallVec)(uint64_t arg0, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5);
 
-static char buffer[512] = {0};
-static uint64_t bufferDim = 512;
-
-// Funcion auxiliar para limpiar el buffer
-static void clearBuff(){
-    for(int i=0; i<bufferDim ;buffer[i++] = 0);
-}
-
-/*
-IDEA: Por qué no intentamos poner algún sistema de permisos o algún sistema que gestione archivos para poder
-darle al usuario la posibilidad de crear archivos y poder escribirlos ahí.
-Esto nos daría la posibilidad de que pueda escribir desde su shell en archivos y no solo en pantalla
-+ nos daría la chance de comunicar mejor los errores, dejandolos en un archivo escrito o algo asi
-Me gustaria averiguar como implementar un sistema de directorios para poder darle la chance al usuario
-de que pueda organizar todo desde ahi, + le daria mucha mas utilidad a la shell y se pareceria mucho más a
-un bash.
-*/
-
-// VECTOR PARA LAS SYSCALLS
-static SyscallVec syscalls[3];
+// SYSCALLS ARRAY
+static SyscallVec syscalls[TOTAL_SYSCALLS];
 
 
-// CADA SYSCALL LA METEN EN ESTE VECTOR, NO SE OLVIDEN DE AUMENTAR EL TAMAÑO DEL VECTOR PARA QUE NO SE ROMPA NADA
+// EVERY NEW SYSCALL MUST BE LOADED IN THIS ARRAY
 void set_SYSCALLS(){
     syscalls[0] = (SyscallVec) arqSysRead;
     syscalls[1] = (SyscallVec) arqSysWrite;
     syscalls[2] = (SyscallVec) arqSysClear;
+    syscalls[3] = (SyscallVec) arqSysBeep;
+    syscalls[4] = (SyscallVec) arqSysSleep;
+    syscalls[5] = (SyscallVec) arqSysClock;
+    syscalls[6] = (SyscallVec) arqSysScreenHeight;
+    syscalls[7] = (SyscallVec) arqSysScreenWidth;
+    syscalls[8] = (SyscallVec) arqSysgetPtrToPixel;
+    syscalls[9] = (SyscallVec) arqSysGameRead;
+    syscalls[10] = (SyscallVec) arqSysDrawLine;
+    syscalls[11] = (SyscallVec) arqSysGetPenX;
+    syscalls[12] = (SyscallVec) arqSysGetPenY;
+    syscalls[13] = (SyscallVec) arqSysChangeFontSize;
+    syscalls[14] = (SyscallVec) arqSysMemoryDump;
+    syscalls[15] = (SyscallVec) arqSysGetRegistersInfo;
 }
 
 uint64_t syscallsDispatcher(uint64_t nr, uint64_t arg0, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5) {    
-    return syscalls[nr](arg0, arg1, arg2, arg3, arg4, arg5);
+    uint64_t toReturn = syscalls[nr](arg0, arg1, arg2, arg3, arg4, arg5);
+    return toReturn;
 }
 
-/*
-CADA SYSCALL RECIBE TODAS LAS VARIABLES QUE PUEDE RECIBIR EL SYSCALLDISPATCHER, 
-QUEDA EN NOSOTROS HACER EL CASTEO QUE CORRESPONDA PARA CADA FUNCION E IGNORAR EL RESTO DE VARIABLES
-PARA PODER USAR EL VECTOR COMO FORMA DE ORGANIZAR LAS SYSCALLS
-*/
-
-uint64_t arqSysRead(uint64_t fd, uint64_t buff, uint64_t dim, uint64_t nil1, uint64_t nil2, uint64_t nil3){
-    if(dim > 512)
-        // Manejo de error
-    clearBuff();
-    stringCopy(buffer, dim, buff);
-    return (uint64_t) buffer; // Hay que castearlo bien en el userspace
+/**
+ * @brief Reads the given buffer and drops it's content into the file descriptor given, and only the amount specified
+ * 
+ * @param fd
+ * @param buff 
+ * @param count 
+ * @return Amount of bytes read. -1 in case of error
+ */
+static uint64_t arqSysRead(uint64_t fd, uint64_t buff, uint64_t count, uint64_t nil2, uint64_t nil3, uint64_t nil4){
+    if (fd == STDIN) {
+        char *auxBuff = (char *) buff;
+        int bytesRead = 0;
+        char c;
+        while( bytesRead < count){
+            if((c = readBuffer()) < 0)
+                return -1;
+            auxBuff[bytesRead++] = c;
+        }
+        return bytesRead;
+   }
+   return ERROR;    // There's no other files descriptors yet...
 }
 
-
-// Syswrite (Banco más la version de linux que incluye un file descriptor, más adelante con una discusión previa le metemos refactor)
-uint64_t arqSysWrite(uint64_t buff, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5) {
+static uint64_t arqSysWrite(uint64_t fd, uint64_t buff, uint64_t count, uint64_t nil1, uint64_t nil2, uint64_t nil3) {
     char * tmpBuff = (char *) buff;
-    scr_print(tmpBuff);
+    char auxBuff[AUX_BUFF_DIM] = {0};
+    uint64_t toReturn;
+    switch(fd){
+        case STDIN:{
+            toReturn = 0;
+            while(toReturn < count){
+                toBuff(tmpBuff[toReturn], getScanCode(tmpBuff[toReturn]));
+                toReturn++;
+            }
+            return toReturn;
+        }
+        case STDOUT:{
+            stringnCopy(auxBuff, AUX_BUFF_DIM, tmpBuff, count);
+            scrPrint(auxBuff); 
+            return stringLength(auxBuff);
+        }
+        case STDERR:{
+            stringnCopy(auxBuff, AUX_BUFF_DIM, tmpBuff, count);
+            Color c;
+            c.r = 0xFF;
+            c.g = 0x00;
+            c.b = 0x00;
+            scrPrintStringWithColor(tmpBuff, c);
+            return stringLength(tmpBuff);
+        }
+        default: toReturn = ERROR;
+    }
+    return toReturn;
+}
+
+static uint64_t arqSysMemoryDump(uint64_t direction, uint64_t buffer, uint64_t nil1, uint64_t nil2, uint64_t  nil3, uint64_t nil4) {
+    printMemory((uint64_t *)direction, (uint8_t *)buffer);
+    return 0;
+}
+
+static uint64_t arqSysGetRegistersInfo(uint64_t buffer, uint64_t nil1, uint64_t  nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5) {
+    return getRegistersInfo((uint64_t *) buffer);
 }
 
 // Clear
-uint64_t arqSysClear(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6){
+static uint64_t arqSysClear(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6){
+    resetBuffer();
     scr_clear();
     return 0;
 }
 
+static uint64_t arqSysBeep(uint64_t millis, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5){
+    speaker(millis, DEFAULT_FREQUENCY);
+    return 0;
+}
 
+static uint64_t arqSysSleep(uint64_t millis, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5){
+    sleep(millis);
+    return 0;
+}
+
+static uint64_t arqSysClock(uint64_t hours, uint64_t minutes, uint64_t seconds, uint64_t nil1, uint64_t nil2, uint64_t nil3){
+    int *auxHours = (int *) hours;
+    int *auxMinutes = (int *) minutes;
+    int *auxSeconds = (int *) seconds;
+    *auxHours = _hours();
+    *auxMinutes = _minutes();
+    *auxSeconds = _seconds();
+    return 0;
+}
+
+static uint64_t arqSysScreenHeight(uint64_t height, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5){
+    uint16_t *h = (uint16_t *) height;
+    *h = scrGetHeight();
+    return 0;
+}
+
+static uint64_t arqSysScreenWidth(uint64_t width, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5){
+    uint16_t *w = (uint16_t *) width;
+    *w = scrGetWidth();
+    return 0;
+}
+
+static uint64_t arqSysGameRead(uint64_t data, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5){
+    unsigned char *d = (unsigned char *) data;
+    *d = gameRead();
+    return 0;
+}
+
+static uint64_t arqSysgetPtrToPixel(uint64_t x, uint64_t y, uint64_t color, uint64_t nil1, uint64_t nil2, uint64_t nil3){
+    Color *c = (Color *) color;
+    Color *screenPixel = (Color *) getPtrToPixel(x,y);
+    c->b = screenPixel->b;
+    c->r = screenPixel->r;
+    c->g = screenPixel->g;
+    return 0;
+}
+
+static uint64_t arqSysDrawLine(uint64_t fromX, uint16_t fromY, uint16_t toX, uint16_t toY, uint64_t color, uint64_t nil6){
+    Color *auxColor = (Color *) color;
+    Color auxColor2;
+    auxColor2.b = auxColor->b;
+    auxColor2.g = auxColor->g;
+    auxColor2.r = auxColor->r;
+    scrDrawLine((uint16_t)fromX, (uint16_t)fromY, (uint16_t)toX, (uint16_t)toY, auxColor2);
+    return 0;
+}
+
+static uint64_t arqSysGetPenX(uint64_t x, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5){
+    uint16_t *xAux = (uint16_t *) xAux;
+    *xAux = scrGetPenX();
+    return 0;
+}
+
+
+static uint64_t arqSysGetPenY(uint64_t y, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5){
+    uint16_t *yAux = (uint16_t *) yAux;
+    *yAux = scrGetPenY();
+    return 0;
+}
+
+static uint64_t arqSysChangeFontSize(uint64_t newSize, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5){
+    if(newSize > 0 && newSize < 6)
+        scrChangeFont(newSize);
+    return 0;
+}

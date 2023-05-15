@@ -1,21 +1,18 @@
 include Makefile.inc
 
-MODULE=userlandModule.bin
-SOURCES=$(wildcard [^_]*.c)
-SOURCES_ASM=$(wildcard asm/*.asm)
-OBJECTS_ASM=$(SOURCES_ASM:asm/%.asm=obj/%.asm.o)
+SAMPLE_DATA=0001-terminalDataModule.bin
 
-all: $(MODULE)
+all: terminalCodeModule terminalDataModule
 
-$(MODULE): $(SOURCES) $(OBJECTS_ASM)
-	$(GCC) $(GCCFLAGS) -I./include -T userlandModule.ld _loader.c $(OBJECTS_ASM) $(SOURCES) -o $(MODULE)
+terminalCodeModule:
+	cd terminalCodeModule; make
 
-obj/%.asm.o : asm/%.asm
-	mkdir -p obj
-	$(ASM) $(ASMFLAGS) $< -o $@
+terminalDataModule:
+	printf "This is sample data." >> $(SAMPLE_DATA) && dd if=/dev/zero bs=1 count=1 >> $(SAMPLE_DATA)
 
 clean:
-	rm -rf *.o
-	rm -rf obj
+	cd terminalCodeModule; make clean
+	rm -rf *.bin
 
-.PHONY: all clean print
+
+.PHONY: terminalCodeModule all clean

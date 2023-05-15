@@ -60,8 +60,18 @@ isCharNum: Returns if a character is a number's ASCII value
 int isCharNum(char c);
 
 /*
-numToString: Transforms a number to a string
+numToString: Transforms a number to a string. Returns the number of digits transformed.
 */
-char *numToString(int num, char *buffer, int bufferSize);
+int numToString(int num, char *buffer, int bufferSize);
+
+/*
+decToHex: Transforms an integer number into its hexadecimal representation
+*/
+int decToHex(int num, char *buffer, int bufferSize);
+
+/*
+stringReverse: Reverses the given string.
+*/
+char *stringReverse(char *str);
 
 #endif // _STRING_H_

@@ -1,0 +1,99 @@
+GLOBAL _write
+GLOBAL _read
+GLOBAL _clock
+GLOBAL _clear
+GLOBAL _beep
+GLOBAL _sleep
+GLOBAL _getScreenH
+GLOBAL _getScreenW
+GLOBAL _gameRead
+GLOBAL _getPtrToPixel
+GLOBAL _drawLine
+GLOBAL _getPenX
+GLOBAL _getPenY
+GLOBAL _changeFont
+GLOBAL _memoryDump
+GLOBAL _getRegs
+
+
+_read:
+    mov rax, 0x0
+    int 80h
+    ret
+
+_write:
+    mov rax, 0x1
+    int 80h
+    ret
+
+_clear:
+    mov rax, 0x2
+    int 80h
+    ret
+
+_beep:
+    mov rax, 0x3
+    int 80h
+    ret
+
+_sleep:
+    mov rax, 0x4
+    int 80h
+    ret
+
+_clock:
+    mov rax, 0x5
+    int 80h
+    ret
+
+_getScreenH:
+    mov rax, 0x6
+    int 80h
+    ret
+
+_getScreenW:
+    mov rax, 0x7
+    int 80h
+    ret
+
+_getPtrToPixel:
+    mov rax, 0x8
+    int 80h
+    ret
+
+_gameRead:
+    mov rax, 0x9
+    int 80h
+    ret
+
+
+_drawLine:
+    mov rax, 0xA
+    int 80h
+    ret
+
+_getPenX:
+    mov rax, 0xB
+    int 80h
+    ret
+
+_getPenY:
+    mov rax, 0xC
+    int 80h
+    ret
+
+_changeFont:
+    mov rax, 0xD
+    int 80h
+    ret
+
+_memoryDump:
+    mov rax, 0xE
+    int 80h
+    ret
+
+_getRegs:
+    mov rax, 0xF
+    int 80h
+    ret
+    

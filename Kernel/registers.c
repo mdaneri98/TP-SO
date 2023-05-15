@@ -6,8 +6,13 @@ static uint64_t REGISTERS[16] = {'0'};
 //rdi,rsi,rdx,r10,r8,r9,rax,rbx,rcx,rbp,rsp,r11,r12,r13,r14,r15
 
 
-void getRegisters(){
-    _getRegs();
+void getRegisters(int err){
+    _getregs();
+}
+
+void restore(){
+    _restore(&REGISTERS);//llamo a funcion en asm que devuelve los registros a los valores en los que estaban antes del problema
+                        cada vez que se llame a una fucnion se van a guardar los registros para facilitarlo
 }
 
 uint64_t writeValues(uint64_t rdi, uint64_t rsi,uint64_t rdx,uint64_t r10,uint64_t r8,uint64_t r9,uint64_t r15,uint64_t r14,uint64_t r13,

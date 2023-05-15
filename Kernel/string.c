@@ -60,7 +60,7 @@ void toLower(char *str){
 /*
 stringCopy: Copies content from src to dest and returns its location
 */
-char *stringCopy(char *dest, int destSize,const char *source){
+char *stringCopy(char *dest, int destSize, const char *source){
     char *temp = dest;
     while((*temp++ = *source++) != '\0' || destSize-- != 0);
     *temp = '\0';       // If destSize reached 0
@@ -72,7 +72,7 @@ stringnCopy: Copies n chars from src to dest and returns its location
 */
 char *stringnCopy(char *dest, int destSize, const char *src, int count){
     char *temp = dest;
-    while(count || destSize){
+    while(count && destSize){
         if((*temp = *src) != '\0')
             src++;
         temp++;
@@ -140,10 +140,10 @@ int isCharNum(char c){
 
 
 /*
-numToString: Transforms a number to a string
+numToString: Transforms a number to a string. Returns the number of digits transformed.
 */
-char *numToString(int num, char *buffer, int bufferSize){
-    if(bufferSize <= 0) return 0;
+int numToString(int num, char *buffer, int bufferSize){
+    if(bufferSize < 2) return 0;
 
     if(num == 0) {
         buffer[0] = '0';
@@ -171,4 +171,60 @@ char *numToString(int num, char *buffer, int bufferSize){
         num /= 10;
     }
     return startPos + 1;
+}
+
+/*
+decToHex: Transforms an integer number into its hexadecimal representation
+*/
+int decToHex(int num, char *buffer, int bufferSize){
+    if(bufferSize < 2) return 0;
+
+    if(num == 0){
+        buffer[0] = '0';
+        buffer[1] = '\0';
+        return 1;
+    }
+    int isNeg = 0;
+    if(num < 0){
+        buffer[0] = '-';
+        num *= -1;
+        isNeg = 1;
+    }
+    long aux = num;
+    long digitCount = 0;
+    while(aux > 0){
+        aux /= 16;
+        digitCount++;
+    }
+    long startPos = digitCount + isNeg -1;
+    if(startPos + 1 > bufferSize) return 0;
+    buffer[startPos + 1] = '\0';
+    int remainder;
+    for(int i=0; i < digitCount ;i++){
+        remainder = num % 16;
+        if(remainder < 10)
+            buffer[i] = '0' + (char) remainder;
+        else
+            buffer[i] = 'A' + (char) remainder;
+        num /= 16;
+    }
+    return startPos + 1;
+}
+
+/*
+stringReverse: Reverses the given string.
+*/
+char *stringReverse(char *str){
+    int i;
+    int len = 0;
+    char c;
+    if (!str)
+        return NULL;
+    while(str[len++] != '\0')
+    for(i = 0; i < (len/2); i++){
+        c = str[i];
+        str [i] = str[len - i - 1];
+        str[len - i - 1] = c;
+    }
+    return str;
 }

@@ -2,9 +2,7 @@
 #include <string.h>
 #include <lib.h>
 #include <moduleLoader.h>
-//#include <naiveConsole.h>
 #include <video.h>
-#include <programs.h>
 #include <idtLoader.h>
 #include <time.h>
 
@@ -41,86 +39,27 @@ void * getStackBase()
 
 void * initializeKernelBinary()
 {
-	clearBSS(&bss, &endOfKernel - &bss);
-
-	char buffer[10];
-	scr_printNewline();
-	scr_print("[x64BareBones]");
-	scr_printNewline();
-	scr_print("CPU Vendor: ");
-	scr_print(cpuVendor(buffer));
-	scr_printNewline();
-	scr_print("[Loading modules]");
-	scr_printNewline();
-
 	void * moduleAddresses[] = {
 		sampleCodeModuleAddress,
 		sampleDataModuleAddress
 	};
 
 	loadModules(&endOfKernelBinary, moduleAddresses);
-	scr_print("[Done]");
-	scr_printNewline();
-	scr_printNewline();
-	scr_print(" [Initializing kernel's binary]");
-	scr_printNewline();
-
-	//clearBSS(&bss, &endOfKernel - &bss);
-
-	scr_print(" text: 0x");
-	scr_printHex((uint64_t)&text);
-	scr_printNewline();
-	scr_print(" rodata: 0x");
-	scr_printHex((uint64_t)&rodata);
-	scr_printNewline();
-	scr_print(" data: 0x");
-	scr_printHex((uint64_t)&data);
-	scr_printNewline();
-	scr_print(" bss: 0x");
-	scr_printHex((uint64_t)&bss);
-	scr_printNewline();
-	scr_print("[Done]");
-	scr_printNewline();
-	scr_printNewline();
+	clearBSS(&bss, &endOfKernel - &bss);
 	return getStackBase();
 }
 
 int main()
 {	
 	load_idt();
-
-	sleep(2000);
+	
+	scrPrint("Starting console...");
+	sleep(1000);
 
 	scr_clear();
 
-	scr_print("[Kernel Main]");
-	scr_printNewline();
-	scr_print(" Sample code module at 0x");
-	scr_printHex((uint64_t)sampleCodeModuleAddress);
-	scr_printNewline();
-	scr_print(" Calling the sample code module returned: ");
-	scr_printHex(((EntryPoint)sampleCodeModuleAddress)());
-	scr_printNewline();
-	scr_printNewline();
-
-	scr_print("  Sample data module at 0x");
-	scr_printHex((uint64_t)sampleDataModuleAddress);
-	scr_printNewline();
-	scr_print("  Sample data module contents: ");
-	scr_print((char*)sampleDataModuleAddress);
-	scr_printNewline();
-	clock();
-	scr_printNewline();
-
-	scr_print("[Finished]");
-	scr_printNewline();
-	scr_printNewline();
-	sleep(1500);
+	((EntryPoint)sampleCodeModuleAddress)();
 	
-	//scr_clear();
-	scr_print(PROMPT);
-	
-	while(1);
 
 	return 0;
 }

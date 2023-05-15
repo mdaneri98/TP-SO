@@ -1,7 +1,4 @@
 GLOBAL cpuVendor
-GLOBAL kbFlag
-GLOBAL hasKey
-GLOBAL readKey
 GLOBAL _hours
 GLOBAL _seconds
 GLOBAL _minutes
@@ -9,47 +6,7 @@ GLOBAL _setPIT
 GLOBAL _setFrequency
 GLOBAL _getSound
 GLOBAL _playSound
-GLOBAL _getregs
-EXTERN scr_print
-;;EXTERN writeValues
 section .text
-
-%macro pushState 0
-	push rax
-	push rbx
-	push rcx
-	push rdx
-	push rbp
-	push rdi
-	push rsi
-	push r8
-	push r9
-	push r10
-	push r11
-	push r12
-	push r13
-	push r14
-	push r15
-%endmacro
-
-%macro popState 0
-	pop r15
-	pop r14
-	pop r13
-	pop r12
-	pop r11
-	pop r10
-	pop r9
-	pop r8
-	pop rsi
-	pop rdi
-	pop rbp
-	pop rdx
-	pop rcx
-	pop rbx
-	pop rax
-%endmacro
-	
 cpuVendor:
 	push rbp
 	mov rbp, rsp
@@ -71,48 +28,6 @@ cpuVendor:
 	mov rsp, rbp
 	pop rbp
 	ret
-
-
-hasKey:
-	push rbp
-    mov rbp, rsp
-    
-	mov rax, 0
-	in al,0x64
-	and al, 0x01
-
-	mov rsp, rbp
-    pop rbp
-    ret
-
-readKey:
-    push rbp
-    mov rbp, rsp
-    
-	in al,0x60
-
-	mov rsp, rbp
-    pop rbp
-    ret
-
-
-kbFlag:
-    push rbp
-    mov rbp, rsp
-      
-    mov rax,0
-loop:    
-	in al,0x64       
-    mov cl,al
-    and al,0x01       
-    cmp al,0
-    je loop
-    
-	in al,0x60
-       
-    mov rsp, rbp
-    pop rbp
-    ret
 
 _seconds:
 	mov al, 0		; seconds.
@@ -180,5 +95,3 @@ _playSound:
 	mov rsp, rbp
 	pop rbp
 	ret
-section .rodata
-	string 			db "I got here owo", 0

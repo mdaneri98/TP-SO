@@ -23,7 +23,6 @@ static void playSound(uint64_t frequency){
     _setFrequency((uint8_t)(div >> 8));
 
     tmp = _getSound();
-    scr_printHex(tmp);
   	if (tmp != (tmp | 3)) {
  		_playSound(tmp);
  	}
@@ -31,8 +30,6 @@ static void playSound(uint64_t frequency){
 
 static void noSound(){
     uint8_t tmp = _getSound() & 0xFC;
-
-    scr_printHex(tmp);
 
     _playSound(tmp);
 }
