@@ -2,24 +2,26 @@
 
 
 typedef struct MemoryManagerCDT {
-	char *nextAddress;
-    char *limit;
+	uint8_t *nextAddress;
+    uint8_t *limit;
 } MemoryManagerCDT;
 
-MemoryManagerADT createMemoryManager(void *const restrict memoryForMemoryManager, void *const restrict managedMemory, void *const restrict limit) {
-	MemoryManagerADT memoryManager = (MemoryManagerADT) memoryForMemoryManager;
-	memoryManager->nextAddress = managedMemory;
-    memoryManager->limit = limit;
+MemoryManagerADT createMemoryManager(void *const restrict memoryForMemoryManager, void *const restrict managedMemory, uint64_t size) {
+    MemoryManagerADT memoryManager = (MemoryManagerADT) memoryForMemoryManager;
+	memoryManager->nextAddress = (uint8_t *)managedMemory;
+    memoryManager->limit = (uint8_t *)((uint64_t)managedMemory + size);
 
 	return memoryManager;
 }
 
 void *allocMemory(MemoryManagerADT const memoryManager, const uint64_t memoryToAllocate) {
-	char *allocation = NULL;
-    if(((uint64_t) memoryManager->nextAddress + memoryToAllocate) < (uint64_t) memoryManager->limit)
-         allocation = memoryManager->nextAddress;
-    else
+	uint8_t *allocation = NULL;
+    if(((uint64_t) memoryManager->nextAddress + memoryToAllocate) < (uint64_t) memoryManager->limit){
+        allocation = memoryManager->nextAddress;
+    }
+    else{
         return (void *)allocation;
+    }
 
 	memoryManager->nextAddress += memoryToAllocate;
 
@@ -27,7 +29,7 @@ void *allocMemory(MemoryManagerADT const memoryManager, const uint64_t memoryToA
 }
 
 void freeMemory(MemoryManagerADT const restrict memoryManager, void *const restrict memoryToFree, const uint64_t memorySize){
-    char *aux = (char* ) ((uint64_t) memoryToFree + memorySize);
+    uint8_t *aux = (uint8_t* ) ((uint64_t) memoryToFree + memorySize);
     while(aux < memoryManager->nextAddress){
         *(aux - memorySize) = *aux;
         aux++;
