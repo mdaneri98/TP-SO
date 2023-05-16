@@ -204,11 +204,12 @@ void scrPrintStringWithColor(char *str, Color color){
 void scr_backspace(){
     if(penX < 0x00 && penY == CHAR_HEIGHT*fontSize) // Está en el inicio de la pantalla, no se puede hacer balckspace
         return;
-    penX -= CHAR_WIDTH*fontSize;
-    if (penX < 0x00){
+    int aux = (long) penX;
+    if(aux - CHAR_WIDTH*fontSize < 0){
         penX = screenData->width - CHAR_WIDTH*fontSize;
         penY = penY - CHAR_HEIGHT*fontSize;
-    }
+    } else
+        penX-=CHAR_WIDTH*fontSize;
     Color black = {0x00, 0x00, 0x00};
     for (int h=0; h<CHAR_HEIGHT*fontSize; h++) {
         Color* pos = (Color*)getPtrToPixel(penX, penY+h);

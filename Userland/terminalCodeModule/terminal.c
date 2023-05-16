@@ -6,7 +6,7 @@
 #include <tron.h>
 
 #define BUFFER_MAX_LENGTH 250
-#define CMDS_COUNT 13
+#define CMDS_COUNT 12
 #define MAX_ARGS_COUNT 5
 #define PROMPT "(^: "
 #define MAX_LINES 50
@@ -237,12 +237,12 @@ static void loadCommands() {
     commandsName[10] = "invalidopcodeexception";
     commandsDesc[10] = "Causes an Invalid-OpCode exception. WARNING: this will restart the shell.";
     commandsFunction[10] = invalidOpCode;
-    commandsName[11] = "pagefaultexception";
-    commandsDesc[11] = "Causes an Page Fault exception. WARNING: this will restart the shell.";
-    commandsFunction[11] = pageFault;
-    commandsName[12] = "help";
-    commandsDesc[12] = "Prints the help manual for using the terminal.";
-    commandsFunction[12] = help;
+    // commandsName[11] = "pagefaultexception";
+    // commandsDesc[11] = "Causes an Page Fault exception. WARNING: this will restart the shell.";
+    // commandsFunction[11] = pageFault;
+    commandsName[11] = "help";
+    commandsDesc[11] = "Prints the help manual for using the terminal.";
+    commandsFunction[11] = help;
 }
 
 static void clearLine(char *line){
