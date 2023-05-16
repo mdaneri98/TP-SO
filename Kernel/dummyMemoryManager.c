@@ -34,3 +34,11 @@ void freeMemory(MemoryManagerADT const restrict memoryManager, void *const restr
     }
     memoryManager->nextAddress -= memorySize;
 }
+
+uint64_t getFreeMemoryAmount(MemoryManagerADT const restrict memoryManager){
+    return (uint64_t) memoryManager->limit - (uint64_t) memoryManager->nextAddress;
+}
+
+uint64_t getUsedMemoryAmount(MemoryManagerADT const restrict memoryManager){
+    return (uint64_t) memoryManager->nextAddress - (uint64_t) memoryManager;
+}
