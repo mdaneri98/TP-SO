@@ -3,6 +3,7 @@
 
 #define TRUE 1
 #define FALSE 0
+#define BLOCK_SIZE 4096
 
 typedef struct node{
     struct node *next;
@@ -47,7 +48,13 @@ void *allocMemory(const uint64_t memoryToAllocate){
             // We have to check if we can split the node
             if(currentNode->memSize > memoryToAllocate + sizeof(node_t)){
                 // We can split the node
-                node_t *newNode = (node_t *)((uint64_t)currentNode + sizeof(node_t) + memoryToAllocate);
+                node_t *newNode;
+                if(memoryToAllocate + sizeof(node_t) % BLOCK_SIZE == 0){
+                    newNode = (node_t *)((uint64_t)currentNode + sizeof(node_t) + memoryToAllocate);
+                } else{
+                    // We force the memory to have a fixed size of n blocks of 4kBytes
+                    newNode = (node_t *)((uint64_t) currentNode + ((sizeof(node_t) + memoryToAllocate)/BLOCK_SIZE)*BLOCK_SIZE + BLOCK_SIZE);
+                }
                 newNode->next = currentNode->next;
                 newNode->prev = currentNode;
                 newNode->memSize = currentNode->memSize - memoryToAllocate - sizeof(node_t);
