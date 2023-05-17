@@ -1,5 +1,5 @@
 #ifndef DUMMY_MEMORY_MANAGER_H
-#define DUMMY_MEMORY_MANAGER
+#define DUMMY_MEMORY_MANAGER_H
 
 #include <stdint.h>
 
