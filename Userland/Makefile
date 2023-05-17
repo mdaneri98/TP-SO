@@ -13,6 +13,7 @@ terminalDataModule:
 clean:
 	cd terminalCodeModule; make clean
 	rm -rf *.bin
+	rm -rf *.elf
 
 
 .PHONY: terminalCodeModule all clean

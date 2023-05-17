@@ -1,3 +1,7 @@
+
+#Random files
+*.elf
+
 #Binary Files
 *.bin
 *.sys
