@@ -1,5 +1,6 @@
 // ALL THE MEMORY MANAGEMENT IS SUPPOSED TO BE MANAGED LOCALLY IN THIS SOURCE CODE
 #include <freeListMemoryManager.h> 
+#include <lib.h>
 
 #define TRUE 1
 #define FALSE 0
@@ -13,7 +14,7 @@ typedef struct node{
 } node_t;
 
 typedef struct list{
-    node_t head;
+    node_t *head;
 } list_t;
 
 
@@ -34,33 +35,34 @@ void createDefaultMemoryManager(void *const restrict init, uint64_t size) {
     memoryManager.totalMemory = size;
     memoryManager.usedMemory = 0;
     // The first element of this freeList is the node containing the root of the memory
-    memoryManager.freeList.head.next = (node_t *)((uint64_t)init + sizeof(node_t));
-    memoryManager.freeList.head.prev = (node_t *)((uint64_t)init + sizeof(node_t));
-    memoryManager.freeList.head.memSize = 0;
-    memoryManager.freeList.head.isFree = FALSE;
+    memoryManager.freeList.head = (node_t *)init;
+    memoryManager.freeList.head->next = (node_t *)((uint64_t)init + sizeof(node_t));
+    memoryManager.freeList.head->prev = NULL;
+    memoryManager.freeList.head->memSize = 0;
+    memoryManager.freeList.head->isFree = FALSE;
+
+    // We add a final value to the last node (in this case the whole memory), and the previous memory value (root)
+    memoryManager.freeList.head->next->next = NULL;
+    memoryManager.freeList.head->next->prev = memoryManager.freeList.head;
 }
 
 void *allocMemory(const uint64_t memoryToAllocate){
-    node_t *currentNode = memoryManager.freeList.head.next;
+    node_t *currentNode = memoryManager.freeList.head->next;
+    // We force the memory to have a fixed size of n blocks of 4kBytes
+    uint64_t blocksToAllocate = memoryToAllocate + sizeof(node_t) % BLOCK_SIZE == 0 ? sizeof(node_t) + memoryToAllocate : ((sizeof(node_t) + memoryToAllocate)/BLOCK_SIZE)*BLOCK_SIZE + BLOCK_SIZE;
     while(currentNode != NULL){
-        if(currentNode->isFree && currentNode->memSize >= memoryToAllocate){
+        if(currentNode->isFree && currentNode->memSize >= blocksToAllocate){
             // If the node is free and has enough memory, we can allocate it
             // We have to check if we can split the node
-            if(currentNode->memSize > memoryToAllocate + sizeof(node_t)){
+            if(currentNode->memSize > blocksToAllocate){
                 // We can split the node
-                node_t *newNode;
-                if(memoryToAllocate + sizeof(node_t) % BLOCK_SIZE == 0){
-                    newNode = (node_t *)((uint64_t)currentNode + sizeof(node_t) + memoryToAllocate);
-                } else{
-                    // We force the memory to have a fixed size of n blocks of 4kBytes
-                    newNode = (node_t *)((uint64_t) currentNode + ((sizeof(node_t) + memoryToAllocate)/BLOCK_SIZE)*BLOCK_SIZE + BLOCK_SIZE);
-                }
+                node_t *newNode = (node_t *)((uint64_t) currentNode + blocksToAllocate);
                 newNode->next = currentNode->next;
                 newNode->prev = currentNode;
-                newNode->memSize = currentNode->memSize - memoryToAllocate - sizeof(node_t);
+                newNode->memSize = currentNode->memSize - blocksToAllocate;
                 newNode->isFree = TRUE;
                 currentNode->next = newNode;
-                currentNode->memSize = memoryToAllocate;
+                currentNode->memSize = blocksToAllocate - sizeof(node_t);
             }
             currentNode->isFree = FALSE;
             memoryManager.freeMemory -= currentNode->memSize;
@@ -70,6 +72,23 @@ void *allocMemory(const uint64_t memoryToAllocate){
         currentNode = currentNode->next;
     }
     return NULL;
+}
+
+void *reAllocMemory(void *const restrict memoryToRealloc, uint64_t newSize){
+    node_t *currentNode = (node_t *)((uint64_t)memoryToRealloc - sizeof(node_t));
+    // If the new size isn't actually bigger than the amount we given in the first place
+    if(currentNode->memSize > newSize){
+        return memoryToRealloc;
+    }
+    void *newAllocation = allocMemory(newSize);
+    node_t *newNode = (node_t *)((uint64_t)newAllocation - sizeof(node_t));
+    if(newAllocation == NULL){
+        freeMemory(memoryToRealloc);
+        return NULL;
+    }
+    memcpy(newAllocation, memoryToRealloc,  newNode->memSize > currentNode->memSize ? newNode->memSize : currentNode->memSize);
+    freeMemory(memoryToRealloc);
+    return (void *)((uint64_t)currentNode + sizeof(node_t));
 }
 
 void freeMemory(void *const restrict memoryToFree){
