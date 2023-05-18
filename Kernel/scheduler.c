@@ -6,28 +6,25 @@ typedef struct ProcessControlBlockCDT {
     char* name;
     int id;
     int priority;
-    int stack;
     char foreground;
     ProcessState state;
     uint64_t stack;
-    uint64_t base;
-    uint64_t counter;
-
 } ProcessControlBlockCDT;
 
 typedef struct node {
     struct node *next;
-    struct node *prev;
     ProcessControlBlockCDT pcbEntry;
 } node_t;
 
 typedef struct list {
     node_t head;
+    node_t current;
 } list_t;
 
 list_t linkedList;
 
 uint32_t entriesCount = 0;
+char firstTime = 1;
 
 
 ProcessControlBlockCDT createInit() {
@@ -43,28 +40,74 @@ ProcessControlBlockCDT createInit() {
 
 
 
-void startScheduler() {
-    linkedList.head.next = NULL;
-    linkedList.head.prev = NULL;
+
+void init() {
+    
     
 
 }
 
-void add() {
+// ----------- Implementación Round-Robin sin prioridad ----------------
 
+void add(ProcessControlBlockCDT newEntry) {
     node_t *current = &linkedList.head;
     while (current->next != NULL) {
         current = current->next;
     }
 
-    
-    
+    node_t *newNode = &current + sizeof(ProcessControlBlockCDT);
 
+    newNode->pcbEntry.id = newEntry.id;
+    newNode->pcbEntry.name = newEntry.name;
+    newNode->pcbEntry.priority = newEntry.priority;
+    newNode->pcbEntry.stack = newEntry.stack;
+    newNode->pcbEntry.state = newEntry.state;
 
+    current->next = newNode;
+    newNode->next = NULL;
 }
 
-void next() {
+/*
+El siguiente proceso a ejecutar será:
+    1. El primer next que esté en estado READY.
+    2. El head si no hay next al current.
+*/
+ProcessControlBlockCDT next() {
+    node_t *head = &linkedList.head;
+    node_t *current = &linkedList.current;
 
+    // Si estamos en el último nodo, nos movemos al inicio.
+    if (current->next == NULL) {
+        current = &linkedList.head;
+    }
+
+    while (current->next != NULL && current->pcbEntry.state != READY) {
+        current = current->next;
+
+        /* Si es el último nodo, y no está READY, volvemos al inicio. */
+        if (current->next == NULL) {
+            if (current->pcbEntry.state != READY) {
+                current = &linkedList.head;
+            }
+        }
+    }
+    linkedList.current = *current;
+
+    return linkedList.current.pcbEntry;
 }
 
+
+
+void scheduler() {
+    /* La primera vez que se ejecuta el scheduler, debe iniciar el proceso init */
+    if (firstTime) {
+        init();
+        firstTime = 0;
+    }
+
+    ProcessControlBlockCDT pcbEntry = next();
+    
+    //Falta
+
+}
 
