@@ -1,5 +1,7 @@
 include Makefile.inc
 
+TARGET:=all
+
 KERNEL=kernel.bin
 SOURCES=$(wildcard *.c)
 SOURCES_ASM=$(wildcard asm/*.asm)
@@ -7,10 +9,21 @@ OBJECTS=$(SOURCES:.c=.o)
 OBJECTS_ASM=$(SOURCES_ASM:.asm=.o)
 LOADERSRC=loader.asm
 
+ifeq ($(TARGET), all)
+	EXCLUDED := dummyMemoryManager.c dummyMemoryManager.o
+else ifeq ($(TARGET), buddy)
+	EXCLUDED := freeListMemoryManager.c freeListMemoryManager.o
+endif
+
+SOURCES:=$(filter-out $(EXCLUDED), $(SOURCES))
+OBJECTS:=$(filter-out $(EXCLUDED), $(OBJECTS))
+
 LOADEROBJECT=$(LOADERSRC:.asm=.o)
 STATICLIBS=
 
 all: $(KERNEL)
+
+buddy: $(KERNEL)
 
 $(KERNEL): $(LOADEROBJECT) $(OBJECTS) $(STATICLIBS) $(OBJECTS_ASM)
 	$(LD) $(LDFLAGS) -T kernel.ld -o $(KERNEL) $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM) $(STATICLIBS)
