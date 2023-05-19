@@ -3,8 +3,6 @@
 #include <freeListMemoryManager.h>  //FIXME: Debería ser uno general.
 #include <process.h>
 
-typedef (*processFunc)(int, char **);
-
 static uint64_t currentId = 0;
 
 typedef struct ProcessControlBlockCDT {
@@ -68,6 +66,11 @@ uint64_t sysFork(){
     return 0;
 }
 
+void sysExecve(processFunc process, int argc, char *argv[]){
+    ProcessControlBlockCDT currentProcess = linkedList.current.pcbEntry;
+    uint64_t stack = currentProcess.stack;
+    setProcess(process, argc, argv, stack);
+}
 
 void init() {
     

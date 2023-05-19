@@ -8,15 +8,14 @@
 extern char bss;
 extern char endOfBinary;
 
-int main();
-
 void * memset(void * destiny, int32_t c, uint64_t length);
 
-int _start() {
-	//Clean BSS
-	memset(&bss, 0, &endOfBinary - &bss);
-	return main();
+typedef int (*processFunc)(int, char **);
 
+void _start(processFunc process, int argc, char argv[]) {
+	int returnValue = process(argc, &argv);
+	// We need to implement the exit syscall
+	// exit(return);
 }
 
 void * memset(void * destiation, int32_t c, uint64_t length) {

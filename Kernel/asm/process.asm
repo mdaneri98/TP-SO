@@ -48,3 +48,15 @@ copyState:
     mov rsp, rbp
     pop rbp
     ret
+
+
+;---------------------------------------------------------------------------------------------------|
+; Func setProcess: Prepares the current process' image to be replaced by a new process              |
+;    args:                                                                                          |
+;       -rdi: Location of the pointer of the Target stack                                           |
+;       -rsi: Pointer of the Source stack                                                           |
+;   return: void                                                                                    |
+;---------------------------------------------------------------------------------------------------|
+
+section .rodata
+	userSpace dq 0x400000   ; _start wrapper address
