@@ -12,8 +12,8 @@ void * memset(void * destiny, int32_t c, uint64_t length);
 
 typedef int (*processFunc)(int, char **);
 
-void _start(processFunc process, int argc, char argv[]) {
-	int returnValue = process(argc, &argv);
+void _start(processFunc process, int argc, char *argv[]) {
+	int returnValue = process(argc, argv);
 	// We need to implement the exit syscall
 	// exit(return);
 }

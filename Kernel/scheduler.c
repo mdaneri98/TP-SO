@@ -42,9 +42,12 @@ ProcessControlBlockCDT createInit() {
     pcbEntry->state = RUNNING;
 }
 
-uint64_t sysFork(){
+int sysFork(){
     ProcessControlBlockCDT entry;
     void *newStack = allocMemory(4096);
+    if(newStack == NULL){
+        return -1;
+    }
     copyState(&newStack, linkedList.current.pcbEntry.stack);
     entry.stack = newStack;
     entry.name = linkedList.current.pcbEntry.name;
@@ -66,10 +69,13 @@ uint64_t sysFork(){
     return 0;
 }
 
-void sysExecve(processFunc process, int argc, char *argv[]){
+int sysExecve(processFunc process, int argc, char *argv[], uint64_t rsp){
     ProcessControlBlockCDT currentProcess = linkedList.current.pcbEntry;
-    uint64_t stack = currentProcess.stack;
-    setProcess(process, argc, argv, stack);
+    
+
+    // IT ONLY SETUPS THE PROCESS CORRECTLY IF ITS CALLED BY THE SYSCALL, U NEED TO SET THE STACK
+    //BEFORE USING IT WITH INIT OR ANY FUNCTIONALITY THAT USES THIS FUNCTION WITHOUT USING THE SYSCALL
+    return setProcess(process, argc, argv, rsp);
 }
 
 void init() {
