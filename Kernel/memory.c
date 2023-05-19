@@ -16,11 +16,6 @@ int getRegistersInfo(uint64_t* buffer) {
     return 1;
 }
 
-void savereg(uint64_t * regInfo) {
-    // backup = regInfo;
-    // madeBackup = 1;
-}
-
 void printMemory(uint64_t *direction, uint8_t buffer[32]) {
     uint8_t *memory = (uint8_t *) direction;
     for(int i=0; i<32 ;i++){

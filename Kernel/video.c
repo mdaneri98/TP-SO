@@ -76,7 +76,7 @@ uint16_t scrGetPenY(void) {
     return penY;
 }
 
-void scr_clear(void) {
+void scrClear(void) {
     uint8_t *pos = (uint8_t*)((uint64_t)screenData->framebuffer);
     for (uint32_t len = bytesPerPixel * (uint32_t)screenData->width * screenData->height; len; len--, pos++)
         *pos = 0;
@@ -84,7 +84,7 @@ void scr_clear(void) {
     penY = 0;
 }
 
-void scr_setPixel(uint16_t x, uint16_t y, Color color) {
+void scrSetPixel(uint16_t x, uint16_t y, Color color) {
     if (x >= screenData->width || y >= screenData->height)
         return;
 
@@ -92,7 +92,7 @@ void scr_setPixel(uint16_t x, uint16_t y, Color color) {
     *pos = color;
 }
 
-void scr_drawRect(uint16_t x, uint16_t y, uint16_t width, uint16_t height, Color color) {
+void scrDrawRect(uint16_t x, uint16_t y, uint16_t width, uint16_t height, Color color) {
     if (x >= screenData->width || y >= screenData->height)
         return;
     
@@ -135,7 +135,7 @@ void scrDrawLine(uint16_t fromX, uint16_t fromY, uint16_t toX, uint16_t toY, Col
         if (toX >= screenData->width) toX = screenData->width - 1;
 
         for (uint16_t x = fromX; x <= toX; x++)
-            scr_setPixel(x, (uint16_t)(m*x+b + 0.5), color);
+            scrSetPixel(x, (uint16_t)(m*x+b + 0.5), color);
     } else {
         // We draw the line iterating vertically.
         // We ensure fromY < toY by swapping the points if necessary.
@@ -155,11 +155,11 @@ void scrDrawLine(uint16_t fromX, uint16_t fromY, uint16_t toX, uint16_t toY, Col
         if (toY >= screenData->height) toY = screenData->height - 1;
 
         for (uint16_t y = fromY; y <= toY; y++)
-            scr_setPixel((uint16_t)(m*y+b + 0.5), y, color);
+            scrSetPixel((uint16_t)(m*y+b + 0.5), y, color);
     }
 }
 
-void scr_setPenPosition(uint16_t x, uint16_t y) {
+void scrSetPenPosition(uint16_t x, uint16_t y) {
     // We clamp the pen (x,y) to ensure there is enough space to draw a char in that position.
     uint16_t maxX = screenData->width - CHAR_WIDTH*fontSize;
     uint16_t maxY = screenData->height - CHAR_HEIGHT*fontSize;
@@ -168,11 +168,11 @@ void scr_setPenPosition(uint16_t x, uint16_t y) {
     penY = y < maxY ? y : maxY;
 }
 
-void scr_setPenColor(Color color) {
+void scrSetPenColor(Color color) {
     penColor = color;
 }
 
-void scr_printNewline(void) {
+void scrPrintNewline(void) {
     penX = 0; // pen x is set to full left.
 
     // If there is space for another line, we simply advance the pen y. Otherwise, we move up the entire screen and clear the lower part.
@@ -194,15 +194,13 @@ void scr_printNewline(void) {
 
 void scrPrintStringWithColor(char *str, Color color){
     Color defaultColor = penColor;
-    scr_setPenColor(color);
+    scrSetPenColor(color);
     scrPrint(str);
-    scr_setPenColor(defaultColor);
+    scrSetPenColor(defaultColor);
 }
 
-// Lo tengo que terminar de implementar, el 
-//cursor se mueve bien pero tengo que ver como pintar de negro todo el pixel
-void scr_backspace(){
-    if(penX < 0x00 && penY == CHAR_HEIGHT*fontSize) // Está en el inicio de la pantalla, no se puede hacer balckspace
+void scrBackspace(){
+    if(penX < 0x00 && penY == CHAR_HEIGHT*fontSize)
         return;
     int aux = (long) penX;
     if(aux - CHAR_WIDTH*fontSize < 0){
@@ -218,13 +216,13 @@ void scr_backspace(){
     }
 }
 
-void scr_printChar(char c) {
+void scrPrintChar(char c) {
     if (c == '\n') {
-        scr_printNewline();
+        scrPrintNewline();
         return;
     }
     if (c == '\b'){
-        scr_backspace();
+        scrBackspace();
         return;
     }
     if(c == '\t'){
@@ -267,23 +265,17 @@ void scr_printChar(char c) {
 
     penX += CHAR_WIDTH*fontSize;
     if (penX > screenData->width - CHAR_WIDTH*fontSize)
-        scr_printNewline();
+        scrPrintNewline();
 }
 
 uint32_t scrPrint(char* s) {
     for (; *s != 0; s++)
-		scr_printChar(*s);
+		scrPrintChar(*s);
     return penX | ((uint32_t)penY << 16);
 }
 
-/*uint32_t scr_println(char* s) {
-    scrPrint(s);
-    scr_printNewline();
-    return penX | ((uint32_t)penY << 16);
-}*/
-
-void scr_printHex(uint64_t value){
-    scr_printBase(value,16);
+void scrPrintHex(uint64_t value){
+    scrPrintBase(value,16);
 }
 
 static uint32_t toBase(uint64_t value, char * buffer, uint32_t base)
@@ -319,7 +311,7 @@ static uint32_t toBase(uint64_t value, char * buffer, uint32_t base)
 	return digits;
 }
 
-void scr_printBase(uint64_t value, uint32_t base)
+void scrPrintBase(uint64_t value, uint32_t base)
 {
     toBase(value, buffer, base);
     scrPrint(buffer);

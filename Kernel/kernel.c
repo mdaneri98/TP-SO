@@ -15,7 +15,7 @@ extern uint8_t endOfKernel;
 
 static const uint64_t PageSize = 0x1000;
 
-static const int LOCK;
+static const int lock;
 
 static void * const sampleCodeModuleAddress = (void*)0x400000;
 static void * const sampleDataModuleAddress = (void*)0x500000;
@@ -51,12 +51,22 @@ void * initializeKernelBinary()
 
 int main()
 {	
+	// Hay que inicializar el memory manager del userSpace antes de que siquiera entre en juego el 
+	//timer tick, se puede dar la race condition de que ejecute el scheduler con memoria que no está inicializada
+	// createMemoryManager(((uint64_t)getStackBase() - PageSize), (uint64_t)&endOfKernel + PageSize * 7 - sizeof(uint64_t));
+	// La función getStackBase obtiene la base del stack a partir de la finalización del binario del Kernel
+	//se entra con este valor a la función Main del kernel, la idea sería dejarle una página al kernel para que tenga su
+	//stack asegurado de que ningún otro proceso pueda pisarlo, pero no sé si eso es correcto hacer esto último, dejaría
+	//disponible para el espacio de usuario un total de 7 páginas para que use, es decir, si usamos el tamaño por defecto
+	//de nuestra memoria actual, en el momento en el que se hagan más de 7 peticiones de memoria en simultáneo, cagamos xd
+	//hay que averiguar si hay alguna forma de expandir ese número, o reducir el tamaño del bloque de memoria que se reserva
+
 	load_idt();
 	
 	scrPrint("Starting console...");
 	sleep(1000);
 
-	scr_clear();
+	scrClear();
 
 	((EntryPoint)sampleCodeModuleAddress)();
 	

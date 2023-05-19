@@ -13,7 +13,6 @@
  * @return int   : Si no hubo un guardado de registros anteriormente, se retorna 0. Caso contrario, 1. 
  */
 int getRegistersInfo(uint64_t* buffer);
-void savereg(uint64_t * regInfo);
 void printMemory(uint64_t *direction, uint8_t buffer[]);
 
 

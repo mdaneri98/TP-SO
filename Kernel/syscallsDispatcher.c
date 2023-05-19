@@ -37,7 +37,7 @@ static uint64_t arqSysGetPenY(uint64_t y, uint64_t nil1, uint64_t nil2, uint64_t
 static uint64_t arqSysChangeFontSize(uint64_t newSize, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5);
 
 
-typedef uint64_t (*SyscallVec)(uint64_t arg0, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5);
+typedef uint64_t (*SyscallVec)(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t r9);
 
 // SYSCALLS ARRAY
 static SyscallVec syscalls[TOTAL_SYSCALLS];
@@ -63,8 +63,8 @@ void set_SYSCALLS(){
     syscalls[15] = (SyscallVec) arqSysGetRegistersInfo;
 }
 
-uint64_t syscallsDispatcher(uint64_t nr, uint64_t arg0, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5) {    
-    uint64_t toReturn = syscalls[nr](arg0, arg1, arg2, arg3, arg4, arg5);
+uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t r9) {    
+    uint64_t toReturn = syscalls[rax](rdi, rsi, rdx, r10, r8, r9);
     return toReturn;
 }
 
@@ -135,7 +135,7 @@ static uint64_t arqSysGetRegistersInfo(uint64_t buffer, uint64_t nil1, uint64_t 
 // Clear
 static uint64_t arqSysClear(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6){
     resetBuffer();
-    scr_clear();
+    scrClear();
     return 0;
 }
 

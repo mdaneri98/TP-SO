@@ -8,20 +8,15 @@
 #define PRINT 47
 #define R_SHIFT 0x36
 #define L_SHIFT 0x2A
-#define ERR_MSG "UNMAPPED KEY REQUESTED"
-#define CMD_MSG ":IS NOT A COMMAND"
 #define BUFFER_DIM 512
 #define ERROR -1
 
 static int isBuffEmpty();
 static int isMapped(unsigned char key);
-static void MapError();
 static void tab();
-static int lockChange(int current);
 static int getLength();
 static void shift();
 static void capsLock();
-static void backspace();
 static int isArrow(int index);
 static int isCapslock(int index);
 static int isBuffEmpty();
@@ -66,10 +61,10 @@ const unsigned char SCAN_CODES[CODES] = {   0x1E,0x30,0x2E,0x20,0x12,0x21,0x22,0
                                             0x39,0x1C,0x0E,0x3A,0x0F,0x48,0x4B,0x4D,0x50};
 
 
-static int LOCK = 0;
-static int SHIFT = 0;
-static char BUFFER[BUFFER_DIM] = "\0";
-static int LINE_LENGTH = 0;
+static int lock = 0;
+static int shiftKey = 0;
+static char buffer[BUFFER_DIM] = "\0";
+static int lineLength = 0;
 /*SCAN CODES
 0x01    esc             0x02    1           0x03    2       0x04    3               0x05    4           0x06    5             (implementada)
 0x07    6               0x08    7           0x09    8         0x0A    9               0x0B    0           0x0C    -           (implementada)
@@ -95,106 +90,11 @@ KEYPAD:
 0x53     .              0x37     *
 */
 
-static int isMapped(unsigned char key){
-    for(int i = 0; i < CODES;i++){
-        if(SCAN_CODES[i] == key){
-            return i;
-        }
-        
-    }
-    return ERROR;
-}
-
-static void MapError(){
-   scrPrint(ERR_MSG);
-}
-
-static void tab(){
-    for(int i = 0;i < 4;i++){
-        scr_printChar(' ');
-    }
-}
-
-static int lockChange(int current){
-    if(current == 1){
-        return 0;//apaga caps lock
-    }
-    return 1;//prende caps lock
-}
-
-static int getLength(){
-    return LINE_LENGTH;
-}
-
-
-static void shift(){
-    SHIFT = !SHIFT;
-}
-
-static void capsLock(){
-    if(LOCK == 1){
-        LOCK = 0;
-        //scrPrint("LOCK DESACTIVADO");
-    }else{
-        LOCK = 1;
-        // scrPrint("LOCK ACTIVADO");
-    }
-}
-
-
-static void backspace(){
-    // if(lineCount > 0){
-    // EL LINECOUNT AHORA SE DEBERIA MIRAR EN LA CONSOLA
-        scr_backspace();
-        //   LINE[LINE_LENGTH] = '\0';
-        // LINE_LENGTH -= 1;
-    // }
-}
-
-
-// int toNum(int idx){
-//     return charToNum(LINE[idx]);
-// }
-
-static int isArrow(int index){
-    return index > 51;
-}
-
-/**
- * @read
- *
- * @param buff
- * @param c
- * @return los bytes reales volcados en buff
- *
- * Dado el buffer interno del keyboard, el cual guarda las teclas ANSII presionadas, la función
- * read lee de tal buffer los ultimos c valores del buffer interno y los vuelca en buff de
- * principio a fin.
- */
-// int read(char* buff, int c) {
-//     if (LINE_LENGTH == 0)
-//         return 0;
-    
-//     int i; // Una vez volcados los bytes, i no debe ser modificado.
-//     int j;
-//     for (j = 0, i = 0; i < c && i < LINE_LENGTH; i++, j++) {
-//         buff[i] = LINE[j];
-//     }
-
-//     for (j = 0; j < LINE_LENGTH-1; j++) {
-//         LINE[j] = LINE[j+i];
-//     }
-
-//     LINE_LENGTH -= i;
-    
-//     return i;
-// }
-
-
 void addKey(uint8_t alKey) {
     unsigned char key = (unsigned char) alKey;
     char item;
-    //verificar si es un caracter mapeado
+
+    // Check whether a character is mapped or not
     if(key > 0x80){
         if((key == R_SHIFT + 0x80) || (key == L_SHIFT + 0x80)){
             shift();
@@ -206,105 +106,58 @@ void addKey(uint8_t alKey) {
     }
     int idx = isMapped(key);
     if(idx == -1){
-        scrPrint(ERR_MSG);
         return;
     }
     if(isCapslock(idx)){
         capsLock();
         return;
     }
-    if(SHIFT)
-        item = SHIFTED[idx][LOCK];
+    if(shift)
+        item = SHIFTED[idx][lock];
     else
-        item = KEYS[idx][LOCK];
-    // if(isCapslock(idx)){
-    //     capsLock();
-    //     // if(item == 'c'){
-    //     //     capsLock();
-    //     // }
-    //     // else if(item == 'b'){
-    //     //     backspace();
-    //     // }else if(item == 's'){
-    //     //     draw();
-    //     //     //
-    //     // }else if(item == 't' ){
-    //     //     if(SHIFT == 1){
-    //     //         return;
-    //     //     }
-    //     //     tab();
-    //     // }else if(item =='u'){
-    //     //     return;
-    //     // }else if(item =='l'){
-    //     //     return;
-    //     // }else if(item =='r'){
-    //     //     return;
-    //     // }else if(item =='d'){
-    //     //     return;
-    //     // }
-    // }else{
-        // LINE[LINE_LENGTH++] = item;
-    if(item == '\t' && SHIFT == 1)
+        item = KEYS[idx][lock];
+    if(item == '\t' && shift == 1)
         return;
-
     if(isArrow(idx))
         item = 0xFF;        // DEFAULT NOT MAPPED KEY VALUE
     toBuff(item, key);
 }
 
+static int isMapped(unsigned char key){
+    for(int i = 0; i < CODES;i++){
+        if(SCAN_CODES[i] == key){
+            return i;
+        }
+        
+    }
+    return ERROR;
+}
+
+static void tab(){
+    for(int i = 0;i < 4;i++){
+        scrPrintChar(' ');
+    }
+}
+
+static int getLength(){
+    return lineLength;
+}
+
+static void shift(){
+    shiftKey = !shiftKey;
+}
+
+static void capsLock(){
+    lock = !lock;
+}
+
+static int isArrow(int index){
+    return index > 51;
+}
+
 static int isCapslock(int index){
     return index == 50;
 }
-
-/*void read(){
-    unsigned char key = readKey();
-    char item;
-    //verificar si es un caracter mapeado
-    if(key > 0x80){
-        if((key == R_SHIFT + 0x80) || (key == L_SHIFT + 0x80)){
-            shift();
-        }
-        return;
-    }else if((key == R_SHIFT) || (key == L_SHIFT)){
-        shift();
-        return;
-    }
-    int idx = isMapped(key);
-    if(idx == -1){
-        scrPrint(ERR_MSG);
-    }
-    if(SHIFT){
-        item = SHIFTED[idx][LOCK];
-    }else{
-        item = KEYS[idx][LOCK];
-    }
-    if(idx > PRINT){
-        if(item == 'n'){
-            enter();
-        }else if(item == 'b'){
-            backspace();
-        }else if(item == 'c'){
-            draw();
-            //capsLock();
-        }else if(item == 't' ){
-            if(SHIFT == 1){
-                return;
-            }
-            tab();       
-        }else if(item =='u'){
-            return;
-        }else if(item =='l'){
-            return;
-        }else if(item =='r'){
-            return;
-        }else if(item =='d'){
-            return;
-        }
-    }else{
-        scr_printChar(item);
-        toLower(&item);
-        LINE[LINE_LENGTH++] = item;
-    }
-}*/
 
 int toBuff(char c, unsigned char k){
     if (keyCount == BUFFER_DIM - 1)

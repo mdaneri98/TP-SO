@@ -58,7 +58,7 @@ void add(ProcessControlBlockCDT newEntry) {
             current = current->next;
     }
 
-    node_t *newNode = current + sizeof(ProcessControlBlockCDT);
+    node_t *newNode = (node_t *)((uint64_t)current + sizeof(ProcessControlBlockCDT));
 
     newNode->pcbEntry.id = newEntry.id;
     newNode->pcbEntry.name = newEntry.name;
@@ -128,7 +128,7 @@ ProcessControlBlockCDT remove(unsigned int id) {
 
 
 
-void scheduler() {
+uint64_t scheduler() {
     /* La primera vez que se ejecuta el scheduler, debe iniciar el proceso init */
     if (firstTime) {
         init();
@@ -150,7 +150,6 @@ void scheduler() {
 
     ProcessControlBlockCDT pcbEntry = next();
     
-    //Falta
-
+    return pcbEntry.stack;
 }
 
