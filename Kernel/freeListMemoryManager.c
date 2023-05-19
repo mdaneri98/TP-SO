@@ -77,18 +77,18 @@ void *allocMemory(const uint64_t memoryToAllocate){
 void *reAllocMemory(void *const restrict memoryToRealloc, uint64_t newSize){
     node_t *currentNode = (node_t *)((uint64_t)memoryToRealloc - sizeof(node_t));
     // If the new size isn't actually bigger than the amount we given in the first place
-    if(currentNode->memSize > newSize){
+    if(currentNode->memSize >= newSize){
         return memoryToRealloc;
     }
     void *newAllocation = allocMemory(newSize);
-    node_t *newNode = (node_t *)((uint64_t)newAllocation - sizeof(node_t));
     if(newAllocation == NULL){
         freeMemory(memoryToRealloc);
         return NULL;
     }
+    node_t *newNode = (node_t *)((uint64_t)newAllocation - sizeof(node_t));
     memcpy(newAllocation, memoryToRealloc,  newNode->memSize > currentNode->memSize ? newNode->memSize : currentNode->memSize);
     freeMemory(memoryToRealloc);
-    return (void *)((uint64_t)currentNode + sizeof(node_t));
+    return newAllocation;
 }
 
 void freeMemory(void *const restrict memoryToFree){
