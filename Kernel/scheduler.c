@@ -1,6 +1,11 @@
 #include <scheduler.h>
 #include <stdlib.h>
 #include <freeListMemoryManager.h>  //FIXME: Debería ser uno general.
+#include <process.h>
+
+typedef (*processFunc)(int, char **);
+
+static uint64_t currentId = 0;
 
 typedef struct ProcessControlBlockCDT {
     char* name;
@@ -8,7 +13,7 @@ typedef struct ProcessControlBlockCDT {
     unsigned int priority;
     char foreground;
     ProcessState state;
-    uint64_t stack;
+    uint64_t *stack;
 } ProcessControlBlockCDT;
 
 typedef struct node {
@@ -39,7 +44,29 @@ ProcessControlBlockCDT createInit() {
     pcbEntry->state = RUNNING;
 }
 
+uint64_t sysFork(){
+    ProcessControlBlockCDT entry;
+    void *newStack = allocMemory(4096);
+    copyState(&newStack, linkedList.current.pcbEntry.stack);
+    entry.stack = newStack;
+    entry.name = linkedList.current.pcbEntry.name;
+    entry.foreground = linkedList.current.pcbEntry.foreground;
+    entry.priority = linkedList.current.pcbEntry.priority;
+    entry.state = linkedList.current.pcbEntry.state;
+    
+    // Should be other id
+    uint64_t parentId = linkedList.current.pcbEntry.id;
+    entry.id = currentId++;
+    
+    // Add this process to the scheduler
+    add(entry);
 
+    // If we are in the parent process
+    if(linkedList.current.pcbEntry.id == parentId){
+        return entry.id;
+    }
+    return 0;
+}
 
 
 void init() {
