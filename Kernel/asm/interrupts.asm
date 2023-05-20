@@ -104,10 +104,8 @@ SECTION .text
 
 
 %macro endHardwareInterrupt 0
-
 	mov al, 0x20
 	out 0x20, al
-
 %endmacro
 
 
@@ -204,9 +202,6 @@ picSlaveMask:
     out		0A1h,al
     pop     rbp
     retn
-
-
-
 
 ;8254 Timer (Timer Tick)
 _irq00Handler:

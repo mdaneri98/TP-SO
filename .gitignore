@@ -18,3 +18,6 @@
 mi-Bootloader
 .run.sh
 .vscode
+core
+
+.gdb_history

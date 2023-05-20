@@ -13,9 +13,17 @@ void * memset(void * destiny, int32_t c, uint64_t length);
 typedef int (*processFunc)(int, char **);
 
 void _start(processFunc process, int argc, char *argv[]) {
-	int returnValue = process(argc, argv);
+	if(process != NULL){
+		int returnValue = process(argc, argv);
+	} else{
+		init();
+	}
 	// We need to implement the exit syscall
 	// exit(return);
+}
+
+void init(){
+	startTerminal();
 }
 
 void * memset(void * destiation, int32_t c, uint64_t length) {

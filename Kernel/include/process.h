@@ -7,8 +7,7 @@ typedef int (*processFunc)(int, char **);
 
 void copyState(uint64_t **targetStack, uint64_t *sourceStack);
 void replaceProcess(processFunc process, int argvc, char *argv[], uint64_t **stack);
-
-/* */
-void switchProcess(uint32_t pid);
+void *createInitStack(void *stack);
+void startSystem(void);
 
 #endif /* PROCESS_H */

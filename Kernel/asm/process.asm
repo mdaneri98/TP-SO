@@ -1,17 +1,9 @@
 GLOBAL copyState
 GLOBAL setProcess
+GLOBAL createInitStack
+GLOBAL startSystem
 
 section .text
-
-;---------------------------------------------------------------------------------------------------|
-; Func switchProcess: Switches the current rsp to the given one by parameter.                       |
-;    args:                                                                                          |
-;       -rdi: Location of the process stack to switch.                                              |
-;   return: void                                                                                    |
-;---------------------------------------------------------------------------------------------------|
-switchProcess:    
-    mov rsp, rdi        ; Doesnt need stack protection.
-    ret
 
 ;---------------------------------------------------------------------------------------------------|
 ; Func copyState: Copies the current process state into a new stack, preserving rsp and rbp         |
@@ -28,30 +20,32 @@ copyState:
     push rcx
     push rdi
 
-    xor rcx
-    xor rax
+    xor rcx, rcx
+    xor rax, rax
 
     mov rax, [rdi]
 
-    sub rax, 20*8                   ; The size of the complete process stack info
-    mov [rdi], QWORD rax            ; Update current value of the target stack
+    sub rax, 19*8                   ; The size of the complete process stack info
+    mov [rdi], rax                  ; Update current value of the target stack
     mov rdi, rax                    ; Now we use the stack location for updating its values
-    xor rax
+    xor rax, rax
 
 .loop:                              ; Loop to copy all the stack info of the current process
-    cmp rcx, 20
+    cmp rcx, 19
     jz .end
 
     mov rax, [rsi+rcx*8]
     mov [rdi+rcx*8], rax
 
-    xor rax
+    xor rax, rax
     inc rcx
     jmp .loop
 
 .end:
-    mov [rdi+10*8], QWORD rdi+20*8   ; Correct value of RBP for the new process
-    mov [rdi+19*8], QWORD rdi        ; Value of the stack of the new process
+    mov rax, rdi
+    add rax, 19*8
+    mov [rdi+10*8], rax        ; Correct value of RBP for the new process
+    mov [rdi+18*8], rdi        ; Value of the stack of the new process
 
     pop rdi
     pop rcx
@@ -64,28 +58,12 @@ copyState:
 ;---------------------------------------------------------------------------------------------------|
 ; Func setProcess: Prepares the current process' image to be replaced by a new process              |
 ;    args:                                                                                          |
-;       -rdi: Pointer to the process itself                                                         |
+;       -rdi: Pointer to the process binary                                                         |
 ;       -rsi: argc                                                                                  |
 ;       -rdx: argv                                                                                  |
 ;       -rcx: rsp                                                                                   |
 ;   return: 0 if success, -1 if error (idk how we can have an error yet                             |
 ;---------------------------------------------------------------------------------------------------|
-%macro pushStateWithoutRAX 0
-	push rbx
-	push rcx
-	push rdx
-	push rbp
-	push rdi
-	push rsi
-	push r8
-	push r9
-	push r10
-	push r11
-	push r12
-	push r13
-	push r14
-	push r15
-%endmacro
 setProcess:
     push rbp
     mov rbp, rsp
@@ -97,7 +75,7 @@ setProcess:
     mov [rcx+9*8], rdi              ; processFunc
     mov [rcx+8*8], rsi              ; argc
     mov [rcx+11*8], rdx             ; *argv[]
-    mov [rcx+14*8], QWORD userSpace ; We override the return of the interrupt with the _start wrapper on userSpace
+    mov QWORD [rcx+15*8], userSpace ; We override the return of the interrupt with the _start wrapper on userSpace
 
     pop rcx
     pop rdx
@@ -108,5 +86,38 @@ setProcess:
     pop rbp
     ret
 
+;---------------------------------------------------------------------------------------------------|
+; Func copyState: Creates a stack for the first process of the system that will be put into the     |
+;             scheduler                                                                             |
+;    args:                                                                                          |
+;       -rdi: Location of the stack                                                                 |
+;   return: New rsp value                                                                           |
+;---------------------------------------------------------------------------------------------------|
+createInitStack:
+    push rbp
+    mov rbp, rsp
+
+    mov rax, rdi
+    sub rax, 20*8                   ; The size of the complete process stack info
+    mov rdi, rax
+    mov rax, rdi
+    add rax, 19*8
+    mov [rdi+10*8], rax             ; Correct value of RBP for the new process
+
+    mov QWORD [rcx+9*8], 0          ; NULL, that indicates to _start on the userSpace that is the init process
+    mov QWORD [rcx+15*8], userSpace ; We override the return of the interrupt with the _start wrapper on userSpace
+    mov QWORD [rcx+16*8], 0x8       ; CS
+    mov QWORD [rcx+17*8], 0x202     ; RFLAGS
+    mov QWORD [rcx+18*8], rdi       ; RSP
+    mov QWORD [rcx+19*8], 0x0       ; SS
+
+    mov rax, rdi
+    mov rsp, rbp
+    pop rbp
+    ret
+
+startSystem:
+	int 20h
+    ret
 section .rodata
-	userSpace dq 0x400000   ; _start wrapper address
+	userSpace dq 0x400000            ; _start wrapper address

@@ -3,12 +3,6 @@
 #include "process.h"
 #include "scheduler.h"
 
-/* Prototypes */
-int32_t unusedID();
-char exists(uint32_t pid);
-void add(ProcessControlBlockCDT newEntry);
-
-
 /* Structures */
 typedef struct ProcessControlBlockCDT {
     char* name;
@@ -26,28 +20,21 @@ typedef struct node {
 } node_t;
 
 typedef struct list {
-    node_t head;
-    node_t current;
+    node_t *head;
+    node_t *current;
 } list_t;
 
-list_t linkedList;
 
+/* Prototypes */
+int32_t unusedID();
+char exists(uint32_t pid);
+void add(ProcessControlBlockCDT newEntry);
+
+
+/* Global Variables */
+list_t linkedList;
 uint32_t entriesCount = 0;
 char firstTime = 1;
-
-
-ProcessControlBlockCDT* createInit() {
-    node_t *node = PCB_TABLE;
-
-    ProcessControlBlockCDT *pcbEntry = &(node->pcbEntry);
-    pcbEntry->name = "init"; //String en zona de datos.
-    pcbEntry->id = 0;
-    pcbEntry->priority = 0;
-    pcbEntry->foreground = 1;
-    pcbEntry->state = RUNNING;
-
-    return pcbEntry;
-}
 
 int sysFork() {
     ProcessControlBlockCDT entry;
@@ -55,22 +42,22 @@ int sysFork() {
     if(newStack == NULL){
         return -1;
     }
-    copyState(&newStack, linkedList.current.pcbEntry.stack);
+    copyState(&newStack, linkedList.current->pcbEntry.stack);
     entry.stack = newStack;
-    entry.name = linkedList.current.pcbEntry.name;
-    entry.foreground = linkedList.current.pcbEntry.foreground;
-    entry.priority = linkedList.current.pcbEntry.priority;
-    entry.state = linkedList.current.pcbEntry.state;
+    entry.name = linkedList.current->pcbEntry.name;
+    entry.foreground = linkedList.current->pcbEntry.foreground;
+    entry.priority = linkedList.current->pcbEntry.priority;
+    entry.state = linkedList.current->pcbEntry.state;
     
     // Should be other id
-    uint64_t parentId = linkedList.current.pcbEntry.id;
+    uint64_t parentId = linkedList.current->pcbEntry.id;
     entry.id = unusedID();
     
     // Add this process to the scheduler
     add(entry);
 
     // If we are in the parent process
-    if(linkedList.current.pcbEntry.id == parentId){
+    if(linkedList.current->pcbEntry.id == parentId){
         return entry.id;
     }
     return 0;
@@ -101,17 +88,27 @@ int sysBlock(uint32_t pid) {
     return 0;
 }
 
-void init() {
-    
-    
+void createInit() {
+    void *stack = allocMemory(4000);
+    node_t *node = allocMemory(4000);
 
+    node->previous = NULL;
+    node->next = NULL;
+
+    node->pcbEntry.stack = createInitStack(stack);
+    node->pcbEntry.name = "init"; //String en zona de datos.
+    node->pcbEntry.id = 0;
+    node->pcbEntry.priority = 0;
+    node->pcbEntry.foreground = 1;
+    node->pcbEntry.state = READY;
+    linkedList.current = node;
+    linkedList.head = node;
 }
 
 // ----------- Implementación Round-Robin sin prioridad ----------------
-
 void add(ProcessControlBlockCDT newEntry) {
     node_t *previous = NULL;
-    node_t *current = &linkedList.head;
+    node_t *current = linkedList.head;
     while (current->next != NULL) {
             previous = current;
             current = current->next;
@@ -136,11 +133,11 @@ El siguiente proceso a ejecutar será:
     2. El head si no hay next al current.
 */
 ProcessControlBlockCDT next() {
-    node_t *current = &linkedList.current;
+    node_t *current = linkedList.current;
 
     // Si estamos en el último nodo, nos movemos al inicio.
     if (current->pcbEntry.state != READY && current->next == NULL) {
-        current = &linkedList.head;
+        current = linkedList.head;
     }
 
     while (current->next != NULL && current->pcbEntry.state != READY) {
@@ -153,9 +150,9 @@ ProcessControlBlockCDT next() {
             }
         }
     }
-    linkedList.current = *current;
+    linkedList.current = current;
 
-    return linkedList.current.pcbEntry;
+    return linkedList.current->pcbEntry;
 }
 
 
@@ -243,25 +240,18 @@ char exists(uint32_t pid) {
 }
 
 void scheduler() {
-    /* La primera vez que se ejecuta el scheduler, debe iniciar el proceso init */
-    if (firstTime) {
-        init();
-        firstTime = 0;
-        return;
-    }
-
     ProcessControlBlockCDT processToRun;
 
     /* Si fue llamado manualmente, mediante int 0x20, tenemos que
         revisar el estado de este proceso */
-    if (linkedList.current.pcbEntry.state == EXITED) {
-        node_t aux = linkedList.current;
+    if (linkedList.current->pcbEntry.state == EXITED) {
+        node_t *aux = linkedList.current;
         
         //Movemos el puntero al siguiente en ejecutar.
         processToRun = next(); 
         
         //Eliminamos el proceso actual (que está en estado EXITED) de la lista.
-        remove(aux.pcbEntry.id);
+        remove(aux->pcbEntry.id);
     }
 
     /* If the process was BLOCKED or RUNNING, and scheduler function started, we do the same thing. 
@@ -269,7 +259,6 @@ void scheduler() {
     */
     processToRun = next();
     processToRun.state = RUNNING;
-    switchProcess(processToRun.id);
-    
+    return processToRun.stack;
 }
 

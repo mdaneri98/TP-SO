@@ -44,6 +44,8 @@ void createDefaultMemoryManager(void *const restrict init, uint64_t size) {
     // We add a final value to the last node (in this case the whole memory), and the previous memory value (root)
     memoryManager.freeList.head->next->next = NULL;
     memoryManager.freeList.head->next->prev = memoryManager.freeList.head;
+    memoryManager.freeList.head->next->memSize = size - 2*sizeof(node_t);
+    memoryManager.freeList.head->next->isFree = TRUE;
 }
 
 void *allocMemory(const uint64_t memoryToAllocate){

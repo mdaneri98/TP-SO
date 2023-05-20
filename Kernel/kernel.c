@@ -5,6 +5,8 @@
 #include <video.h>
 #include <idtLoader.h>
 #include <time.h>
+#include <scheduler.h>
+#include <interrupts.h>
 
 extern uint8_t text;
 extern uint8_t rodata;
@@ -53,7 +55,7 @@ int main()
 {	
 	// Hay que inicializar el memory manager del userSpace antes de que siquiera entre en juego el 
 	//timer tick, se puede dar la race condition de que ejecute el scheduler con memoria que no está inicializada
-	// createMemoryManager(((uint64_t)getStackBase() - PageSize), (uint64_t)&endOfKernel + PageSize * 7 - sizeof(uint64_t));
+	createDefaultMemoryManager(((uint64_t)getStackBase() - PageSize), (uint64_t)&endOfKernel + PageSize * 7 - sizeof(uint64_t));
 	// La función getStackBase obtiene la base del stack a partir de la finalización del binario del Kernel
 	//se entra con este valor a la función Main del kernel, la idea sería dejarle una página al kernel para que tenga su
 	//stack asegurado de que ningún otro proceso pueda pisarlo, pero no sé si eso es correcto hacer esto último, dejaría
@@ -61,15 +63,11 @@ int main()
 	//de nuestra memoria actual, en el momento en el que se hagan más de 7 peticiones de memoria en simultáneo, cagamos xd
 	//hay que averiguar si hay alguna forma de expandir ese número, o reducir el tamaño del bloque de memoria que se reserva
 
+	createInit();
+	scrPrint("I've got here");
+
 	load_idt();
-	
-	scrPrint("Starting console...");
-	sleep(1000);
-
-	scrClear();
-
-	((EntryPoint)sampleCodeModuleAddress)();
-	
+	startSystem();
 
 	return 0;
 }
