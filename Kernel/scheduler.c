@@ -1,10 +1,14 @@
-#include <scheduler.h>
 #include <stdlib.h>
 #include <freeListMemoryManager.h>  //FIXME: Debería ser uno general.
-#include <process.h>
+#include "process.h"
+#include "scheduler.h"
 
-static uint64_t currentId = 0;
+/* Prototypes */
+int32_t unusedID();
+char exists(uint32_t pid);
 
+
+/* Structures */
 typedef struct ProcessControlBlockCDT {
     char* name;
     unsigned int id;
@@ -30,6 +34,7 @@ list_t linkedList;
 uint32_t entriesCount = 0;
 char firstTime = 1;
 
+static uint64_t currentId = 0;
 
 ProcessControlBlockCDT createInit() {
     node_t *node = PCB_TABLE;
@@ -57,7 +62,7 @@ int sysFork(){
     
     // Should be other id
     uint64_t parentId = linkedList.current.pcbEntry.id;
-    entry.id = currentId++;
+    entry.id = unusedID();
     
     // Add this process to the scheduler
     add(entry);
@@ -102,9 +107,9 @@ void add(ProcessControlBlockCDT newEntry) {
     newNode->pcbEntry.stack = newEntry.stack;
     newNode->pcbEntry.state = newEntry.state;
     newNode->previous = current;
+    newNode->next = NULL;
 
     current->next = newNode;
-    newNode->next = NULL;
 }
 
 /*
@@ -163,13 +168,73 @@ ProcessControlBlockCDT remove(unsigned int id) {
 }
 
 
+ProcessControlBlockCDT* getEntry(uint32_t pid) {
+    if (&linkedList.head == NULL || !exists(pid)) {
+        return -1;
+    }
+
+    node_t *current = &linkedList.head;
+    if (current->pcbEntry.id == pid)
+        return &current->pcbEntry; 
+
+    while (current->next != NULL) {
+        current = current->next;
+        if (current->pcbEntry.id == pid)
+            return &current->pcbEntry; 
+    }
+
+    return NULL;
+}
+
+/* Siempre debe haber al menos un proceso en la lista. */
+int32_t unusedID() {
+    if (&linkedList.head == NULL) {
+        return -1;
+    }
+
+    node_t *current = &linkedList.head;
+    uint32_t max = current->pcbEntry.id;
+
+    while (current->next != NULL) {
+        current = current->next;
+
+        if (max < current->pcbEntry.id) {
+            max = current->pcbEntry.id;
+        }
+    }
+
+    return max + 1;
+}
+
+char exists(uint32_t pid) {
+    if (&linkedList.head == NULL) {
+        return -1;
+    }
+
+    char founded = 0;
+    node_t *current = &linkedList.head;
+    founded = current->pcbEntry.id == pid ? 1 : 0; 
+
+    while (current->next != NULL && !founded) {
+        current = current->next;
+        founded = current->pcbEntry.id == pid ? 1 : 0; 
+    }
+
+    return founded;
+}
+
+void copyState(uint64_t **targetStack, uint64_t *sourceStack);
+void replaceProcess(processFunc process, int argvc, char *argv[], uint64_t **stack);
 
 uint64_t scheduler() {
     /* La primera vez que se ejecuta el scheduler, debe iniciar el proceso init */
     if (firstTime) {
         init();
         firstTime = 0;
+        return;
     }
+
+    ProcessControlBlockCDT processToRun;
 
     /* Si fue llamado manualmente, mediante int 0x20, tenemos que
         revisar el estado de este proceso */
@@ -177,15 +242,19 @@ uint64_t scheduler() {
         node_t aux = linkedList.current;
         
         //Movemos el puntero al siguiente en ejecutar.
-        ProcessControlBlockCDT _ = next(); 
+        processToRun = next(); 
         
         //Eliminamos el proceso actual (que está en estado EXITED) de la lista.
         remove(aux.pcbEntry.id);
     }
 
-
-    ProcessControlBlockCDT pcbEntry = next();
+    /* If the process was BLOCKED or RUNNING, and scheduler function started, we do the same thing. 
+        Get the next process with a READY state and run it.
+    */
+    processToRun = next();
+    processToRun.state = RUNNING;
+    switchProcess(processToRun.id);
     
-    return pcbEntry.stack;
+    return processToRun.stack;
 }
 

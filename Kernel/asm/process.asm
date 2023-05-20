@@ -3,6 +3,16 @@ GLOBAL copyState
 section .text
 
 ;---------------------------------------------------------------------------------------------------|
+; Func switchProcess: Switches the current rsp to the given one by parameter.                       |
+;    args:                                                                                          |
+;       -rdi: Location of the process stack to switch.                                              |
+;   return: void                                                                                    |
+;---------------------------------------------------------------------------------------------------|
+switchProcess:    
+    mov rsp, rdi        ; Doesnt need stack protection.
+    ret
+
+;---------------------------------------------------------------------------------------------------|
 ; Func copyState: Copies the current process state into a new stack, preserving rsp and rbp         |
 ;             of the target stack, isolating the new process from its caller                        |
 ;    args:                                                                                          |
