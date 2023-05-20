@@ -75,7 +75,9 @@ setProcess:
     mov [rcx+9*8], rdi              ; processFunc
     mov [rcx+8*8], rsi              ; argc
     mov [rcx+11*8], rdx             ; *argv[]
-    mov QWORD [rcx+15*8], userSpace ; We override the return of the interrupt with the _start wrapper on userSpace
+    xor rax, rax
+    mov rax, userSpace
+    mov [rcx+15*8], rax ; We override the return of the interrupt with the _start wrapper on userSpace
 
     pop rcx
     pop rdx
@@ -105,7 +107,9 @@ createInitStack:
     mov [rdi+10*8], rax             ; Correct value of RBP for the new process
 
     mov QWORD [rdi+9*8], 0          ; NULL, that indicates to _start on the userSpace that is the init process
-    mov QWORD [rdi+15*8], userSpace ; We override the return of the interrupt with the _start wrapper on userSpace
+    xor rax, rax
+    mov rax, [userSpace]
+    mov [rdi+15*8], rax             ; We override the return of the interrupt with the _start wrapper on userSpace
     mov QWORD [rdi+16*8], 0x8       ; CS
     mov QWORD [rdi+17*8], 0x202     ; RFLAGS
     mov QWORD [rdi+18*8], rdi       ; RSP
