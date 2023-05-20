@@ -254,7 +254,8 @@ void scheduler() {
         remove(aux->pcbEntry.id);
     }
 
-    /* If the process was BLOCKED or RUNNING, and scheduler function started, we do the same thing. 
+    /* 
+        If the process was BLOCKED or RUNNING, and scheduler function started, we do the same thing. 
         Get the next process with a READY state and run it.
     */
     processToRun = next();

@@ -64,7 +64,6 @@ int main()
 	//hay que averiguar si hay alguna forma de expandir ese número, o reducir el tamaño del bloque de memoria que se reserva
 
 	createInit();
-	scrPrint("I've got here");
 
 	load_idt();
 	startSystem();

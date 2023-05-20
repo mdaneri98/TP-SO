@@ -104,12 +104,12 @@ createInitStack:
     add rax, 19*8
     mov [rdi+10*8], rax             ; Correct value of RBP for the new process
 
-    mov QWORD [rcx+9*8], 0          ; NULL, that indicates to _start on the userSpace that is the init process
-    mov QWORD [rcx+15*8], userSpace ; We override the return of the interrupt with the _start wrapper on userSpace
-    mov QWORD [rcx+16*8], 0x8       ; CS
-    mov QWORD [rcx+17*8], 0x202     ; RFLAGS
-    mov QWORD [rcx+18*8], rdi       ; RSP
-    mov QWORD [rcx+19*8], 0x0       ; SS
+    mov QWORD [rdi+9*8], 0          ; NULL, that indicates to _start on the userSpace that is the init process
+    mov QWORD [rdi+15*8], userSpace ; We override the return of the interrupt with the _start wrapper on userSpace
+    mov QWORD [rdi+16*8], 0x8       ; CS
+    mov QWORD [rdi+17*8], 0x202     ; RFLAGS
+    mov QWORD [rdi+18*8], rdi       ; RSP
+    mov QWORD [rdi+19*8], 0x0       ; SS
 
     mov rax, rdi
     mov rsp, rbp
