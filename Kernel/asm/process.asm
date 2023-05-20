@@ -1,4 +1,5 @@
 GLOBAL copyState
+GLOBAL setProcess
 
 section .text
 

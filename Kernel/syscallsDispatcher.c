@@ -1,17 +1,23 @@
 #include <stdint.h>
 #include <video.h>
-#include <kernelSyscalls.h>
+
+/* Los prototipos de los syscalls internos deben estar en el .c así no se tiene acceso desde afuera. */
+// #include <kernelSyscalls.h>
+
 #include <keyboard.h>
 #include <string.h>
 #include <time.h>
 #include <speaker.h>
 #include <libasm.h>
 #include <memory.h>
+#include "process.h"
+#include "scheduler.h"
+
 
 #define STDIN 0
 #define STDOUT 1
 #define STDERR 2
-#define TOTAL_SYSCALLS 16
+#define TOTAL_SYSCALLS 20
 #define AUX_BUFF_DIM 512
 
 #define ERROR -1
@@ -35,6 +41,12 @@ static uint64_t arqSysDrawLine(uint64_t fromX, uint16_t fromY, uint16_t toX, uin
 static uint64_t arqSysGetPenX(uint64_t x, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
 static uint64_t arqSysGetPenY(uint64_t y, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
 static uint64_t arqSysChangeFontSize(uint64_t newSize, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
+
+static uint64_t arqSysBlock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
+static uint64_t arqSysKill(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
+static uint64_t arqSysExecve(uint64_t processFunction, uint64_t argc, uint64_t argv, uint64_t rsp, uint64_t nil2, uint64_t nil3, uint64_t nil4);
+static uint64_t arqSysFork(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+
 
 
 typedef uint64_t (*SyscallVec)(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t r9, uint64_t rsp);
@@ -61,6 +73,11 @@ void set_SYSCALLS(){
     syscalls[13] = (SyscallVec) arqSysChangeFontSize;
     syscalls[14] = (SyscallVec) arqSysMemoryDump;
     syscalls[15] = (SyscallVec) arqSysGetRegistersInfo;
+
+    syscalls[16] = (SyscallVec) arqSysBlock;
+    syscalls[17] = (SyscallVec) arqSysKill;
+    syscalls[18] = (SyscallVec) arqSysExecve;
+    syscalls[19] = (SyscallVec) arqSysFork;
 }
 
 uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t r9, uint64_t rsp) {    
@@ -121,6 +138,30 @@ static uint64_t arqSysWrite(uint64_t fd, uint64_t buff, uint64_t count, uint64_t
         default: toReturn = ERROR;
     }
     return toReturn;
+}
+
+static uint64_t arqSysBlock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
+    sysBlock(pid);
+    return 0;
+}
+
+static uint64_t arqSysKill(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
+    sysKill(pid);
+    return 0;
+}
+
+static uint64_t arqSysExecve(uint64_t processFunction, uint64_t argc, uint64_t argv, uint64_t rsp, uint64_t nil2, uint64_t nil3, uint64_t nil4) {
+    /* FIXME: Error en la conversión de argv.
+    processFunc pFunc = (processFunc) processFunction;
+    
+    char* argvAux[] = (char **) argv;
+    return sysExecve(pFunc, argc, argvAux, rsp);
+    */
+   return 0;
+}
+
+static uint64_t arqSysFork(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
+    return sysFork();
 }
 
 static uint64_t arqSysMemoryDump(uint64_t direction, uint64_t buffer, uint64_t nil1, uint64_t nil2, uint64_t  nil3, uint64_t nil4, uint64_t nil5) {

@@ -6,6 +6,7 @@
 /* Prototypes */
 int32_t unusedID();
 char exists(uint32_t pid);
+void add(ProcessControlBlockCDT newEntry);
 
 
 /* Structures */
@@ -34,9 +35,8 @@ list_t linkedList;
 uint32_t entriesCount = 0;
 char firstTime = 1;
 
-static uint64_t currentId = 0;
 
-ProcessControlBlockCDT createInit() {
+ProcessControlBlockCDT* createInit() {
     node_t *node = PCB_TABLE;
 
     ProcessControlBlockCDT *pcbEntry = &(node->pcbEntry);
@@ -45,9 +45,11 @@ ProcessControlBlockCDT createInit() {
     pcbEntry->priority = 0;
     pcbEntry->foreground = 1;
     pcbEntry->state = RUNNING;
+
+    return pcbEntry;
 }
 
-int sysFork(){
+int sysFork() {
     ProcessControlBlockCDT entry;
     void *newStack = allocMemory(4096);
     if(newStack == NULL){
@@ -75,12 +77,28 @@ int sysFork(){
 }
 
 int sysExecve(processFunc process, int argc, char *argv[], uint64_t rsp){
-    ProcessControlBlockCDT currentProcess = linkedList.current.pcbEntry;
+    // ProcessControlBlockCDT currentProcess = linkedList.current.pcbEntry;
     
 
     // IT ONLY SETUPS THE PROCESS CORRECTLY IF ITS CALLED BY THE SYSCALL, U NEED TO SET THE STACK
     //BEFORE USING IT WITH INIT OR ANY FUNCTIONALITY THAT USES THIS FUNCTION WITHOUT USING THE SYSCALL
     return setProcess(process, argc, argv, rsp);
+}
+
+// FIXME: Implementar.
+int sysKill(uint32_t pid) {
+    if (pid == 0) {
+        return -1;
+    }
+
+    //...
+    return 0;
+}
+
+// FIXME: Implementar.
+int sysBlock(uint32_t pid) {
+    //...
+    return 0;
 }
 
 void init() {
@@ -118,7 +136,6 @@ El siguiente proceso a ejecutar será:
     2. El head si no hay next al current.
 */
 ProcessControlBlockCDT next() {
-    node_t *head = &linkedList.head;
     node_t *current = &linkedList.current;
 
     // Si estamos en el último nodo, nos movemos al inicio.
@@ -142,35 +159,37 @@ ProcessControlBlockCDT next() {
 }
 
 
-ProcessControlBlockCDT remove(unsigned int id) {
-    /* Si no lo encuentra => Loop infinito */
+int remove(uint32_t pid) {
+    if (!exists(pid)) {
+        return -1;
+    }
 
     node_t *current = &linkedList.current;
-    if (current->pcbEntry.id != id && current->next == NULL) {
+    if (current->pcbEntry.id != pid && current->next == NULL) {
         current = &linkedList.head;
     }
 
-    while (current->pcbEntry.id != id && current->next != NULL) {
+    while (current->pcbEntry.id != pid && current->next != NULL) {
         current = current->next;
 
         if (current->next == NULL) {
-            if (current->pcbEntry.id != id) {
+            if (current->pcbEntry.id != pid) {
                 current = &linkedList.head;
             }
         }
     }
 
-    if (current->pcbEntry.id == id) {
-        current->previous = current->next;
+    if (current->pcbEntry.id == pid) {
+        current->previous->next = current->next;
     }
 
-
+    return pid;
 }
 
 
 ProcessControlBlockCDT* getEntry(uint32_t pid) {
     if (&linkedList.head == NULL || !exists(pid)) {
-        return -1;
+        return NULL;
     }
 
     node_t *current = &linkedList.head;
@@ -223,10 +242,7 @@ char exists(uint32_t pid) {
     return founded;
 }
 
-void copyState(uint64_t **targetStack, uint64_t *sourceStack);
-void replaceProcess(processFunc process, int argvc, char *argv[], uint64_t **stack);
-
-uint64_t scheduler() {
+void scheduler() {
     /* La primera vez que se ejecuta el scheduler, debe iniciar el proceso init */
     if (firstTime) {
         init();
@@ -255,6 +271,5 @@ uint64_t scheduler() {
     processToRun.state = RUNNING;
     switchProcess(processToRun.id);
     
-    return processToRun.stack;
 }
 
