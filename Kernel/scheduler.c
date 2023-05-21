@@ -158,6 +158,8 @@ int remove(uint32_t pid) {
     }
 
     if (current->pcbEntry.id == pid) {
+        current->previous->next = current->next;
+        current->next->previous = current->previous;
         freePCB(current);
     }
 

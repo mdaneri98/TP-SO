@@ -13,8 +13,8 @@ typedef struct ProcessControlBlockCDT {
 } ProcessControlBlockCDT;
 
 typedef struct pcb_node {
-    struct node *next;
-    struct node *previous;
+    struct pcb_node *next;
+    struct pcb_node *previous;
     ProcessControlBlockCDT pcbEntry;
 } PCBNode;
 
