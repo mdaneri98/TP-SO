@@ -1,27 +1,11 @@
-#include <stdlib.h>
 #include <freeListMemoryManager.h>  //FIXME: Debería ser uno general.
-#include "process.h"
-#include "scheduler.h"
+#include <process.h>
+#include <scheduler.h>
 
 /* Structures */
-typedef struct ProcessControlBlockCDT {
-    char* name;
-    unsigned int id;
-    unsigned int priority;
-    char foreground;
-    ProcessState state;
-    uint64_t *stack;
-} ProcessControlBlockCDT;
-
-typedef struct node {
-    struct node *next;
-    struct node *previous;
-    ProcessControlBlockCDT pcbEntry;
-} node_t;
-
 typedef struct list {
-    node_t *head;
-    node_t *current;
+    PCBNode *head;
+    PCBNode *current;
 } list_t;
 
 
@@ -38,13 +22,12 @@ char firstTime = 1;
 
 int sysFork() {
     ProcessControlBlockCDT entry;
-    void *newStack = allocMemory(4096);
+    void *newStack = allocMemory(4000);
     if(newStack == NULL){
         return -1;
     }
     copyState(&newStack, linkedList.current->pcbEntry.stack);
     entry.stack = newStack;
-    entry.name = linkedList.current->pcbEntry.name;
     entry.foreground = linkedList.current->pcbEntry.foreground;
     entry.priority = linkedList.current->pcbEntry.priority;
     entry.state = linkedList.current->pcbEntry.state;
@@ -90,13 +73,12 @@ int sysBlock(uint32_t pid) {
 
 void createInit() {
     void *stack = allocMemory(4000);
-    node_t *node = allocMemory(4000);
+    PCBNode *node = allocPCB();
 
     node->previous = NULL;
     node->next = NULL;
 
     node->pcbEntry.stack = createInitStack(stack);
-    node->pcbEntry.name = "init"; //String en zona de datos.
     node->pcbEntry.id = 0;
     node->pcbEntry.priority = 0;
     node->pcbEntry.foreground = 1;
@@ -107,17 +89,16 @@ void createInit() {
 
 // ----------- Implementación Round-Robin sin prioridad ----------------
 void add(ProcessControlBlockCDT newEntry) {
-    node_t *previous = NULL;
-    node_t *current = linkedList.head;
+    PCBNode *previous = NULL;
+    PCBNode *current = linkedList.head;
     while (current->next != NULL) {
             previous = current;
             current = current->next;
     }
 
-    node_t *newNode = (node_t *)((uint64_t)current + sizeof(ProcessControlBlockCDT));
+    PCBNode *newNode = allocPCB();
 
     newNode->pcbEntry.id = newEntry.id;
-    newNode->pcbEntry.name = newEntry.name;
     newNode->pcbEntry.priority = newEntry.priority;
     newNode->pcbEntry.stack = newEntry.stack;
     newNode->pcbEntry.state = newEntry.state;
@@ -133,7 +114,7 @@ El siguiente proceso a ejecutar será:
     2. El head si no hay next al current.
 */
 ProcessControlBlockCDT next() {
-    node_t *current = linkedList.current;
+    PCBNode *current = linkedList.current;
 
     // Si estamos en el último nodo, nos movemos al inicio.
     if (current->pcbEntry.state != READY && current->next == NULL) {
@@ -161,9 +142,9 @@ int remove(uint32_t pid) {
         return -1;
     }
 
-    node_t *current = &linkedList.current;
+    PCBNode *current = linkedList.current;
     if (current->pcbEntry.id != pid && current->next == NULL) {
-        current = &linkedList.head;
+        current = linkedList.head;
     }
 
     while (current->pcbEntry.id != pid && current->next != NULL) {
@@ -171,13 +152,13 @@ int remove(uint32_t pid) {
 
         if (current->next == NULL) {
             if (current->pcbEntry.id != pid) {
-                current = &linkedList.head;
+                current = linkedList.head;
             }
         }
     }
 
     if (current->pcbEntry.id == pid) {
-        current->previous->next = current->next;
+        freePCB(current);
     }
 
     return pid;
@@ -189,7 +170,7 @@ ProcessControlBlockCDT* getEntry(uint32_t pid) {
         return NULL;
     }
 
-    node_t *current = &linkedList.head;
+    PCBNode *current = linkedList.head;
     if (current->pcbEntry.id == pid)
         return &current->pcbEntry; 
 
@@ -204,11 +185,11 @@ ProcessControlBlockCDT* getEntry(uint32_t pid) {
 
 /* Siempre debe haber al menos un proceso en la lista. */
 int32_t unusedID() {
-    if (&linkedList.head == NULL) {
+    if (linkedList.head == NULL) {
         return -1;
     }
 
-    node_t *current = &linkedList.head;
+    PCBNode *current = linkedList.head;
     uint32_t max = current->pcbEntry.id;
 
     while (current->next != NULL) {
@@ -223,12 +204,12 @@ int32_t unusedID() {
 }
 
 char exists(uint32_t pid) {
-    if (&linkedList.head == NULL) {
+    if (linkedList.head == NULL) {
         return -1;
     }
 
     char founded = 0;
-    node_t *current = &linkedList.head;
+    PCBNode *current = &linkedList.head;
     founded = current->pcbEntry.id == pid ? 1 : 0; 
 
     while (current->next != NULL && !founded) {
@@ -245,7 +226,7 @@ void scheduler() {
     /* Si fue llamado manualmente, mediante int 0x20, tenemos que
         revisar el estado de este proceso */
     if (linkedList.current->pcbEntry.state == EXITED) {
-        node_t *aux = linkedList.current;
+        PCBNode *aux = linkedList.current;
         
         //Movemos el puntero al siguiente en ejecutar.
         processToRun = next(); 

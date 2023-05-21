@@ -1,10 +1,22 @@
-#include <stdlib.h>
-#include "process.h"
+#include <process.h>
 
-#define PCB_TABLE 0x50000
 
 // States for processes.
 typedef enum ProcessState { READY, RUNNING, BLOCKED, EXITED } ProcessState;
+
+typedef struct ProcessControlBlockCDT {
+    unsigned int id;
+    unsigned int priority;
+    char foreground;
+    ProcessState state;
+    uint64_t *stack;
+} ProcessControlBlockCDT;
+
+typedef struct pcb_node {
+    struct node *next;
+    struct node *previous;
+    ProcessControlBlockCDT pcbEntry;
+} PCBNode;
 
 void scheduler();
 int sysFork();

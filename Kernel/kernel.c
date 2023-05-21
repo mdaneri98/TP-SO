@@ -39,6 +39,14 @@ void * getStackBase()
 	);
 }
 
+void * getUserSpaceStackBase(){
+	return (void*)(
+		0x800000
+		+ PageSize * 32				//The size of the stack itself, 32KiB
+		- sizeof(uint64_t)			//Begin at the top of the stack
+	);
+}
+
 void * initializeKernelBinary()
 {
 	void * moduleAddresses[] = {
@@ -55,7 +63,7 @@ int main()
 {	
 	// Hay que inicializar el memory manager del userSpace antes de que siquiera entre en juego el 
 	//timer tick, se puede dar la race condition de que ejecute el scheduler con memoria que no está inicializada
-	createDefaultMemoryManager(((uint64_t)getStackBase() - PageSize), (uint64_t)&endOfKernel + PageSize * 7 - sizeof(uint64_t));
+	createMemoryManager(getUserSpaceStackBase(), PageSize*32-sizeof(uint64_t));
 	// La función getStackBase obtiene la base del stack a partir de la finalización del binario del Kernel
 	//se entra con este valor a la función Main del kernel, la idea sería dejarle una página al kernel para que tenga su
 	//stack asegurado de que ningún otro proceso pueda pisarlo, pero no sé si eso es correcto hacer esto último, dejaría

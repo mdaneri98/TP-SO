@@ -112,7 +112,7 @@ void addKey(uint8_t alKey) {
         capsLock();
         return;
     }
-    if(shift)
+    if(shiftKey)
         item = SHIFTED[idx][lock];
     else
         item = KEYS[idx][lock];
@@ -148,7 +148,11 @@ static void shift(){
 }
 
 static void capsLock(){
-    lock = !lock;
+    if(lock == 0){
+        lock = 1;
+    } else{
+        lock = 0;
+    }
 }
 
 static int isArrow(int index){
