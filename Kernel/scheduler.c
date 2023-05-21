@@ -8,7 +8,6 @@ typedef struct list {
     PCBNode *current;
 } list_t;
 
-
 /* Prototypes */
 int32_t unusedID();
 char exists(uint32_t pid);
@@ -18,7 +17,6 @@ void add(ProcessControlBlockCDT newEntry);
 /* Global Variables */
 list_t linkedList;
 uint32_t entriesCount = 0;
-char firstTime = 1;
 
 int sysFork() {
     ProcessControlBlockCDT entry;
@@ -83,7 +81,7 @@ void createInit() {
     node->pcbEntry.priority = 0;
     node->pcbEntry.foreground = 1;
     node->pcbEntry.state = READY;
-    linkedList.current = node;
+    linkedList.current = NULL;
     linkedList.head = node;
 }
 
@@ -222,9 +220,16 @@ char exists(uint32_t pid) {
     return founded;
 }
 
-void scheduler() {
+void scheduler(uint64_t *rsp) {
     ProcessControlBlockCDT processToRun;
-
+    if(linkedList.current == NULL){
+        linkedList.current = linkedList.head;
+        processToRun = linkedList.head->pcbEntry;
+        processToRun.state = RUNNING;
+        return processToRun.stack;
+    }
+    
+    linkedList.current->pcbEntry.stack = rsp;
     /* Si fue llamado manualmente, mediante int 0x20, tenemos que
         revisar el estado de este proceso */
     if (linkedList.current->pcbEntry.state == EXITED) {
@@ -236,6 +241,7 @@ void scheduler() {
         //Eliminamos el proceso actual (que está en estado EXITED) de la lista.
         remove(aux->pcbEntry.id);
     }
+    
 
     /* 
         If the process was BLOCKED or RUNNING, and scheduler function started, we do the same thing. 

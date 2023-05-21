@@ -123,5 +123,6 @@ createInitStack:
 startSystem:
 	int 20h
     ret
+
 section .rodata
 	userSpace dq 0x400000            ; _start wrapper address
