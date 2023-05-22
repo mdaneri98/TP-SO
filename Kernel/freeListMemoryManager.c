@@ -1,5 +1,4 @@
-// ALL THE MEMORY MANAGEMENT IS SUPPOSED TO BE MANAGED LOCALLY IN THIS SOURCE CODE
-#include <freeListMemoryManager.h> 
+#include <memoryManager.h> 
 #include <lib.h>
 #include <scheduler.h>
 
@@ -22,7 +21,7 @@ typedef struct list{
 #define PCB_BLOCK sizeof(MMNode) + sizeof(PCBNode)
 
 typedef struct MemoryManager_t{
-    list_t *freeList;
+    list_t freeList;
     uint64_t freeMemory;
     uint64_t usedMemory;
     uint64_t totalMemory;
@@ -31,34 +30,30 @@ typedef struct MemoryManager_t{
 MemoryManager_t memoryManager;
 MemoryManager_t PCBMemoryManager;
 
-list_t freeList;
-list_t PCBFreeList;
-
-static void initMemory(MemoryManager_t *memoryForMemoryManager, list_t *freeListForMemoryManager, void *const restrict init, uint64_t size);
+static void initMemory(MemoryManager_t *memoryForMemoryManager, void *const restrict init, uint64_t size);
 static void *genericAllocMemory(MemoryManager_t *memoryForMemoryManager, uint64_t blockSize, uint64_t memoryToAllocate);
 static void genericFreeMemory(MemoryManager_t *memoryForMemoryManager, void *const restrict memoryToFree);
 
-static void initMemory(MemoryManager_t *memoryForMemoryManager, list_t *freeListForMemoryManager, void *const restrict init, uint64_t size){
-    memoryForMemoryManager->freeList = freeListForMemoryManager;
+static void initMemory(MemoryManager_t *memoryForMemoryManager, void *const restrict init, uint64_t size){
     memoryForMemoryManager->freeMemory =  size;
     memoryForMemoryManager->totalMemory = size;
     memoryForMemoryManager->usedMemory = 0;
     // The first element of this freeList is the node containing the root of the memory
-    memoryForMemoryManager->freeList->head = (MMNode *)init;
-    memoryForMemoryManager->freeList->head->next = (MMNode *)((uint64_t)init + sizeof(MMNode));
-    memoryForMemoryManager->freeList->head->prev = NULL;
-    memoryForMemoryManager->freeList->head->memSize = 0;
-    memoryForMemoryManager->freeList->head->isFree = FALSE;
+    memoryForMemoryManager->freeList.head = (MMNode *)init;
+    memoryForMemoryManager->freeList.head->next = (MMNode *)((uint64_t)init + sizeof(MMNode));
+    memoryForMemoryManager->freeList.head->prev = NULL;
+    memoryForMemoryManager->freeList.head->memSize = 0;
+    memoryForMemoryManager->freeList.head->isFree = FALSE;
 
     // We add a final value to the last node (in this case the whole memory), and the previous memory value (root)
-    memoryForMemoryManager->freeList->head->next->next = NULL;
-    memoryForMemoryManager->freeList->head->next->prev = memoryForMemoryManager->freeList->head;
-    memoryForMemoryManager->freeList->head->next->memSize = size - 2*sizeof(MMNode);
-    memoryForMemoryManager->freeList->head->next->isFree = TRUE;
+    memoryForMemoryManager->freeList.head->next->next = NULL;
+    memoryForMemoryManager->freeList.head->next->prev = memoryForMemoryManager->freeList.head;
+    memoryForMemoryManager->freeList.head->next->memSize = size - 2*sizeof(MMNode);
+    memoryForMemoryManager->freeList.head->next->isFree = TRUE;
 }
 
 static void *genericAllocMemory(MemoryManager_t *memoryForMemoryManager, uint64_t blockSize, uint64_t memoryToAllocate){
-    MMNode *currentNode = memoryForMemoryManager->freeList->head->next;
+    MMNode *currentNode = memoryForMemoryManager->freeList.head->next;
     // We force the memory to have a fixed size of n blocks of 4kBytes
     uint64_t blocksToAllocate = memoryToAllocate + sizeof(MMNode) % blockSize == 0 ? sizeof(MMNode) + memoryToAllocate : ((sizeof(MMNode) + memoryToAllocate)/blockSize)*blockSize + blockSize;
     while(currentNode != NULL){
@@ -103,8 +98,8 @@ static void genericFreeMemory(MemoryManager_t *memoryForMemoryManager, void *con
 }
 
 void createMemoryManager(void *const restrict init, uint64_t size) {
-	initMemory(&memoryManager, &freeList, init, size);
-    initMemory(&PCBMemoryManager, &PCBFreeList, PCB_LOCATION, 0x140000);
+	initMemory(&memoryManager, init, size);
+    initMemory(&PCBMemoryManager, PCB_LOCATION, 0x140000);
 }
 
 void *allocMemory(const uint64_t memoryToAllocate){
@@ -146,4 +141,21 @@ uint64_t getFreeMemoryAmount(){
 
 uint64_t getUsedMemoryAmount(){
     return memoryManager.usedMemory;
+}
+
+uint64_t getPowerOfTwo(uint64_t number){
+    if (number == 1) { return 0; }
+    int power = 0;
+    int powerOfTwoSize = 1;
+    while(number != 1){
+        if(number%2 != 0){
+            number++;
+        } 
+        number = number/2;
+        power++;
+    }
+    for(int i = 0; i<power; i++){
+        powerOfTwoSize = powerOfTwoSize*2;
+    }
+    return powerOfTwoSize;
 }

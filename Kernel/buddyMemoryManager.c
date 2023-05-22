@@ -1,10 +1,11 @@
-#include "buddyMemoryManager.h"
-#include <stdio.h>
+#include <memoryManager.h>
+#include <scheduler.h>
 
 #define FREE 0
 #define SPLITTED 1
 #define OCCUPIED 2
 #define FLOOR 4096
+#define PCB_LOCATION 0x50000
 
 typedef struct block_t{
     struct block_t *parent;
@@ -14,13 +15,17 @@ typedef struct block_t{
     uint8_t state;
 } block_t;
 
+#define PCB_BLOCK sizeof(block_t) + sizeof(PCBNode)
+
 typedef struct BuddyMemoryManager_t{
     uint64_t totalMemory;
     block_t *mainBlock;
 } BuddyMemoryManagerCDT;
 
 BuddyMemoryManagerCDT memoryManager;
+BuddyMemoryManagerCDT PCBMemoryManager;
 
+static void initMemory(BuddyMemoryManagerCDT *memoryForMemoryManager, void *const restrict init, uint64_t size);
 void setBlocks(block_t * block);
 void setFree(block_t * currentBlock);
 uint64_t getSize(block_t * currentBlock, int state);
@@ -28,21 +33,31 @@ void *BSMem(block_t *currentBlock, uint64_t memoryToAllocate);
 void freeParentBlock(block_t * blockToFree);
 
 
-void createBuddyMemoryManager(void *const restrict init, uint64_t size) {
-    
-    uint64_t powerOfTwoSize = size;
-   
-    memoryManager.totalMemory = powerOfTwoSize;
-    memoryManager.mainBlock = (block_t*) init;
-    memoryManager.mainBlock->state = FREE;
-    memoryManager.mainBlock->size = powerOfTwoSize;
-    memoryManager.mainBlock->rBlock = NULL;
-    memoryManager.mainBlock->lBlock = NULL;
-    memoryManager.mainBlock->parent = NULL;
+void createMemoryManager(void *const init, uint64_t size) {
+    initMemory(&memoryManager, init, size);
+    initMemory(&PCBMemoryManager, PCB_LOCATION, 0x140000);
 }
 
-void *allocMemory(uint64_t memoryToAllocate){
-    block_t *currentBlock = memoryManager.mainBlock;
+static void initMemory(BuddyMemoryManagerCDT *memoryForMemoryManager, void *const init, uint64_t size){
+    memoryForMemoryManager->totalMemory = size;
+    memoryForMemoryManager->mainBlock = (block_t*) init;
+    memoryForMemoryManager->mainBlock->state = FREE;
+    memoryForMemoryManager->mainBlock->size = size;
+    memoryForMemoryManager->mainBlock->rBlock = NULL;
+    memoryForMemoryManager->mainBlock->lBlock = NULL;
+    memoryForMemoryManager->mainBlock->parent = NULL;
+}
+
+void *allocMemory(const uint64_t memoryToAllocate){
+    return genericAllocMemory(&memoryManager, memoryToAllocate);
+}
+
+void *allocPCB(){
+    return genericAllocMemory(&PCBMemoryManager, PCB_BLOCK);
+}
+
+void *genericAllocMemory(BuddyMemoryManagerCDT *memoryForMemoryManager, const uint64_t memoryToAllocate){
+    block_t *currentBlock = memoryForMemoryManager->mainBlock;
     return BSMem(currentBlock, memoryToAllocate);
 }
 
@@ -88,7 +103,11 @@ void *BSMem(block_t *currentBlock, uint64_t memoryToAllocate){
     }
 }
 
-void freeMemory(void *const restrict memoryToFree){
+void freePCB(void *const PCBToFree){
+    freeMemory(memoryToFree);
+}
+
+void freeMemory(void *const memoryToFree){
     block_t* blockToFree = (block_t*)(((uint64_t)memoryToFree) - sizeof(block_t));
     blockToFree->state = FREE;
 
@@ -108,7 +127,7 @@ void freeParentBlock(block_t * blockToFree){
     return;
 }
 
-void*reallocMemory(void *const restrict memoryToRealloc, uint64_t newSize){
+void *reallocMemory(void *const memoryToRealloc, uint64_t newSize){
     block_t*currentBlock = (block_t *)((uint64_t)memoryToRealloc - sizeof(block_t));
     if(currentBlock->size > newSize){
         return memoryToRealloc;
