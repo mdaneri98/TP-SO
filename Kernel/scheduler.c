@@ -13,6 +13,7 @@ typedef struct list {
 uint32_t unusedID();
 char exists(uint32_t pid);
 int add(ProcessControlBlockCDT newEntry);
+ProcessControlBlockCDT *getEntry(uint32_t pid);
 
 
 /* Global Variables */
@@ -37,12 +38,17 @@ int sysFork() {
     newEntry.id = unusedID();
     
     // Add this process to the scheduler
-    add(newEntry);
+    if(add(newEntry) == -1){
+        freeMemory(newEntry.stackBase);
+        return -1;
+    }
 
     // If we are in the parent process
     if(linkedList.current->pcbEntry.id == parentId){
         return newEntry.id;
     }
+
+    // We are in the child process
     return 0;
 }
 
@@ -71,11 +77,11 @@ int sysKill(uint32_t pid) {
 
 // FIXME: Implementar.
 int sysBlock(uint32_t pid) {
-    ProcessControlBlockCDT *node = getEntry(pid);
-    if(node == NULL){
+    ProcessControlBlockCDT *PCBEntry = getEntry(pid);
+    if(PCBEntry == NULL){
         return -1;
     }
-    node->state = BLOCKED;
+    PCBEntry->state = BLOCKED;
 
     // We call manually the scheduler via the timer tick interrupt (to enshure that the stack-frame is done correctly)
     int20h();
@@ -110,7 +116,6 @@ int add(ProcessControlBlockCDT newEntry) {
 
     PCBNode *newNode = allocPCB();
     if(newNode == NULL){
-        freeMemory(newEntry.stackBase);
         return -1;
     }
 
@@ -122,6 +127,7 @@ int add(ProcessControlBlockCDT newEntry) {
     newNode->next = NULL;
 
     current->next = newNode;
+    return 0;
 }
 
 /*
@@ -184,7 +190,7 @@ int remove(uint32_t pid) {
 }
 
 
-ProcessControlBlockCDT* getEntry(uint32_t pid) {
+ProcessControlBlockCDT *getEntry(uint32_t pid) {
     if (&linkedList.head == NULL || !exists(pid)) {
         return NULL;
     }
@@ -239,7 +245,7 @@ char exists(uint32_t pid) {
     return founded;
 }
 
-void scheduler(uint64_t *rsp) {
+uint64_t *scheduler(uint64_t *rsp) {
     ProcessControlBlockCDT processToRun;
     // When the system starts up, the current field is always NULL
     if(linkedList.current == NULL){

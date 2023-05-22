@@ -26,6 +26,7 @@ BuddyMemoryManagerCDT memoryManager;
 BuddyMemoryManagerCDT PCBMemoryManager;
 
 static void initMemory(BuddyMemoryManagerCDT *memoryForMemoryManager, void *const restrict init, uint64_t size);
+static void *genericAllocMemory(BuddyMemoryManagerCDT *memoryForMemoryManager, const uint64_t memoryToAllocate);
 void setBlocks(block_t * block);
 void setFree(block_t * currentBlock);
 uint64_t getSize(block_t * currentBlock, int state);
@@ -56,7 +57,7 @@ void *allocPCB(){
     return genericAllocMemory(&PCBMemoryManager, PCB_BLOCK);
 }
 
-void *genericAllocMemory(BuddyMemoryManagerCDT *memoryForMemoryManager, const uint64_t memoryToAllocate){
+static void *genericAllocMemory(BuddyMemoryManagerCDT *memoryForMemoryManager, const uint64_t memoryToAllocate){
     block_t *currentBlock = memoryForMemoryManager->mainBlock;
     return BSMem(currentBlock, memoryToAllocate);
 }
@@ -104,7 +105,7 @@ void *BSMem(block_t *currentBlock, uint64_t memoryToAllocate){
 }
 
 void freePCB(void *const PCBToFree){
-    freeMemory(memoryToFree);
+    freeMemory(PCBToFree);
 }
 
 void freeMemory(void *const memoryToFree){

@@ -19,7 +19,7 @@ typedef struct pcb_node {
     ProcessControlBlockCDT pcbEntry;
 } PCBNode;
 
-void scheduler();
+uint64_t *scheduler();
 int sysFork();
 int sysExecve(processFunc process, int argc, char *argv[], uint64_t rsp);
 int sysKill(uint32_t pid);

@@ -10,7 +10,7 @@ OBJECTS_ASM=$(SOURCES_ASM:.asm=.o)
 LOADERSRC=loader.asm
 
 ifeq ($(TARGET), all)
-	EXCLUDED := dummyMemoryManager.c dummyMemoryManager.o
+	EXCLUDED := buddyMemoryManager.c buddyMemoryManager.o
 else ifeq ($(TARGET), buddy)
 	EXCLUDED := freeListMemoryManager.c freeListMemoryManager.o
 endif
