@@ -1,4 +1,4 @@
-#include <freeListMemoryManager.h>  //FIXME: Debería ser uno general.
+#include <memoryManager.h>
 #include <process.h>
 #include <scheduler.h>
 #include <interrupts.h>

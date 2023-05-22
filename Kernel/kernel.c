@@ -7,6 +7,7 @@
 #include <time.h>
 #include <scheduler.h>
 #include <interrupts.h>
+#include <memoryManager.h>
 
 extern uint8_t text;
 extern uint8_t rodata;
