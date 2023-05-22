@@ -10,6 +10,7 @@ typedef struct ProcessControlBlockCDT {
     char foreground;
     ProcessState state;
     uint64_t *stack;
+    uint64_t *stackBase;
 } ProcessControlBlockCDT;
 
 typedef struct pcb_node {

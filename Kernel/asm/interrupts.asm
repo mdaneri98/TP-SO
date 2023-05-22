@@ -17,7 +17,7 @@ GLOBAL _exception5Handler
 GLOBAL _exception6Handler
 GLOBAL _exception14Handler
 
-
+GLOBAL int20h
 GLOBAL _syscallsHandler
 
 EXTERN irqDispatcher
@@ -290,6 +290,16 @@ _exception14Handler:
 haltcpu:
 	cli
 	hlt
+	ret
+
+int20h:
+	push rbp
+	mov rbp, rsp
+
+	int 20h
+
+	mov rsp, rbp
+	pop rbp
 	ret
 
 

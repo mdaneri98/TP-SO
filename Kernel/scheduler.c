@@ -1,6 +1,7 @@
 #include <freeListMemoryManager.h>  //FIXME: Debería ser uno general.
 #include <process.h>
 #include <scheduler.h>
+#include <interrupts.h>
 
 /* Structures */
 typedef struct list {
@@ -9,9 +10,9 @@ typedef struct list {
 } list_t;
 
 /* Prototypes */
-int32_t unusedID();
+uint32_t unusedID();
 char exists(uint32_t pid);
-void add(ProcessControlBlockCDT newEntry);
+int add(ProcessControlBlockCDT newEntry);
 
 
 /* Global Variables */
@@ -19,38 +20,43 @@ list_t linkedList;
 uint32_t entriesCount = 0;
 
 int sysFork() {
-    ProcessControlBlockCDT entry;
+    ProcessControlBlockCDT newEntry;
     void *newStack = allocMemory(4000);
     if(newStack == NULL){
         return -1;
     }
+    newEntry.stackBase = (uint64_t *)newStack;
     copyState(&newStack, linkedList.current->pcbEntry.stack);
-    entry.stack = newStack;
-    entry.foreground = linkedList.current->pcbEntry.foreground;
-    entry.priority = linkedList.current->pcbEntry.priority;
-    entry.state = linkedList.current->pcbEntry.state;
+    newEntry.stack = (uint64_t *)newStack;
+    newEntry.foreground = linkedList.current->pcbEntry.foreground;
+    newEntry.priority = linkedList.current->pcbEntry.priority;
+    newEntry.state = linkedList.current->pcbEntry.state;
     
     // Should be other id
     uint64_t parentId = linkedList.current->pcbEntry.id;
-    entry.id = unusedID();
+    newEntry.id = unusedID();
     
     // Add this process to the scheduler
-    add(entry);
+    add(newEntry);
 
     // If we are in the parent process
     if(linkedList.current->pcbEntry.id == parentId){
-        return entry.id;
+        return newEntry.id;
     }
     return 0;
 }
 
 int sysExecve(processFunc process, int argc, char *argv[], uint64_t rsp){
-    // ProcessControlBlockCDT currentProcess = linkedList.current.pcbEntry;
+    ProcessControlBlockCDT currentProcess = linkedList.current->pcbEntry;
     
 
     // IT ONLY SETUPS THE PROCESS CORRECTLY IF ITS CALLED BY THE SYSCALL, U NEED TO SET THE STACK
     //BEFORE USING IT WITH INIT OR ANY FUNCTIONALITY THAT USES THIS FUNCTION WITHOUT USING THE SYSCALL
-    return setProcess(process, argc, argv, rsp);
+    if(setProcess(process, argc, argv, rsp) == -1){
+        return -1;
+    }
+    currentProcess.stack = (uint64_t *)rsp;
+    return 1;
 }
 
 // FIXME: Implementar.
@@ -65,7 +71,14 @@ int sysKill(uint32_t pid) {
 
 // FIXME: Implementar.
 int sysBlock(uint32_t pid) {
-    //...
+    ProcessControlBlockCDT *node = getEntry(pid);
+    if(node == NULL){
+        return -1;
+    }
+    node->state = BLOCKED;
+
+    // We call manually the scheduler via the timer tick interrupt (to enshure that the stack-frame is done correctly)
+    int20h();
     return 0;
 }
 
@@ -76,6 +89,7 @@ void createInit() {
     node->previous = NULL;
     node->next = NULL;
 
+    node->pcbEntry.stackBase = stack;
     node->pcbEntry.stack = createInitStack(stack);
     node->pcbEntry.id = 0;
     node->pcbEntry.priority = 0;
@@ -86,7 +100,7 @@ void createInit() {
 }
 
 // ----------- Implementación Round-Robin sin prioridad ----------------
-void add(ProcessControlBlockCDT newEntry) {
+int add(ProcessControlBlockCDT newEntry) {
     PCBNode *previous = NULL;
     PCBNode *current = linkedList.head;
     while (current->next != NULL) {
@@ -95,6 +109,10 @@ void add(ProcessControlBlockCDT newEntry) {
     }
 
     PCBNode *newNode = allocPCB();
+    if(newNode == NULL){
+        freeMemory(newEntry.stackBase);
+        return -1;
+    }
 
     newNode->pcbEntry.id = newEntry.id;
     newNode->pcbEntry.priority = newEntry.priority;
@@ -107,14 +125,14 @@ void add(ProcessControlBlockCDT newEntry) {
 }
 
 /*
-El siguiente proceso a ejecutar será:
-    1. El primer next que esté en estado READY.
-    2. El head si no hay next al current.
+    The next process will be:
+        1. The first process that is on READY state
+        2. The head process if it's no process next to the current
 */
 ProcessControlBlockCDT next() {
     PCBNode *current = linkedList.current;
 
-    // Si estamos en el último nodo, nos movemos al inicio.
+    // If it's the last node, we move into the beginning of te list
     if (current->pcbEntry.state != READY && current->next == NULL) {
         current = linkedList.head;
     }
@@ -122,10 +140,10 @@ ProcessControlBlockCDT next() {
     while (current->next != NULL && current->pcbEntry.state != READY) {
         current = current->next;
 
-        /* Si es el último nodo, y no está READY, volvemos al inicio. */
+        // If the last node isn't READY, we move also at the beginning
         if (current->next == NULL) {
             if (current->pcbEntry.state != READY) {
-                current = &linkedList.head;
+                current = linkedList.head;
             }
         }
     }
@@ -158,6 +176,7 @@ int remove(uint32_t pid) {
     if (current->pcbEntry.id == pid) {
         current->previous->next = current->next;
         current->next->previous = current->previous;
+        freeMemory(current->pcbEntry.stackBase);
         freePCB(current);
     }
 
@@ -183,8 +202,8 @@ ProcessControlBlockCDT* getEntry(uint32_t pid) {
     return NULL;
 }
 
-/* Siempre debe haber al menos un proceso en la lista. */
-int32_t unusedID() {
+// It always has to be at least one process on the list
+uint32_t unusedID() {
     if (linkedList.head == NULL) {
         return -1;
     }
@@ -209,7 +228,7 @@ char exists(uint32_t pid) {
     }
 
     char founded = 0;
-    PCBNode *current = &linkedList.head;
+    PCBNode *current = linkedList.head;
     founded = current->pcbEntry.id == pid ? 1 : 0; 
 
     while (current->next != NULL && !founded) {
@@ -222,23 +241,25 @@ char exists(uint32_t pid) {
 
 void scheduler(uint64_t *rsp) {
     ProcessControlBlockCDT processToRun;
+    // When the system starts up, the current field is always NULL
     if(linkedList.current == NULL){
         linkedList.current = linkedList.head;
         processToRun = linkedList.head->pcbEntry;
         processToRun.state = RUNNING;
         return processToRun.stack;
     }
-    
+
+    // Backup of the caller stack
     linkedList.current->pcbEntry.stack = rsp;
-    /* Si fue llamado manualmente, mediante int 0x20, tenemos que
-        revisar el estado de este proceso */
+
+    // If this function was called by a process, we need to check its state
     if (linkedList.current->pcbEntry.state == EXITED) {
         PCBNode *aux = linkedList.current;
         
-        //Movemos el puntero al siguiente en ejecutar.
+        // We move to the next process that needs execution
         processToRun = next(); 
         
-        //Eliminamos el proceso actual (que está en estado EXITED) de la lista.
+        // We remove the EXITED process from the list of processes
         remove(aux->pcbEntry.id);
     }
     
