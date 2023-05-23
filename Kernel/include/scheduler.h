@@ -1,3 +1,5 @@
+#ifndef SCHEDULER_H
+#define SCHEDULER_H
 #include <process.h>
 
 #define READ 0
@@ -46,3 +48,4 @@ int sysBlock(uint32_t pid);
 void createInit();
 
 typedef struct ProcessControlBlockCDT *ProcessControlBlockADT;
+#endif /* SCHEDULER_H */
