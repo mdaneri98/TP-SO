@@ -1,16 +1,35 @@
 #include <process.h>
 
+#define READ 0
+#define WRITE 1
+#define READ_WRITE 2
+#define CLOSED 3
 
+#define PD_SIZE 32
+#define PD_BUFF_SIZE 1024
 // States for processes.
 typedef enum ProcessState { READY, RUNNING, BLOCKED, EXITED } ProcessState;
 
+typedef struct buffer_t{
+    char buffer[PD_BUFF_SIZE];
+    uint16_t bufferDim;
+    uint32_t buffId;
+    uint8_t status;
+} buffer_t;
+
 typedef struct ProcessControlBlockCDT {
-    unsigned int id;
-    unsigned int priority;
+    uint32_t id;
+    uint16_t priority;
     char foreground;
     ProcessState state;
+    
+    buffer_t readBuffer;
+    buffer_t writeBuffer;
+
     uint64_t *stack;
     uint64_t *stackBase;
+
+    buffer_t *pdTable[PD_SIZE];
 } ProcessControlBlockCDT;
 
 typedef struct pcb_node {

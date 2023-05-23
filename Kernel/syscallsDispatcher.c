@@ -10,9 +10,8 @@
 #include <speaker.h>
 #include <libasm.h>
 #include <memory.h>
-#include "process.h"
-#include "scheduler.h"
-
+#include <process.h>
+#include <scheduler.h>
 
 #define STDIN 0
 #define STDOUT 1
@@ -23,6 +22,10 @@
 #define ERROR -1
 
 #define DEFAULT_FREQUENCY 1500
+
+buffer_t stdin;
+buffer_t stdout;
+buffer_t stderr;
 
 static uint64_t arqSysRead(uint64_t buff, uint64_t dim, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5);
 
@@ -78,6 +81,23 @@ void set_SYSCALLS(){
     syscalls[17] = (SyscallVec) arqSysKill;
     syscalls[18] = (SyscallVec) arqSysExecve;
     syscalls[19] = (SyscallVec) arqSysFork;
+    for(int i=0; i<512; i++){
+        stdin.buffer[i] = '\0';
+        stdout.buffer[i] = '\0';
+        stderr.buffer[i] = '\0';
+    }
+    // We set the "pid" to the STDIN-STDOUT-STDERR entries
+    stdin.status = READ;
+    stdin.bufferDim = 0;
+    stdin.buffId = 0;
+
+    stdout.status = WRITE;
+    stdout.bufferDim = 0;
+    stdout.buffId = 0;
+
+    stderr.status = WRITE;
+    stderr.bufferDim = 0;
+    stderr.buffId = 0;
 }
 
 uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t r9, uint64_t rsp) {    
@@ -254,4 +274,15 @@ static uint64_t arqSysChangeFontSize(uint64_t newSize, uint64_t nil1, uint64_t n
     if(newSize > 0 && newSize < 6)
         scrChangeFont(newSize);
     return 0;
+}
+
+
+buffer_t *getSTDIN(){
+    return &stdin;
+}
+buffer_t *getSTDOUT(){
+    return &stdout;
+}
+buffer_t *getSTDERR(){
+    return &stderr;
 }

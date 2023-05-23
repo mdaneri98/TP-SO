@@ -2,6 +2,8 @@
 #include <process.h>
 #include <scheduler.h>
 #include <interrupts.h>
+#include <keyboard.h>
+#include <syscallDispatcher.h>
 
 /* Structures */
 typedef struct list {
@@ -14,7 +16,7 @@ uint32_t unusedID();
 char exists(uint32_t pid);
 int add(ProcessControlBlockCDT newEntry);
 ProcessControlBlockCDT *getEntry(uint32_t pid);
-
+static void closePDs(pid);
 
 /* Global Variables */
 list_t linkedList;
@@ -32,6 +34,9 @@ int sysFork() {
     newEntry.foreground = linkedList.current->pcbEntry.foreground;
     newEntry.priority = linkedList.current->pcbEntry.priority;
     newEntry.state = linkedList.current->pcbEntry.state;
+    for(int i=0; i<PD_SIZE ;i++){
+        newEntry.pdTable[i] = linkedList.current->pcbEntry.pdTable[i];
+    }
     
     // Should be other id
     uint64_t parentId = linkedList.current->pcbEntry.id;
@@ -54,7 +59,6 @@ int sysFork() {
 
 int sysExecve(processFunc process, int argc, char *argv[], uint64_t rsp){
     ProcessControlBlockCDT currentProcess = linkedList.current->pcbEntry;
-    
 
     // IT ONLY SETUPS THE PROCESS CORRECTLY IF ITS CALLED BY THE SYSCALL, U NEED TO SET THE STACK
     //BEFORE USING IT WITH INIT OR ANY FUNCTIONALITY THAT USES THIS FUNCTION WITHOUT USING THE SYSCALL
@@ -91,13 +95,19 @@ int sysBlock(uint32_t pid) {
 void createInit() {
     void *stack = allocMemory(4000);
     PCBNode *node = allocPCB();
-
+    
     node->previous = NULL;
     node->next = NULL;
 
+    node->pcbEntry.pdTable[0] = getSTDIN();
+    node->pcbEntry.pdTable[1] = getSTDOUT();
+    node->pcbEntry.pdTable[2] = getSTDERR();
+    for(int i=3; i<PD_SIZE ;i++){
+        node->pcbEntry.pdTable[i] = NULL;
+    }
     node->pcbEntry.stackBase = stack;
     node->pcbEntry.stack = createInitStack(stack);
-    node->pcbEntry.id = 0;
+    node->pcbEntry.id = 1;
     node->pcbEntry.priority = 0;
     node->pcbEntry.foreground = 1;
     node->pcbEntry.state = READY;
@@ -119,9 +129,13 @@ int add(ProcessControlBlockCDT newEntry) {
         return -1;
     }
 
+    for(int i=0; i<PD_SIZE ;i++){
+        newNode->pcbEntry.pdTable[i] = newEntry.pdTable[i];
+    }
     newNode->pcbEntry.id = newEntry.id;
     newNode->pcbEntry.priority = newEntry.priority;
     newNode->pcbEntry.stack = newEntry.stack;
+    newNode->pcbEntry.stackBase = newEntry.stackBase;
     newNode->pcbEntry.state = newEntry.state;
     newNode->previous = current;
     newNode->next = NULL;
@@ -182,6 +196,7 @@ int remove(uint32_t pid) {
     if (current->pcbEntry.id == pid) {
         current->previous->next = current->next;
         current->next->previous = current->previous;
+        closePDs(pid);
         freeMemory(current->pcbEntry.stackBase);
         freePCB(current);
     }
@@ -263,7 +278,7 @@ uint64_t *scheduler(uint64_t *rsp) {
         PCBNode *aux = linkedList.current;
         
         // We move to the next process that needs execution
-        processToRun = next(); 
+        processToRun = next();
         
         // We remove the EXITED process from the list of processes
         remove(aux->pcbEntry.id);
@@ -279,3 +294,21 @@ uint64_t *scheduler(uint64_t *rsp) {
     return processToRun.stack;
 }
 
+static void closePDs(uint32_t pid){
+    if(pid == 0){
+        // pid 0 belongs to standart input/output, can't close
+        return;
+    }
+    PCBNode *node = linkedList.head;
+    while(node != NULL){
+        if(node->pcbEntry.id == pid){
+            continue;
+        }
+        for(int i=0; i<PD_SIZE ;i++){
+            if(node->pcbEntry.pdTable[i] != NULL && node->pcbEntry.pdTable[i]->buffId == pid){
+                node->pcbEntry.pdTable[i] = NULL;
+            }
+        }
+        node = node->next;
+    }
+}
