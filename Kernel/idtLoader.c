@@ -36,9 +36,6 @@ void load_idt() {
   setup_IDT_entry (0x21, (uint64_t)&_irq01Handler);         // Keyboard
   setup_IDT_entry (0x80, (uint64_t)&_syscallsHandler);      // Syscalls - Software
 
-  set_SYSCALLS();
-  set_EXCEPTIONS();
-
 	//Solo interrupcion timer tick y keyboard habilitadas
 	picMasterMask(0xFC); 
 	picSlaveMask(0xFF);

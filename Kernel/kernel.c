@@ -8,6 +8,8 @@
 #include <scheduler.h>
 #include <interrupts.h>
 #include <memoryManager.h>
+#include <exceptions.h>
+#include <syscallDispatcher.h>
 
 extern uint8_t text;
 extern uint8_t rodata;
@@ -71,6 +73,9 @@ int main()
 	//disponible para el espacio de usuario un total de 7 páginas para que use, es decir, si usamos el tamaño por defecto
 	//de nuestra memoria actual, en el momento en el que se hagan más de 7 peticiones de memoria en simultáneo, cagamos xd
 	//hay que averiguar si hay alguna forma de expandir ese número, o reducir el tamaño del bloque de memoria que se reserva
+
+	set_SYSCALLS();
+  	set_EXCEPTIONS();
 
 	createInit();
 

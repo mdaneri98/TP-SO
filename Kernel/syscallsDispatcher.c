@@ -12,14 +12,16 @@
 #include <memory.h>
 #include <process.h>
 #include <scheduler.h>
+#include <interrupts.h>
 
 #define STDIN 0
 #define STDOUT 1
 #define STDERR 2
-#define TOTAL_SYSCALLS 20
+#define TOTAL_SYSCALLS 21
 #define AUX_BUFF_DIM 512
 
 #define ERROR -1
+#define NULL (void *)0
 
 #define DEFAULT_FREQUENCY 1500
 
@@ -29,7 +31,7 @@ buffer_t stderr;
 
 static uint64_t arqSysRead(uint64_t buff, uint64_t dim, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5);
 
-static uint64_t arqSysWrite(uint64_t fd, uint64_t buff, uint64_t count, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4);
+static uint64_t arqSysWrite(uint64_t pd, uint64_t buff, uint64_t count, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4);
 static uint64_t arqSysMemoryDump(uint64_t direction, uint64_t buffer, uint64_t nil1, uint64_t nil2, uint64_t  nil3, uint64_t nil4, uint64_t nil5);
 static uint64_t arqSysGetRegistersInfo(uint64_t buffer, uint64_t nil1, uint64_t  nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
 static uint64_t arqSysClear(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
@@ -50,7 +52,7 @@ static uint64_t arqSysKill(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t 
 static uint64_t arqSysExecve(uint64_t processFunction, uint64_t argc, uint64_t argv, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t rsp);
 static uint64_t arqSysFork(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 
-
+static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 
 typedef uint64_t (*SyscallVec)(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t r9, uint64_t rsp);
 
@@ -81,10 +83,16 @@ void set_SYSCALLS(){
     syscalls[17] = (SyscallVec) arqSysKill;
     syscalls[18] = (SyscallVec) arqSysExecve;
     syscalls[19] = (SyscallVec) arqSysFork;
+    syscalls[20] = (SyscallVec) arqSysWait;
     for(int i=0; i<512; i++){
         stdin.buffer[i] = '\0';
         stdout.buffer[i] = '\0';
         stderr.buffer[i] = '\0';
+    }
+    for(int i=0; i<PD_SIZE ;i++){
+        stdin.references[i] = NULL;
+        stdout.references[i] = NULL;
+        stderr.references[i] = NULL;
     }
     // We set the "pid" to the STDIN-STDOUT-STDERR entries
     stdin.status = READ;
@@ -108,31 +116,46 @@ uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t r
 /**
  * @brief Reads the given buffer and drops it's content into the file descriptor given, and only the amount specified
  * 
- * @param fd
+ * @param pd
  * @param buff 
  * @param count 
  * @return Amount of bytes read. -1 in case of error
  */
-static uint64_t arqSysRead(uint64_t fd, uint64_t buff, uint64_t count, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5){
-    if (fd == STDIN) {
-        char *auxBuff = (char *) buff;
-        int bytesRead = 0;
-        char c;
-        while( bytesRead < count){
-            if((c = readBuffer()) < 0)
-                return -1;
-            auxBuff[bytesRead++] = c;
-        }
-        return bytesRead;
-   }
-   return ERROR;    // There's no other files descriptors yet...
+static uint64_t arqSysRead(uint64_t pd, uint64_t buff, uint64_t count, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5){
+    PCBNode *current = getCurrentProcess();
+    if(current == NULL){
+        return 0;
+    }
+    buffer_t *buffToRead = current->pcbEntry.pdTable[pd];
+    if(buffToRead == NULL || buffToRead->status == CLOSED){
+        return 0;
+    }
+    while(buffToRead->bufferDim == 0 && buffToRead->status != CLOSED){
+        current->pcbEntry.state = BLOCKED;
+        int20h();
+    }
+    if(buffToRead->status == CLOSED){
+        return 0;
+    }
+    char *auxBuff = (char *) buff;
+    int bytesRead = 0;
+    char c;
+    while( bytesRead < count && buffToRead->bufferDim > 0){
+        c = buffToRead->buffer[bytesRead];
+        buffToRead->bufferDim--;
+        auxBuff[bytesRead++] = c;
+    }
+    for(int j=bytesRead, k=0; j<PD_BUFF_SIZE; j++, k++){
+        buffToRead->buffer[k] = buffToRead->buffer[j];
+    }
+    return bytesRead;
 }
 
-static uint64_t arqSysWrite(uint64_t fd, uint64_t buff, uint64_t count, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4) {
+static uint64_t arqSysWrite(uint64_t pd, uint64_t buff, uint64_t count, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4) {
     char * tmpBuff = (char *) buff;
     char auxBuff[AUX_BUFF_DIM] = {0};
     uint64_t toReturn;
-    switch(fd){
+    switch(pd){
         case STDIN:{
             toReturn = 0;
             while(toReturn < count){
@@ -276,6 +299,10 @@ static uint64_t arqSysChangeFontSize(uint64_t newSize, uint64_t nil1, uint64_t n
     return 0;
 }
 
+static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
+    _hlt();
+    return 0;
+}
 
 buffer_t *getSTDIN(){
     return &stdin;
@@ -286,3 +313,6 @@ buffer_t *getSTDOUT(){
 buffer_t *getSTDERR(){
     return &stderr;
 }
+
+
+// 81fcb0 -> Stack que está guardado de la terminal

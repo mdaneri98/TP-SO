@@ -9,13 +9,13 @@
 typedef struct list {
     PCBNode *head;
     PCBNode *current;
+    PCBNode *waiter;
 } list_t;
 
 /* Prototypes */
 uint32_t unusedID();
 char exists(uint32_t pid);
 int add(ProcessControlBlockCDT newEntry);
-ProcessControlBlockCDT *getEntry(uint32_t pid);
 static void closePDs(pid);
 
 /* Global Variables */
@@ -28,7 +28,7 @@ int sysFork() {
     if(newStack == NULL){
         return -1;
     }
-    newEntry.stackBase = (uint64_t *)newStack;
+    newEntry.baseStack = (uint64_t *)newStack;
     copyState(&newStack, linkedList.current->pcbEntry.stack);
     newEntry.stack = (uint64_t *)newStack;
     newEntry.foreground = linkedList.current->pcbEntry.foreground;
@@ -44,7 +44,7 @@ int sysFork() {
     
     // Add this process to the scheduler
     if(add(newEntry) == -1){
-        freeMemory(newEntry.stackBase);
+        freeMemory(newEntry.baseStack);
         return -1;
     }
 
@@ -93,26 +93,45 @@ int sysBlock(uint32_t pid) {
 }
 
 void createInit() {
-    void *stack = allocMemory(4000);
-    PCBNode *node = allocPCB();
+    void *initStack = allocMemory(5000);
+    PCBNode *initNode = allocPCB();
+    void *waiterStack = allocMemory(5000);
+    PCBNode *waiterNode = allocPCB();
     
-    node->previous = NULL;
-    node->next = NULL;
+    initNode->previous = NULL;
+    initNode->next = NULL;
+    waiterNode->previous = NULL;
+    waiterNode->next = NULL;
 
-    node->pcbEntry.pdTable[0] = getSTDIN();
-    node->pcbEntry.pdTable[1] = getSTDOUT();
-    node->pcbEntry.pdTable[2] = getSTDERR();
+    initNode->pcbEntry.pdTable[0] = getSTDIN();
+    initNode->pcbEntry.pdTable[0]->references[0] = &initNode->pcbEntry;
+
+    initNode->pcbEntry.pdTable[1] = getSTDOUT();
+    initNode->pcbEntry.pdTable[1]->references[0] = &initNode->pcbEntry;
+
+    initNode->pcbEntry.pdTable[2] = getSTDERR();
+    initNode->pcbEntry.pdTable[2]->references[0] = &initNode->pcbEntry;
+    
     for(int i=3; i<PD_SIZE ;i++){
-        node->pcbEntry.pdTable[i] = NULL;
+        initNode->pcbEntry.pdTable[i] = NULL;
+        waiterNode->pcbEntry.pdTable[i] = NULL;
     }
-    node->pcbEntry.stackBase = stack;
-    node->pcbEntry.stack = createInitStack(stack);
-    node->pcbEntry.id = 1;
-    node->pcbEntry.priority = 0;
-    node->pcbEntry.foreground = 1;
-    node->pcbEntry.state = READY;
+    initNode->pcbEntry.baseStack = initStack;
+    initNode->pcbEntry.stack = createInitStack(initStack);
+    initNode->pcbEntry.id = 1;
+    initNode->pcbEntry.priority = 0;
+    initNode->pcbEntry.foreground = 1;
+    initNode->pcbEntry.state = READY;
     linkedList.current = NULL;
-    linkedList.head = node;
+    linkedList.head = initNode;
+
+    waiterNode->pcbEntry.baseStack = waiterStack;
+    waiterNode->pcbEntry.stack = createWaiterStack(waiterStack);
+    waiterNode->pcbEntry.id=2;
+    waiterNode->pcbEntry.priority = 0;
+    waiterNode->pcbEntry.foreground = 1;
+    waiterNode->pcbEntry.state = READY;
+    linkedList.waiter = waiterNode;
 }
 
 // ----------- Implementación Round-Robin sin prioridad ----------------
@@ -131,11 +150,19 @@ int add(ProcessControlBlockCDT newEntry) {
 
     for(int i=0; i<PD_SIZE ;i++){
         newNode->pcbEntry.pdTable[i] = newEntry.pdTable[i];
+        if(newNode->pcbEntry.pdTable[i] != NULL){
+            for(int j=0; j<PD_SIZE ;j++){
+                if(newNode->pcbEntry.pdTable[i]->references[j] == NULL){
+                    newNode->pcbEntry.pdTable[i]->references[j] = &newNode->pcbEntry;
+                    break;
+                }
+            }
+        }
     }
     newNode->pcbEntry.id = newEntry.id;
     newNode->pcbEntry.priority = newEntry.priority;
     newNode->pcbEntry.stack = newEntry.stack;
-    newNode->pcbEntry.stackBase = newEntry.stackBase;
+    newNode->pcbEntry.baseStack = newEntry.baseStack;
     newNode->pcbEntry.state = newEntry.state;
     newNode->previous = current;
     newNode->next = NULL;
@@ -151,22 +178,29 @@ int add(ProcessControlBlockCDT newEntry) {
 */
 ProcessControlBlockCDT next() {
     PCBNode *current = linkedList.current;
-
-    // If it's the last node, we move into the beginning of te list
-    if (current->pcbEntry.state != READY && current->next == NULL) {
-        current = linkedList.head;
-    }
-
-    while (current->next != NULL && current->pcbEntry.state != READY) {
-        current = current->next;
-
-        // If the last node isn't READY, we move also at the beginning
-        if (current->next == NULL) {
-            if (current->pcbEntry.state != READY) {
-                current = linkedList.head;
-            }
+    if(current->pcbEntry.id == linkedList.waiter->pcbEntry.id){
+            current->pcbEntry.state = READY;
+    } else if(current->pcbEntry.state == RUNNING){
+        current->previous->next = current->next;
+        current->next->previous = current->previous;
+        PCBNode *last = linkedList.head;
+        while(last->next != NULL){
+            last = last->next;
         }
+        current->pcbEntry.state = READY;
+        current->next = NULL;
+        last->next = current;
     }
+    current = linkedList.head;
+    while (current != NULL && current->pcbEntry.state != READY) {
+        current = current->next;
+    }
+    // If the last node isn't READY, we set the waiter
+    if (current == NULL) {
+        current = linkedList.waiter;
+    }
+
+    current->pcbEntry.state = RUNNING;
     linkedList.current = current;
 
     return linkedList.current->pcbEntry;
@@ -197,7 +231,7 @@ int remove(uint32_t pid) {
         current->previous->next = current->next;
         current->next->previous = current->previous;
         closePDs(pid);
-        freeMemory(current->pcbEntry.stackBase);
+        freeMemory(current->pcbEntry.baseStack);
         freePCB(current);
     }
 
@@ -206,7 +240,7 @@ int remove(uint32_t pid) {
 
 
 ProcessControlBlockCDT *getEntry(uint32_t pid) {
-    if (&linkedList.head == NULL || !exists(pid)) {
+    if (linkedList.head == NULL || !exists(pid)) {
         return NULL;
     }
 
@@ -260,7 +294,7 @@ char exists(uint32_t pid) {
     return founded;
 }
 
-uint64_t *scheduler(uint64_t *rsp) {
+void *scheduler(void *rsp) {
     ProcessControlBlockCDT processToRun;
     // When the system starts up, the current field is always NULL
     if(linkedList.current == NULL){
@@ -282,15 +316,16 @@ uint64_t *scheduler(uint64_t *rsp) {
         
         // We remove the EXITED process from the list of processes
         remove(aux->pcbEntry.id);
+
+        return processToRun.stack;
     }
-    
 
     /* 
         If the process was BLOCKED or RUNNING, and scheduler function started, we do the same thing. 
         Get the next process with a READY state and run it.
     */
     processToRun = next();
-    processToRun.state = RUNNING;
+
     return processToRun.stack;
 }
 
@@ -311,4 +346,8 @@ static void closePDs(uint32_t pid){
         }
         node = node->next;
     }
+}
+
+PCBNode *getCurrentProcess(){
+    return linkedList.current;
 }

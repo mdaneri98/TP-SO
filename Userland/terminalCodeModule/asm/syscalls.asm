@@ -14,7 +14,7 @@ GLOBAL _getPenY
 GLOBAL _changeFont
 GLOBAL _memoryDump
 GLOBAL _getRegs
-
+GLOBAL _wait
 
 _read:
     mov rax, 0x0
@@ -97,3 +97,7 @@ _getRegs:
     int 80h
     ret
     
+_wait:
+    mov rax, 0x14
+    int 80h
+    ret

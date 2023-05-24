@@ -2,6 +2,7 @@
 #include <video.h>
 #include <keyboard.h>
 #include <string.h>
+#include <syscallDispatcher.h>
 
 #define CODES 56
 #define LETTERS 25
@@ -10,6 +11,7 @@
 #define L_SHIFT 0x2A
 #define BUFFER_DIM 512
 #define ERROR -1
+#define NULL (void *)0
 
 static int isBuffEmpty();
 static int isMapped(unsigned char key);
@@ -164,12 +166,16 @@ static int isCapslock(int index){
 }
 
 int toBuff(char c, unsigned char k){
-    if (keyCount == BUFFER_DIM - 1)
-        return -1;
-    kBuff[writePosition % BUFFER_DIM] = c;
-    sBuff[writePosition % BUFFER_DIM] = k;
-    writePosition++;
-    keyCount++;
+    buffer_t *stdin = getSTDIN();
+    uint32_t bufferDim = stdin->bufferDim;
+    stdin->buffer[stdin->bufferDim++] = c;
+    if(bufferDim == 0){
+        for(int i=0; i<PD_SIZE ;i++){
+            if(stdin->references[i] != NULL){
+                stdin->references[i]->state = READY;
+            }
+        }
+    }
     return 1;
 }
 
