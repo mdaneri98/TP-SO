@@ -24,7 +24,7 @@ uint32_t entriesCount = 0;
 
 int sysFork() {
     ProcessControlBlockCDT newEntry;
-    void *newStack = allocMemory(4000);
+    void *newStack = allocMemory(0x1900);
     if(newStack == NULL){
         return -1;
     }
@@ -93,9 +93,9 @@ int sysBlock(uint32_t pid) {
 }
 
 void createInit() {
-    void *initStack = allocMemory(5000);
+    void *initStack = allocMemory(0x1900);
     PCBNode *initNode = allocPCB();
-    void *waiterStack = allocMemory(5000);
+    void *waiterStack = allocMemory(0x1900);
     PCBNode *waiterNode = allocPCB();
     
     initNode->previous = NULL;

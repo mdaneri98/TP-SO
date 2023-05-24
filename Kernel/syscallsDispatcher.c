@@ -313,6 +313,3 @@ buffer_t *getSTDOUT(){
 buffer_t *getSTDERR(){
     return &stderr;
 }
-
-
-// 81fcb0 -> Stack que está guardado de la terminal

@@ -66,6 +66,7 @@ void startTerminal() {
     while(1) {
         printString(PROMPT);
         int idx = awaitCommand();
+        putChar('\n');
         if (idx >= 0 && idx < CMDS_COUNT) {
             runProgram(idx);
         } else {
@@ -106,7 +107,6 @@ static int awaitCommand() {
             }
         }
     }
-    while(getChar() > 0);   // Clear STDIN buffer
     putChar('\n');
     lastCommand[bufferCount] = '\0';   // String finished, now we need to process it
 
