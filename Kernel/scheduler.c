@@ -8,6 +8,7 @@
 /* Structures */
 typedef struct list {
     PCBNode *head;
+    PCBNode *last;
     PCBNode *current;
     PCBNode *waiter;
 } list_t;
@@ -124,6 +125,7 @@ void createInit() {
     initNode->pcbEntry.state = READY;
     linkedList.current = NULL;
     linkedList.head = initNode;
+    linkedList.last = initNode;
 
     waiterNode->pcbEntry.baseStack = waiterStack;
     waiterNode->pcbEntry.stack = createWaiterStack(waiterStack);
@@ -136,12 +138,7 @@ void createInit() {
 
 // ----------- Implementación Round-Robin sin prioridad ----------------
 int add(ProcessControlBlockCDT newEntry) {
-    PCBNode *previous = NULL;
-    PCBNode *current = linkedList.head;
-    while (current->next != NULL) {
-            previous = current;
-            current = current->next;
-    }
+    PCBNode *last = linkedList.last;
 
     PCBNode *newNode = allocPCB();
     if(newNode == NULL){
@@ -164,10 +161,11 @@ int add(ProcessControlBlockCDT newEntry) {
     newNode->pcbEntry.stack = newEntry.stack;
     newNode->pcbEntry.baseStack = newEntry.baseStack;
     newNode->pcbEntry.state = newEntry.state;
-    newNode->previous = current;
+    newNode->previous = last;
+    last->next = newNode;
     newNode->next = NULL;
 
-    current->next = newNode;
+    linkedList.last = newNode;
     return 0;
 }
 
@@ -183,13 +181,12 @@ ProcessControlBlockCDT next() {
     } else if(current->pcbEntry.state == RUNNING){
         current->previous->next = current->next;
         current->next->previous = current->previous;
-        PCBNode *last = linkedList.head;
-        while(last->next != NULL){
-            last = last->next;
-        }
+        PCBNode *last = linkedList.last;
+        last->next = current;
+        current->previous = last;
         current->pcbEntry.state = READY;
         current->next = NULL;
-        last->next = current;
+        linkedList.last = current;
     }
     current = linkedList.head;
     while (current != NULL && current->pcbEntry.state != READY) {
