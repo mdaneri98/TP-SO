@@ -9,5 +9,7 @@ void _playSound(uint8_t tmp);
 int _hours();
 int _seconds();
 int _minutes();
+uint16_t getCPUSpeed();
+uint64_t readTimeStampCounter();
 
 #endif // _LIB_ASM_H

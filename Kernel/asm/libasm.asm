@@ -1,4 +1,6 @@
 GLOBAL cpuVendor
+GLOBAL getCPUSpeed
+GLOBAL readTimeStampCounter
 GLOBAL _hours
 GLOBAL _seconds
 GLOBAL _minutes
@@ -92,6 +94,37 @@ _playSound:
 	out 0x61, al
 
 	pop rax
+	mov rsp, rbp
+	pop rbp
+	ret
+
+getCPUSpeed:
+	push rbp
+	mov rbp, rsp
+
+	xor rax, rax
+	mov ax, WORD [0x0000000000005A00 + 256] ; CPU Speed location - Source: Sysvar.asm on Bootloader/Pure64/src
+
+	mov rsp, rbp
+	pop rbp
+	ret
+
+readTimeStampCounter:
+	push rbp
+	mov rbp, rsp
+	push rdx
+
+	xor rax, rax
+	xor rdx, rdx
+
+	rdtsc				; We read te Time-Stamp counter	- Leaves the result in EDX:EAX
+
+	and rdx, 0xFFFF0000	; We override the useless data in the low order bits
+	and rax, 0x0000FFFF ; We do the same thing with the high order bits
+	
+	or rax, rdx			; We put the entire 64-bit number on the return-value register rax
+
+	pop rdx
 	mov rsp, rbp
 	pop rbp
 	ret

@@ -4,6 +4,8 @@
 #include <interrupts.h>
 #include <keyboard.h>
 #include <syscallDispatcher.h>
+#include <libasm.h>
+#include <video.h>
 
 /* Structures */
 typedef struct list {
@@ -23,6 +25,9 @@ static void removeReferences(buffer_t *pdBuffer, uint32_t pid);
 /* Global Variables */
 list_t linkedList;
 uint32_t entriesCount = 0;
+
+// CPU speed in MHz
+uint32_t cpuSpeed;
 
 int sysFork() {
     ProcessControlBlockCDT newEntry;
@@ -139,6 +144,10 @@ void createInit() {
     waiterNode->pcbEntry.foreground = 1;
     waiterNode->pcbEntry.state = READY;
     linkedList.waiter = waiterNode;
+    
+    cpuSpeed = (uint32_t) getCPUSpeed();
+    // We pass the CPU speed from MHz to KHz (it makes the calculus of intervals in ms easier)
+    cpuSpeed *= 1000;
 }
 
 // ----------- Implementación Round-Robin sin prioridad ----------------
