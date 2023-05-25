@@ -30,6 +30,7 @@ typedef struct ProcessControlBlockCDT {
 
     void *stack;
     void *baseStack;
+    void *memoryFromMM;
 
     buffer_t *pdTable[PD_SIZE];
 } ProcessControlBlockCDT;

@@ -18,6 +18,7 @@ uint32_t unusedID();
 char exists(uint32_t pid);
 int add(ProcessControlBlockCDT newEntry);
 static void closePDs(pid);
+static void removeReferences(buffer_t *pdBuffer, uint32_t pid);
 
 /* Global Variables */
 list_t linkedList;
@@ -25,13 +26,15 @@ uint32_t entriesCount = 0;
 
 int sysFork() {
     ProcessControlBlockCDT newEntry;
-    void *newStack = allocMemory(0x1900);
+    void *memoryForFork = allocMemory(0x1900);
+    void *newStack = (void *)((uint64_t) memoryForFork + 0x1900);
     if(newStack == NULL){
         return -1;
     }
-    newEntry.baseStack = (uint64_t *)newStack;
+    newEntry.memoryFromMM = memoryForFork;
+    newEntry.baseStack = newStack;
     copyState(&newStack, linkedList.current->pcbEntry.stack);
-    newEntry.stack = (uint64_t *)newStack;
+    newEntry.stack = newStack;
     newEntry.foreground = linkedList.current->pcbEntry.foreground;
     newEntry.priority = linkedList.current->pcbEntry.priority;
     newEntry.state = linkedList.current->pcbEntry.state;
@@ -94,9 +97,11 @@ int sysBlock(uint32_t pid) {
 }
 
 void createInit() {
-    void *initStack = allocMemory(0x1900);
+    void *memoryForInit = allocMemory(0x1900);
+    void *initStack = (void *)((uint64_t) memoryForInit + 0x1900);
     PCBNode *initNode = allocPCB();
-    void *waiterStack = allocMemory(0x1900);
+    void *memoryForWaiter = allocMemory(0x1900);
+    void *waiterStack = (void *)((uint64_t) memoryForWaiter + 0x1900);
     PCBNode *waiterNode = allocPCB();
     
     initNode->previous = NULL;
@@ -156,6 +161,7 @@ int add(ProcessControlBlockCDT newEntry) {
             }
         }
     }
+    newNode->pcbEntry.memoryFromMM = newEntry.memoryFromMM;
     newNode->pcbEntry.id = newEntry.id;
     newNode->pcbEntry.priority = newEntry.priority;
     newNode->pcbEntry.stack = newEntry.stack;
@@ -228,7 +234,7 @@ int remove(uint32_t pid) {
         current->previous->next = current->next;
         current->next->previous = current->previous;
         closePDs(pid);
-        freeMemory(current->pcbEntry.baseStack);
+        freeMemory(current->pcbEntry.memoryFromMM);
         freePCB(current);
     }
 
@@ -338,10 +344,19 @@ static void closePDs(uint32_t pid){
         }
         for(int i=0; i<PD_SIZE ;i++){
             if(node->pcbEntry.pdTable[i] != NULL && node->pcbEntry.pdTable[i]->buffId == pid){
+                removeReferences(node->pcbEntry.pdTable[i], pid);
                 node->pcbEntry.pdTable[i] = NULL;
             }
         }
         node = node->next;
+    }
+}
+
+static void removeReferences(buffer_t *pdBuffer, uint32_t pid){
+    for(int i=0; i<PD_SIZE ;i++){
+        if(pdBuffer->references[i] != NULL && pdBuffer->references[i]->id == pid){
+            pdBuffer->references[i] == NULL;
+        }
     }
 }
 
