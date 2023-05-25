@@ -94,18 +94,18 @@ void set_SYSCALLS(){
         stdout.references[i] = NULL;
         stderr.references[i] = NULL;
     }
-    // We set the "pid" to the STDIN-STDOUT-STDERR entries
+    // We set the "pd" to the STDIN-STDOUT-STDERR entries
     stdin.status = READ;
     stdin.bufferDim = 0;
-    stdin.buffId = 0;
+    stdin.buffId = STDIN;
 
     stdout.status = WRITE;
     stdout.bufferDim = 0;
-    stdout.buffId = 0;
+    stdout.buffId = STDOUT;
 
     stderr.status = WRITE;
     stderr.bufferDim = 0;
-    stderr.buffId = 0;
+    stderr.buffId = STDERR;
 }
 
 uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t r9, uint64_t rsp) {    
@@ -127,7 +127,7 @@ static uint64_t arqSysRead(uint64_t pd, uint64_t buff, uint64_t count, uint64_t 
         return 0;
     }
     buffer_t *buffToRead = current->pcbEntry.pdTable[pd];
-    if(buffToRead == NULL || buffToRead->status == CLOSED){
+    if(buffToRead == NULL || buffToRead->status == CLOSED || buffToRead->status == WRITE){
         return 0;
     }
     while(buffToRead->bufferDim == 0 && buffToRead->status != CLOSED){
@@ -152,35 +152,44 @@ static uint64_t arqSysRead(uint64_t pd, uint64_t buff, uint64_t count, uint64_t 
 }
 
 static uint64_t arqSysWrite(uint64_t pd, uint64_t buff, uint64_t count, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4) {
-    char * tmpBuff = (char *) buff;
-    char auxBuff[AUX_BUFF_DIM] = {0};
-    uint64_t toReturn;
-    switch(pd){
-        case STDIN:{
-            toReturn = 0;
-            while(toReturn < count){
-                toBuff(tmpBuff[toReturn], getScanCode(tmpBuff[toReturn]));
-                toReturn++;
-            }
-            return toReturn;
-        }
-        case STDOUT:{
-            stringnCopy(auxBuff, AUX_BUFF_DIM, tmpBuff, count);
-            scrPrint(auxBuff); 
-            return stringLength(auxBuff);
-        }
-        case STDERR:{
-            stringnCopy(auxBuff, AUX_BUFF_DIM, tmpBuff, count);
-            Color c;
-            c.r = 0xFF;
-            c.g = 0x00;
-            c.b = 0x00;
-            scrPrintStringWithColor(tmpBuff, c);
-            return stringLength(tmpBuff);
-        }
-        default: toReturn = ERROR;
+    PCBNode *current = getCurrentProcess();
+    if(current == NULL){
+        return 0;
     }
-    return toReturn;
+    buffer_t *buffToWrite = current->pcbEntry.pdTable[pd];
+    if(buffToWrite == NULL || buffToWrite->status == CLOSED || buffToWrite->status == READ){
+        return 0;
+    }
+    while(buffToWrite->bufferDim == PD_BUFF_SIZE && buffToWrite->status != CLOSED){
+        current->pcbEntry.state = BLOCKED;
+        int20h();
+    }
+    if(buffToWrite->status == CLOSED){
+        return 0;
+    }
+    char *auxBuff = (char *) buff;
+    int bytesWritten = 0;
+    char c;
+    while( bytesWritten < count && buffToWrite->bufferDim < PD_BUFF_SIZE - 1){
+        c = auxBuff[bytesWritten++];
+        buffToWrite->buffer[buffToWrite->bufferDim++] = c;
+    }
+    if(buffToWrite->buffId == STDOUT){
+        for(int i=0; i<bytesWritten ;i++){
+            scrPrintChar(buffToWrite->buffer[i]);
+            buffToWrite->buffer[i] = '\0';
+            buffToWrite->bufferDim--;
+        }
+    }
+    else if(buffToWrite->buffId == STDERR){
+        Color red = { 0x0 , 0x0, 0xFF };
+        for(int i=0; i<bytesWritten ;i++){
+            scrPrintCharWithColor(buffToWrite->buffer[i], red);
+            buffToWrite->buffer[i] = '\0';
+            buffToWrite->bufferDim--;
+        }
+    }
+    return bytesWritten;
 }
 
 static uint64_t arqSysBlock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {

@@ -66,7 +66,6 @@ void startTerminal() {
     while(1) {
         printString(PROMPT);
         int idx = awaitCommand();
-        putChar('\n');
         if (idx >= 0 && idx < CMDS_COUNT) {
             runProgram(idx);
         } else {

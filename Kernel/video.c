@@ -199,6 +199,13 @@ void scrPrintStringWithColor(char *str, Color color){
     scrSetPenColor(defaultColor);
 }
 
+void scrPrintCharWithColor(char c, Color color){
+    Color defaultColor = penColor;
+    scrSetPenColor(color);
+    scrPrintChar(c);
+    scrSetPenColor(defaultColor);
+}
+
 void scrBackspace(){
     if(penX < 0x00 && penY == CHAR_HEIGHT*fontSize)
         return;

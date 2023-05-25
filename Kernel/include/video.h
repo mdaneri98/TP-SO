@@ -64,6 +64,7 @@ Returns the new pen position as a 32 bit number, where the 16 lowest bits are th
 uint32_t scr_println(char* s);*/
 
 void scrPrintStringWithColor(char *str, Color color);
+void scrPrintCharWithColor(char c, Color color);
 
 void scrPrintBase(uint64_t value, uint32_t base);
 void scrPrintHex(uint64_t value);
