@@ -166,13 +166,13 @@ static int isCapslock(int index){
 }
 
 int toBuff(char c, unsigned char k){
-    buffer_t *stdin = getSTDIN();
+    IPCBuffer *stdin = getSTDIN();
     uint32_t bufferDim = stdin->bufferDim;
     stdin->buffer[stdin->bufferDim++] = c;
     if(bufferDim == 0){
         for(int i=0; i<PD_SIZE ;i++){
             if(stdin->references[i] != NULL){
-                stdin->references[i]->state = READY;
+                setProcessState(stdin->references[i], READY);
             }
         }
     }

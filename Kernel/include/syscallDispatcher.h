@@ -4,8 +4,8 @@
 
 void set_SYSCALLS();
 
-buffer_t *getSTDIN();
-buffer_t *getSTDOUT();
-buffer_t *getSTDERR();
+IPCBuffer *getSTDIN();
+IPCBuffer *getSTDOUT();
+IPCBuffer *getSTDERR();
 
 #endif

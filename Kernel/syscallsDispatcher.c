@@ -25,9 +25,9 @@
 
 #define DEFAULT_FREQUENCY 1500
 
-buffer_t stdin;
-buffer_t stdout;
-buffer_t stderr;
+IPCBuffer stdin;
+IPCBuffer stdout;
+IPCBuffer stderr;
 
 static uint64_t arqSysRead(uint64_t buff, uint64_t dim, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5);
 
@@ -122,16 +122,16 @@ uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t r
  * @return Amount of bytes read. -1 in case of error
  */
 static uint64_t arqSysRead(uint64_t pd, uint64_t buff, uint64_t count, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5){
-    PCBNode *current = getCurrentProcess();
+    ProcessControlBlockADT current = getCurrentProcessEntry();
     if(current == NULL){
         return 0;
     }
-    buffer_t *buffToRead = current->pcbEntry.pdTable[pd];
+    IPCBuffer *buffToRead = getPDEntry(current, pd);
     if(buffToRead == NULL || buffToRead->status == CLOSED || buffToRead->status == WRITE){
         return 0;
     }
     while(buffToRead->bufferDim == 0 && buffToRead->status != CLOSED){
-        current->pcbEntry.state = BLOCKED;
+        setProcessState(current, BLOCKED);
         int20h();
     }
     if(buffToRead->status == CLOSED){
@@ -152,16 +152,16 @@ static uint64_t arqSysRead(uint64_t pd, uint64_t buff, uint64_t count, uint64_t 
 }
 
 static uint64_t arqSysWrite(uint64_t pd, uint64_t buff, uint64_t count, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4) {
-    PCBNode *current = getCurrentProcess();
+    ProcessControlBlockADT current = getCurrentProcessEntry();
     if(current == NULL){
         return 0;
     }
-    buffer_t *buffToWrite = current->pcbEntry.pdTable[pd];
+    IPCBuffer *buffToWrite = getPDEntry(current, pd);
     if(buffToWrite == NULL || buffToWrite->status == CLOSED || buffToWrite->status == READ){
         return 0;
     }
     while(buffToWrite->bufferDim == PD_BUFF_SIZE && buffToWrite->status != CLOSED){
-        current->pcbEntry.state = BLOCKED;
+        setProcessState(current, BLOCKED);
         int20h();
     }
     if(buffToWrite->status == CLOSED){
@@ -193,12 +193,32 @@ static uint64_t arqSysWrite(uint64_t pd, uint64_t buff, uint64_t count, uint64_t
 }
 
 static uint64_t arqSysBlock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
-    sysBlock(pid);
+    ProcessControlBlockADT current = getEntry(pid);
+    if(current == NULL){
+        return -1;
+    }
+    setProcessState(current, BLOCKED);
+    int20h();
+    return 0;
+}
+
+static uint64_t arqSysUnblock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
+    ProcessControlBlockADT current = getEntry(pid);
+    if(current == NULL){
+        return -1;
+    }
+    setProcessState(current, READY);
+    int20h();
     return 0;
 }
 
 static uint64_t arqSysKill(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
-    sysKill(pid);
+    ProcessControlBlockADT current = getEntry(pid);
+    if(current == NULL){
+        return -1;
+    }
+    setProcessState(current, EXITED);
+    int20h();
     return 0;
 }
 
@@ -313,12 +333,12 @@ static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t
     return 0;
 }
 
-buffer_t *getSTDIN(){
+IPCBuffer *getSTDIN(){
     return &stdin;
 }
-buffer_t *getSTDOUT(){
+IPCBuffer *getSTDOUT(){
     return &stdout;
 }
-buffer_t *getSTDERR(){
+IPCBuffer *getSTDERR(){
     return &stderr;
 }
