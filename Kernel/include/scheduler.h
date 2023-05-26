@@ -21,15 +21,23 @@ typedef struct buffer_t{
 
 typedef struct ProcessControlBlockCDT {
     uint32_t id;
-    uint16_t priority;
+    uint8_t priority;
     char foreground;
     ProcessState state;
+
+    // Variables neccesary for computing priority scheduling
+    uint8_t quantums;
+    uint64_t agingInterval;
+    uint64_t currentInterval;
     
+    // Each process will have its own buffers for reading and writing (since we don't have a filesystem)
     buffer_t readBuffer;
     buffer_t writeBuffer;
 
+    // All the information necessary for running the stack of the process
     void *stack;
     void *baseStack;
+    uint64_t stackSize;
     void *memoryFromMM;
 
     buffer_t *pdTable[PD_SIZE];

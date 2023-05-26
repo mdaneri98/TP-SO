@@ -16,12 +16,12 @@ typedef struct node{
 
 typedef struct list{
     MMNode *head;
-} list_t;
+} queue_t;
 
 #define PCB_BLOCK sizeof(MMNode) + sizeof(PCBNode)
 
 typedef struct MemoryManager_t{
-    list_t freeList;
+    queue_t freeList;
     uint64_t freeMemory;
     uint64_t usedMemory;
     uint64_t totalMemory;

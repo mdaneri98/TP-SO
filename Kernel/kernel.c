@@ -48,7 +48,7 @@ void * getStackBase()
 void * getUserSpaceStackBase(){
 	return (void*)(
 		USERLAND_STACK
-		+ PageSize * 32				//The size of the stack itself, 32KiB
+		+ PageSize * 64				//The size of the stack itself, 64KiB
 		- sizeof(uint64_t)			//Begin at the top of the stack
 	);
 }

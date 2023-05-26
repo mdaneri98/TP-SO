@@ -7,13 +7,16 @@
 #include <libasm.h>
 #include <video.h>
 
+#define DEFAULT_PROCESS_STACK_SIZE 0x1900
+
 /* Structures */
-typedef struct list {
+typedef struct level0Queue {
     PCBNode *head;
     PCBNode *last;
     PCBNode *current;
     PCBNode *waiter;
-} list_t;
+    uint8_t defaultQuantums;
+} queue_t;
 
 /* Prototypes */
 uint32_t unusedID();
@@ -23,7 +26,18 @@ static void closePDs(pid);
 static void removeReferences(buffer_t *pdBuffer, uint32_t pid);
 
 /* Global Variables */
-list_t linkedList;
+queue_t level0Queue = {NULL, NULL, NULL, NULL, 1};
+queue_t level1Queue = {NULL, NULL, NULL, NULL, 2};
+queue_t level2Queue = {NULL, NULL, NULL, NULL, 4};
+queue_t level3Queue = {NULL, NULL, NULL, NULL, 8};
+queue_t level4Queue = {NULL, NULL, NULL, NULL, 16};
+queue_t level5Queue = {NULL, NULL, NULL, NULL, 32};
+queue_t level6Queue = {NULL, NULL, NULL, NULL, 1};
+
+PCBNode *current = NULL;
+
+queue_t *multipleQueues[] = {&level0Queue, &level1Queue, &level2Queue, 
+                                &level3Queue, &level4Queue, &level5Queue, &level6Queue};
 uint32_t entriesCount = 0;
 
 // CPU speed in MHz
@@ -31,34 +45,52 @@ uint32_t cpuSpeed;
 
 int sysFork() {
     ProcessControlBlockCDT newEntry;
-    void *memoryForFork = allocMemory(0x1900);
-    void *newStack = (void *)((uint64_t) memoryForFork + 0x1900);
+    void *memoryForFork = allocMemory(level0Queue.current->pcbEntry.stackSize);
+    void *newStack = (void *)((uint64_t) memoryForFork + level0Queue.current->pcbEntry.stackSize);
     if(newStack == NULL){
         return -1;
     }
+    newEntry.stackSize = level0Queue.current->pcbEntry.stackSize;
     newEntry.memoryFromMM = memoryForFork;
     newEntry.baseStack = newStack;
-    copyState(&newStack, linkedList.current->pcbEntry.stack);
+    copyState(&newStack, level0Queue.current->pcbEntry.stack);
     newEntry.stack = newStack;
-    newEntry.foreground = linkedList.current->pcbEntry.foreground;
-    newEntry.priority = linkedList.current->pcbEntry.priority;
-    newEntry.state = linkedList.current->pcbEntry.state;
+
+    newEntry.foreground = level0Queue.current->pcbEntry.foreground;
+    newEntry.priority = level0Queue.current->pcbEntry.priority;
+    newEntry.state = level0Queue.current->pcbEntry.state;
+
+    newEntry.quantums = level0Queue.current->pcbEntry.quantums;
+    newEntry.agingInterval = level0Queue.current->pcbEntry.agingInterval;
+    newEntry.currentInterval = level0Queue.current->pcbEntry.currentInterval;
+
     for(int i=0; i<PD_SIZE ;i++){
-        newEntry.pdTable[i] = linkedList.current->pcbEntry.pdTable[i];
+        newEntry.pdTable[i] = level0Queue.current->pcbEntry.pdTable[i];
+        newEntry.readBuffer.references[i] = level0Queue.current->pcbEntry.readBuffer.references[i];
+        newEntry.writeBuffer.references[i] = level0Queue.current->pcbEntry.writeBuffer.references[i];
     }
     
+    for(int i=0; i<PD_BUFF_SIZE ;i++){
+        newEntry.writeBuffer.buffer[i] = level0Queue.current->pcbEntry.writeBuffer.buffer[i];
+        newEntry.readBuffer.buffer[i] = level0Queue.current->pcbEntry.readBuffer.buffer[i];
+    }
+
     // Should be other id
-    uint64_t parentId = linkedList.current->pcbEntry.id;
+    uint64_t parentId = level0Queue.current->pcbEntry.id;
     newEntry.id = unusedID();
+
+    newEntry.writeBuffer.buffId = newEntry.id;
+    newEntry.readBuffer.buffId = newEntry.id;
     
+
     // Add this process to the scheduler
     if(add(newEntry) == -1){
-        freeMemory(newEntry.baseStack);
+        freeMemory(newEntry.memoryFromMM);
         return -1;
     }
 
     // If we are in the parent process
-    if(linkedList.current->pcbEntry.id == parentId){
+    if(level0Queue.current->pcbEntry.id == parentId){
         return newEntry.id;
     }
 
@@ -67,14 +99,21 @@ int sysFork() {
 }
 
 int sysExecve(processFunc process, int argc, char *argv[], uint64_t rsp){
-    ProcessControlBlockCDT currentProcess = linkedList.current->pcbEntry;
+    ProcessControlBlockCDT *currentProcess = &level0Queue.current->pcbEntry;
 
     // IT ONLY SETUPS THE PROCESS CORRECTLY IF ITS CALLED BY THE SYSCALL, U NEED TO SET THE STACK
     //BEFORE USING IT WITH INIT OR ANY FUNCTIONALITY THAT USES THIS FUNCTION WITHOUT USING THE SYSCALL
     if(setProcess(process, argc, argv, rsp) == -1){
         return -1;
     }
-    currentProcess.stack = (uint64_t *)rsp;
+    currentProcess->stack = rsp;
+    currentProcess->currentInterval = 0;
+    currentProcess->agingInterval = 0;
+    currentProcess->priority = 0;
+    for(int i=0; i<PD_BUFF_SIZE ;i++){
+        currentProcess->readBuffer.buffer[i] = '\0';
+        currentProcess->writeBuffer.buffer[i] = '\0';
+    }
     return 1;
 }
 
@@ -102,11 +141,11 @@ int sysBlock(uint32_t pid) {
 }
 
 void createInit() {
-    void *memoryForInit = allocMemory(0x1900);
-    void *initStack = (void *)((uint64_t) memoryForInit + 0x1900);
+    void *memoryForInit = allocMemory(DEFAULT_PROCESS_STACK_SIZE);
+    void *initStack = (void *)((uint64_t) memoryForInit + DEFAULT_PROCESS_STACK_SIZE);
     PCBNode *initNode = allocPCB();
-    void *memoryForWaiter = allocMemory(0x1900);
-    void *waiterStack = (void *)((uint64_t) memoryForWaiter + 0x1900);
+    void *memoryForWaiter = allocMemory(DEFAULT_PROCESS_STACK_SIZE);
+    void *waiterStack = (void *)((uint64_t) memoryForWaiter + DEFAULT_PROCESS_STACK_SIZE);
     PCBNode *waiterNode = allocPCB();
     
     initNode->previous = NULL;
@@ -127,23 +166,63 @@ void createInit() {
         initNode->pcbEntry.pdTable[i] = NULL;
         waiterNode->pcbEntry.pdTable[i] = NULL;
     }
+    initNode->pcbEntry.stackSize = DEFAULT_PROCESS_STACK_SIZE;
     initNode->pcbEntry.baseStack = initStack;
     initNode->pcbEntry.stack = createInitStack(initStack);
+    initNode->pcbEntry.memoryFromMM = memoryForInit;
     initNode->pcbEntry.id = 1;
     initNode->pcbEntry.priority = 0;
     initNode->pcbEntry.foreground = 1;
     initNode->pcbEntry.state = READY;
-    linkedList.current = NULL;
-    linkedList.head = initNode;
-    linkedList.last = initNode;
+    initNode->pcbEntry.currentInterval = 0;
+    initNode->pcbEntry.agingInterval = 0;
+    initNode->pcbEntry.quantums = 1;
+    level0Queue.current = NULL;
+    level0Queue.head = initNode;
+    level0Queue.last = initNode;
 
+    waiterNode->pcbEntry.stackSize = DEFAULT_PROCESS_STACK_SIZE;
     waiterNode->pcbEntry.baseStack = waiterStack;
     waiterNode->pcbEntry.stack = createWaiterStack(waiterStack);
+    waiterNode->pcbEntry.memoryFromMM = memoryForWaiter;
     waiterNode->pcbEntry.id=2;
     waiterNode->pcbEntry.priority = 0;
     waiterNode->pcbEntry.foreground = 1;
     waiterNode->pcbEntry.state = READY;
-    linkedList.waiter = waiterNode;
+    waiterNode->pcbEntry.currentInterval = 0;
+    waiterNode->pcbEntry.agingInterval = 0;
+    waiterNode->pcbEntry.quantums = 1;
+    level0Queue.waiter = waiterNode;
+    
+    level1Queue.current = NULL;
+    level1Queue.head = NULL;
+    level1Queue.last = NULL;
+    level1Queue.waiter = NULL;
+
+    level2Queue.current = NULL;
+    level2Queue.head = NULL;
+    level2Queue.last = NULL;
+    level2Queue.waiter = NULL;
+
+    level3Queue.current = NULL;
+    level3Queue.head = NULL;
+    level3Queue.last = NULL;
+    level3Queue.waiter = NULL;
+
+    level4Queue.current = NULL;
+    level4Queue.head = NULL;
+    level4Queue.last = NULL;
+    level4Queue.waiter = NULL;
+
+    level5Queue.current = NULL;
+    level5Queue.head = NULL;
+    level5Queue.last = NULL;
+    level5Queue.waiter = NULL;
+
+    level6Queue.head = waiterNode;
+    level1Queue.current = NULL;
+    level1Queue.last = NULL;
+    level1Queue.waiter = NULL;
     
     cpuSpeed = (uint32_t) getCPUSpeed();
     // We pass the CPU speed from MHz to KHz (it makes the calculus of intervals in ms easier)
@@ -152,7 +231,7 @@ void createInit() {
 
 // ----------- Implementación Round-Robin sin prioridad ----------------
 int add(ProcessControlBlockCDT newEntry) {
-    PCBNode *last = linkedList.last;
+    PCBNode *last = level0Queue.last;
 
     PCBNode *newNode = allocPCB();
     if(newNode == NULL){
@@ -170,17 +249,26 @@ int add(ProcessControlBlockCDT newEntry) {
             }
         }
     }
+    newNode->pcbEntry.stackSize = newEntry.stackSize;
     newNode->pcbEntry.memoryFromMM = newEntry.memoryFromMM;
     newNode->pcbEntry.id = newEntry.id;
     newNode->pcbEntry.priority = newEntry.priority;
     newNode->pcbEntry.stack = newEntry.stack;
     newNode->pcbEntry.baseStack = newEntry.baseStack;
     newNode->pcbEntry.state = newEntry.state;
+    newNode->pcbEntry.currentInterval = newEntry.currentInterval;
+    newNode->pcbEntry.agingInterval = newEntry.agingInterval;
     newNode->previous = last;
+
+    for(int i=0; i<PD_BUFF_SIZE ;i++){
+        newNode->pcbEntry.writeBuffer.buffer[i] = newEntry.writeBuffer.buffer[i];
+        newNode->pcbEntry.readBuffer.buffer[i] = newEntry.readBuffer.buffer[i];
+    }
+
     last->next = newNode;
     newNode->next = NULL;
 
-    linkedList.last = newNode;
+    level0Queue.last = newNode;
     return 0;
 }
 
@@ -190,32 +278,30 @@ int add(ProcessControlBlockCDT newEntry) {
         2. The head process if it's no process next to the current
 */
 ProcessControlBlockCDT next() {
-    PCBNode *current = linkedList.current;
-    if(current->pcbEntry.id == linkedList.waiter->pcbEntry.id){
+    if(current->pcbEntry.id == level0Queue.waiter->pcbEntry.id){
             current->pcbEntry.state = READY;
     } else if(current->pcbEntry.state == RUNNING){
         current->previous->next = current->next;
         current->next->previous = current->previous;
-        PCBNode *last = linkedList.last;
+        PCBNode *last = level0Queue.last;
         last->next = current;
         current->previous = last;
         current->pcbEntry.state = READY;
         current->next = NULL;
-        linkedList.last = current;
+        level0Queue.last = current;
     }
-    current = linkedList.head;
+    current = level0Queue.head;
     while (current != NULL && current->pcbEntry.state != READY) {
         current = current->next;
     }
     // If the last node isn't READY, we set the waiter
     if (current == NULL) {
-        current = linkedList.waiter;
+        current = level0Queue.waiter;
     }
 
     current->pcbEntry.state = RUNNING;
-    linkedList.current = current;
 
-    return linkedList.current->pcbEntry;
+    return current->pcbEntry;
 }
 
 
@@ -224,27 +310,27 @@ int remove(uint32_t pid) {
         return -1;
     }
 
-    PCBNode *current = linkedList.current;
-    if (current->pcbEntry.id != pid && current->next == NULL) {
-        current = linkedList.head;
+    PCBNode *toRemove = current;
+    if (toRemove->pcbEntry.id != pid && toRemove->next == NULL) {
+        toRemove = level0Queue.head;
     }
 
-    while (current->pcbEntry.id != pid && current->next != NULL) {
-        current = current->next;
+    while (toRemove->pcbEntry.id != pid && toRemove->next != NULL) {
+        toRemove = toRemove->next;
 
-        if (current->next == NULL) {
-            if (current->pcbEntry.id != pid) {
-                current = linkedList.head;
+        if (toRemove->next == NULL) {
+            if (toRemove->pcbEntry.id != pid) {
+                toRemove = level0Queue.head;
             }
         }
     }
 
-    if (current->pcbEntry.id == pid) {
-        current->previous->next = current->next;
-        current->next->previous = current->previous;
+    if (toRemove->pcbEntry.id == pid) {
+        toRemove->previous->next = toRemove->next;
+        toRemove->next->previous = toRemove->previous;
         closePDs(pid);
-        freeMemory(current->pcbEntry.memoryFromMM);
-        freePCB(current);
+        freeMemory(toRemove->pcbEntry.memoryFromMM);
+        freePCB(toRemove);
     }
 
     return pid;
@@ -252,11 +338,11 @@ int remove(uint32_t pid) {
 
 
 ProcessControlBlockCDT *getEntry(uint32_t pid) {
-    if (linkedList.head == NULL || !exists(pid)) {
+    if (level0Queue.head == NULL || !exists(pid)) {
         return NULL;
     }
 
-    PCBNode *current = linkedList.head;
+    PCBNode *current = level0Queue.head;
     if (current->pcbEntry.id == pid)
         return &current->pcbEntry; 
 
@@ -271,18 +357,18 @@ ProcessControlBlockCDT *getEntry(uint32_t pid) {
 
 // It always has to be at least one process on the list
 uint32_t unusedID() {
-    if (linkedList.head == NULL) {
+    if (level0Queue.head == NULL) {
         return -1;
     }
 
-    PCBNode *current = linkedList.head;
-    uint32_t max = current->pcbEntry.id;
+    PCBNode *node = level0Queue.head;
+    uint32_t max = node->pcbEntry.id;
 
-    while (current->next != NULL) {
-        current = current->next;
+    while (node->next != NULL) {
+        node = current->next;
 
-        if (max < current->pcbEntry.id) {
-            max = current->pcbEntry.id;
+        if (max < node->pcbEntry.id) {
+            max = node->pcbEntry.id;
         }
     }
 
@@ -290,41 +376,46 @@ uint32_t unusedID() {
 }
 
 char exists(uint32_t pid) {
-    if (linkedList.head == NULL) {
+    if (level0Queue.head == NULL) {
         return -1;
     }
 
-    char founded = 0;
-    PCBNode *current = linkedList.head;
-    founded = current->pcbEntry.id == pid ? 1 : 0; 
+    char found = 0;
+    PCBNode *node = level0Queue.head;
+    found = node->pcbEntry.id == pid ? 1 : 0; 
 
-    while (current->next != NULL && !founded) {
-        current = current->next;
-        founded = current->pcbEntry.id == pid ? 1 : 0; 
+    while (node->next != NULL && !found) {
+        node = node->next;
+        found = node->pcbEntry.id == pid ? 1 : 0; 
     }
 
-    return founded;
+    return found;
 }
 
 void *scheduler(void *rsp) {
     ProcessControlBlockCDT processToRun;
     // When the system starts up, the current field is always NULL
-    if(linkedList.current == NULL){
-        linkedList.current = linkedList.head;
-        processToRun = linkedList.head->pcbEntry;
+    if(current == NULL){
+        current = level0Queue.head;
+        processToRun = level0Queue.head->pcbEntry;
         processToRun.state = RUNNING;
         return processToRun.stack;
     }
 
     // Backup of the caller stack
-    linkedList.current->pcbEntry.stack = rsp;
+    current->pcbEntry.stack = rsp;
+    uint64_t cicles = readTimeStampCounter();
+    current->pcbEntry.agingInterval /= 2;
+    current->pcbEntry.agingInterval += (cicles - level0Queue.current->pcbEntry.currentInterval)/cpuSpeed;
 
     // If this function was called by a process, we need to check its state
-    if (linkedList.current->pcbEntry.state == EXITED) {
-        PCBNode *aux = linkedList.current;
+    if (current->pcbEntry.state == EXITED) {
+        PCBNode *aux = current;
         
         // We move to the next process that needs execution
         processToRun = next();
+
+        current->pcbEntry.currentInterval = readTimeStampCounter()/cpuSpeed;
         
         // We remove the EXITED process from the list of processes
         remove(aux->pcbEntry.id);
@@ -337,6 +428,7 @@ void *scheduler(void *rsp) {
         Get the next process with a READY state and run it.
     */
     processToRun = next();
+    level0Queue.current->pcbEntry.currentInterval = readTimeStampCounter()/cpuSpeed;
 
     return processToRun.stack;
 }
@@ -346,7 +438,7 @@ static void closePDs(uint32_t pid){
         // pid 0 belongs to standart input/output, can't close
         return;
     }
-    PCBNode *node = linkedList.head;
+    PCBNode *node = level0Queue.head;
     while(node != NULL){
         if(node->pcbEntry.id == pid){
             continue;
@@ -370,5 +462,5 @@ static void removeReferences(buffer_t *pdBuffer, uint32_t pid){
 }
 
 PCBNode *getCurrentProcess(){
-    return linkedList.current;
+    return current;
 }
