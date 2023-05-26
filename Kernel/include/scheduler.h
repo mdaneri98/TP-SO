@@ -21,7 +21,6 @@ typedef struct buffer_t{
 
 typedef struct ProcessControlBlockCDT {
     uint32_t id;
-    uint8_t priority;
     char foreground;
     ProcessState state;
 
