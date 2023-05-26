@@ -23,6 +23,7 @@ typedef struct ProcessControlBlockCDT {
     uint32_t id;
     char foreground;
     ProcessState state;
+    uint8_t priority;
 
     // Variables neccesary for computing priority scheduling
     uint8_t quantums;
