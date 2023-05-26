@@ -55,6 +55,7 @@ int sysExecve(processFunc process, int argc, char *argv[], uint64_t rsp);
 int sysKill(uint32_t pid);
 int sysBlock(uint32_t pid);
 void createInit();
+int sysUnblock(uint32_t pid);
 ProcessControlBlockCDT *getEntry(uint32_t pid);
 PCBNode *getCurrentProcess();
 

@@ -9,8 +9,12 @@
 
 #define DEFAULT_PROCESS_STACK_SIZE 0x1500
 #define QUANTUM_SIZE 55
+
 #define INIT_ID 1
 #define IDLE_ID 2
+
+#define TRUE 1
+#define FALSE 0
 
 /* Structures */
 typedef struct queue {
@@ -27,6 +31,7 @@ static void removeReferences(buffer_t *pdBuffer, uint32_t pid);
 static void insertInQueue(PCBNode *node);
 static void insertInBlockedQueue(PCBNode *node);
 static void checkBlocked();
+static void checkExited();
 static void next();
 
 /* Global Variables */
@@ -43,7 +48,6 @@ PCBNode *idle = NULL;
 
 queue_t *multipleQueues[] = {&level0Queue, &level1Queue, &level2Queue, 
                                 &level3Queue, &level4Queue, &level5Queue, &blockedList};
-uint32_t entriesCount = 0;
 
 // CPU speed in MHz
 uint32_t cpuSpeed;
@@ -122,17 +126,21 @@ int sysExecve(processFunc process, int argc, char *argv[], uint64_t rsp){
     return 1;
 }
 
-// FIXME: Implementar.
 int sysKill(uint32_t pid) {
-    if (pid == 0) {
+    if (pid == 0 || pid == INIT_ID || pid == IDLE_ID || !exists(pid)) {
         return -1;
     }
 
-    //...
+    ProcessControlBlockCDT *PCBEntry = getEntry(pid);
+    if(PCBEntry == NULL){
+        return -1;
+    }
+    PCBEntry->state = EXITED;
+
+    int20h();
     return 0;
 }
 
-// FIXME: Implementar.
 int sysBlock(uint32_t pid) {
     ProcessControlBlockCDT *PCBEntry = getEntry(pid);
     if(PCBEntry == NULL){
@@ -140,7 +148,17 @@ int sysBlock(uint32_t pid) {
     }
     PCBEntry->state = BLOCKED;
 
-    // We call manually the scheduler via the timer tick interrupt (to enshure that the stack-frame is done correctly)
+    int20h();
+    return 0;
+}
+
+int sysUnblock(uint32_t pid){
+    ProcessControlBlockCDT *PCBEntry = getEntry(pid);
+    if(PCBEntry == NULL){
+        return -1;
+    }
+    PCBEntry->state = READY;
+
     int20h();
     return 0;
 }
@@ -236,56 +254,36 @@ static void next(){
         return current->pcbEntry;
     }
 
+    current->next = NULL;
+    current->previous = NULL;
     current->pcbEntry.state = RUNNING;
     current->pcbEntry.quantums = 1;
 }
 
 
-int remove(uint32_t pid) {
-    if (!exists(pid)) {
-        return -1;
-    }
+int remove(PCBNode *toRemove) {
+    closePDs(toRemove->pcbEntry.id);
+    freeMemory(toRemove->pcbEntry.memoryFromMM);
+    freePCB(toRemove);
 
-    PCBNode *toRemove = current;
-    if (toRemove->pcbEntry.id != pid && toRemove->next == NULL) {
-        toRemove = level0Queue.head;
-    }
-
-    while (toRemove->pcbEntry.id != pid && toRemove->next != NULL) {
-        toRemove = toRemove->next;
-
-        if (toRemove->next == NULL) {
-            if (toRemove->pcbEntry.id != pid) {
-                toRemove = level0Queue.head;
-            }
-        }
-    }
-
-    if (toRemove->pcbEntry.id == pid) {
-        toRemove->previous->next = toRemove->next;
-        toRemove->next->previous = toRemove->previous;
-        closePDs(pid);
-        freeMemory(toRemove->pcbEntry.memoryFromMM);
-        freePCB(toRemove);
-    }
-
-    return pid;
+    return toRemove->pcbEntry.id;
 }
 
 
 ProcessControlBlockCDT *getEntry(uint32_t pid) {
-    if (level0Queue.head == NULL || !exists(pid)) {
+    if (!exists(pid)) {
         return NULL;
     }
 
-    PCBNode *current = level0Queue.head;
-    if (current->pcbEntry.id == pid)
-        return &current->pcbEntry; 
-
-    while (current->next != NULL) {
-        current = current->next;
-        if (current->pcbEntry.id == pid)
-            return &current->pcbEntry; 
+    PCBNode *toReturn;
+    for(int i=0; i<7 ;i++){
+        toReturn = multipleQueues[i]->head;
+        while(toReturn != NULL){
+            if(toReturn->pcbEntry.id == pid){
+                return &toReturn->pcbEntry;
+            }
+            toReturn = toReturn->next;
+        }
     }
 
     return NULL;
@@ -293,18 +291,16 @@ ProcessControlBlockCDT *getEntry(uint32_t pid) {
 
 // It always has to be at least one process on the list
 uint32_t unusedID() {
-    if (level0Queue.head == NULL) {
-        return -1;
+    uint32_t max;
+    if(current != NULL){
+        max = current->pcbEntry.id;
     }
-
-    PCBNode *node = level0Queue.head;
-    uint32_t max = node->pcbEntry.id;
-
-    while (node->next != NULL) {
-        node = current->next;
-
-        if (max < node->pcbEntry.id) {
-            max = node->pcbEntry.id;
+    PCBNode *node;
+    for(int i=0; i<7 ;i++){
+        node = multipleQueues[i]->head;
+        while(node != NULL){
+            max = node->pcbEntry.id > max ? node->pcbEntry.id : max;
+            node = node->next;
         }
     }
 
@@ -312,20 +308,17 @@ uint32_t unusedID() {
 }
 
 char exists(uint32_t pid) {
-    if (level0Queue.head == NULL) {
-        return -1;
+    PCBNode *aux;
+    
+    for(int i=0; i<7 ;i++){
+        aux = multipleQueues[i]->head;
+        while(aux != NULL){
+            if(aux->pcbEntry.id == pid){
+                return TRUE;
+            }
+        }
     }
-
-    char found = 0;
-    PCBNode *node = level0Queue.head;
-    found = node->pcbEntry.id == pid ? 1 : 0; 
-
-    while (node->next != NULL && !found) {
-        node = node->next;
-        found = node->pcbEntry.id == pid ? 1 : 0; 
-    }
-
-    return found;
+    return FALSE;
 }
 
 void *scheduler(void *rsp) {
@@ -343,6 +336,7 @@ void *scheduler(void *rsp) {
     current->pcbEntry.agingInterval += (cicles - current->pcbEntry.currentInterval)/cpuSpeed;
 
     checkBlocked();
+    checkExited();
 
     // If this function was called by a process, we need to check its state
     if (current->pcbEntry.state == EXITED) {
@@ -350,11 +344,10 @@ void *scheduler(void *rsp) {
         
         // We move to the next process that needs execution
         next();
-
         current->pcbEntry.currentInterval = readTimeStampCounter()/cpuSpeed;
         
         // We remove the EXITED process from the list of processes
-        remove(aux->pcbEntry.id);
+        remove(aux);
 
         return current->pcbEntry.stack;
     }
@@ -467,6 +460,25 @@ static void checkBlocked(){
             }
         } else{
             aux = aux->next;
+        }
+    }
+}
+
+static void checkExited(){
+    PCBNode *toRemove;
+    for(int i=0; i<7 ;i++){
+        toRemove = multipleQueues[i]->head;
+        while(toRemove != NULL){
+            if(toRemove->pcbEntry.state == EXITED){
+                if(multipleQueues[i]->head == toRemove){
+                    multipleQueues[i]->head = toRemove->next;
+                } else{
+                    toRemove->previous->next = toRemove->next;
+                }
+                toRemove->next->previous = toRemove->previous;
+                remove(toRemove);
+            }
+            toRemove = toRemove->next;
         }
     }
 }

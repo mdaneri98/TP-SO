@@ -119,8 +119,8 @@ readTimeStampCounter:
 
 	rdtsc				; We read te Time-Stamp counter	- Leaves the result in EDX:EAX
 
-	and rdx, 0xFFFF0000	; We override the useless data in the low order bits
-	and rax, 0x0000FFFF ; We do the same thing with the high order bits
+	and rdx, 0xFFFFFFFF00000000	; We override the useless data in the low order bits
+	and rax, 0x00000000FFFFFFFF ; We do the same thing with the high order bits
 	
 	or rax, rdx			; We put the entire 64-bit number on the return-value register rax
 
