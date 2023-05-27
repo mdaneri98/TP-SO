@@ -222,13 +222,11 @@ static uint64_t arqSysKill(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t 
     return 0;
 }
 
-static uint64_t arqSysExecve(uint64_t processFunction, uint64_t argc, uint64_t argv, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t rsp) {
-    /* FIXME: Error en la conversión de argv.
+static uint64_t arqSysExecve(uint64_t processFunction, uint64_t argc, uint64_t argv, uint64_t rsp, uint64_t nil2, uint64_t nil3, uint64_t nil4) {    
     processFunc pFunc = (processFunc) processFunction;
+    // char* argvAux[] = (char **) argv;
+    return sysExecve(pFunc, argc, argv, rsp);
     
-    char* argvAux[] = (char **) argv;
-    return sysExecve(pFunc, argc, argvAux, rsp);
-    */
    return 0;
 }
 

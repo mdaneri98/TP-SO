@@ -46,6 +46,7 @@ typedef struct pcb_node {
     struct pcb_node *previous;
     ProcessControlBlockCDT pcbEntry;
 } PCBNodeCDT;
+
 typedef struct queue {
     PCBNodeCDT *head;
     uint8_t defaultQuantums;
@@ -64,13 +65,13 @@ static void checkExited();
 static void next();
 
 /* Global Variables */
-queue_t level0Queue = {NULL, NULL, 1};
-queue_t level1Queue = {NULL, NULL, 2};
-queue_t level2Queue = {NULL, NULL, 4};
-queue_t level3Queue = {NULL, NULL, 8};
-queue_t level4Queue = {NULL, NULL, 16};
-queue_t level5Queue = {NULL, NULL, 32};
-queue_t blockedList = {NULL, NULL, 0};
+queue_t level0Queue = {NULL, 1};
+queue_t level1Queue = {NULL, 2};
+queue_t level2Queue = {NULL, 4};
+queue_t level3Queue = {NULL, 8};
+queue_t level4Queue = {NULL, 16};
+queue_t level5Queue = {NULL, 32};
+queue_t blockedList = {NULL, 0};
 
 PCBNodeCDT *current = NULL;
 PCBNodeCDT *idle = NULL;
@@ -86,7 +87,7 @@ void *scheduler(void *rsp) {
     if(current == NULL){
         current = level0Queue.head;
         level0Queue.head = NULL;
-        return current->pcbEntry.stack;
+        return current->pcbEntry.stack; /* current es el proceso init */
     }
 
     // Backup of the caller stack

@@ -8,15 +8,10 @@
 #define BUFFER_MAX_LENGTH 250
 #define CMDS_COUNT 12
 #define MAX_ARGS_COUNT 5
-#define PROMPT "(^: "
+#define PROMPT "user$ "
 #define MAX_LINES 50
 #define TRUE 1
 #define FALSE 0
-
-// Assembly exception routines
-extern void runInvalidOpcode(void);
-extern void runDivzero(void);
-extern void runPageFault(void);
 
 // Structures for help command
 static char *commandsName[CMDS_COUNT];
@@ -39,6 +34,7 @@ static void runProgram(int idx);
 static int awaitCommand();
 static int checkCommand(char* lastCommand);
 static void sleep();
+
 static void clear();
 static void beep();
 static void clock();
@@ -57,26 +53,11 @@ static char *getArguments();
 static void pageFault();
 
 
-static void block(int argc, char* argsv[]);
-static void cat(int argc, char* argsv[]);
-static void filter(int argc, char* argsv[]);
-static void help(int argc, char* argsv[]);
-static void kill(int argc, char* argsv[]);
-static void loop(int argc, char* argsv[]);
-static void nice(int argc, char* argsv[]);
-static void ps(int argc, char* argsv[]);
-static void wc(int argc, char* argsv[]);
-
-
 // Source code begins here
-void startTerminal() {
+void sh(int argsc, char* argsv[]) {
     loadCommands();
     clearLines();
 
-    
-    _sysFork();
-    _sysExecve(sh, 0, NULL);
-/*
     while(1) {
         printString(PROMPT);
         int idx = awaitCommand();
@@ -92,7 +73,7 @@ void startTerminal() {
         }
 
     }
-*/
+
 }
 
 static int awaitCommand() {
@@ -145,31 +126,13 @@ static int checkCommand(char* lastCommand) {
 }
 
 static void runProgram(int idx) {
-    if (idx >= 0 && idx < CMDS_COUNT)
-        commandsFunction[idx]();
-}
-
-static void sleep() {
-    char *argument = getArguments();
-    unsigned long millis = 0;
-    if(*argument == 0)
-        millis = 2000;
-    else if(*argument == '0' && *(argument + 1) == 0)
-        millis = 0;
-    else{
-        millis = stringToNum(argument);
-        if(millis == 0){
-            char *argErr = "You can enter only one number.";
-            stringCopy(lines[lineCount++ % BUFFER_MAX_LENGTH], BUFFER_MAX_LENGTH, argErr);
-            printString(argErr);
-            putChar('\n');
-            return;
-        }
+    if (idx >= 0 && idx < CMDS_COUNT) {
+        _sysFork();
+        _sysExecve(commandsFunction[idx], 0, NULL);
     }
-    _sleep(millis);
 }
 
-/*
+
 static void help() {
     char *helpStr = "Predefined terminal programs:";
     printf("%s\n", helpStr);
@@ -181,7 +144,6 @@ static void help() {
     }
     
 }
-*/
 
 static void clear(){
     clearLines();

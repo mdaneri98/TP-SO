@@ -13,6 +13,6 @@
 #define MONTH 8
 #define YEAR 9
 
-void startTerminal();
+void sh(int argc, char* argsv[]);
 
 #endif
