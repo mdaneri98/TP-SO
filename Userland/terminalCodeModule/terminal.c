@@ -9,11 +9,7 @@
 // Source code begins here
 void startTerminal() {
 
-    // _sysFork();
     _sysExecve(sh, 0, NULL);
 
-    while(1) {
-        
-    }
 }
 
