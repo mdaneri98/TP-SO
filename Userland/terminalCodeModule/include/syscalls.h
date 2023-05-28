@@ -39,5 +39,6 @@ int _getRegs(uint64_t buffer[]);
 void _sysExecve(void* function, int argc, char *const argv[]);
 void _sysFork();
 int _sysPs(ProcessData* data[]);
+void sysKill(uint32_t pid);
 
 #endif

@@ -20,6 +20,11 @@ GLOBAL _sysPs
 GLOBAL _sysFork
 GLOBAL _sysExecve
 
+_sysKill:
+    mov rax, 17
+    int 80h
+    ret
+
 _sysFork:
     mov rax, 19
     int 80h

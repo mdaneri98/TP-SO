@@ -216,14 +216,14 @@ static uint64_t arqSysUnblock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64
     return 0;
 }
 
+// Lo modifiqué por que no debería matar el proceso actual, si no el proceso con el pid dado.
 static uint64_t arqSysKill(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
-    ProcessControlBlockADT current = getEntry(pid);
-    if(current == NULL){
+    if (pid == 1) {
         return -1;
     }
-    setProcessState(current, EXITED);
+    int r = killProcess(pid);
     int20h();
-    return 0;
+    return r;
 }
 
 static uint64_t arqSysPs(uint64_t processes, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {

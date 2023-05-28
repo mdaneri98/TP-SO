@@ -453,7 +453,6 @@ int sysExecve(processFunc process, int argc, char *argv[], uint64_t rsp){
     return 1;
 }
 
-//FIXME: No repetir código.
 int sysPs(ProcessData* data[]) {
     int dim = 0;
     
@@ -472,7 +471,6 @@ int sysPs(ProcessData* data[]) {
             current = current->next;
         }
     }
-
     return dim;
 }
 
@@ -493,6 +491,15 @@ ProcessControlBlockADT getEntry(uint32_t pid) {
     }
 
     return NULL;
+}
+
+int killProcess(uint32_t pid) {
+    if (!exists(pid)) {
+        return -1;
+    }
+
+    PCBNodeCDT* nodePCB = getEntry(pid);
+    return remove(nodePCB);
 }
 
 PCBNodeADT getCurrentProcess(){
