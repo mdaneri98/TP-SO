@@ -80,4 +80,7 @@ int isHex(char *number);
 
 int stringHexToNum(char *number);
 
+char *strtok(char *str, const char *delim);
+
 #endif // _STRING_H_
+

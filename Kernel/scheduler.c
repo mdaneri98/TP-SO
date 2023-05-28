@@ -6,6 +6,7 @@
 #include <syscallDispatcher.h>
 #include <libasm.h>
 #include <video.h>
+#include <ps.h>
 
 #define DEFAULT_PROCESS_STACK_SIZE 0x1500
 #define QUANTUM_SIZE 55
@@ -448,7 +449,31 @@ int sysExecve(processFunc process, int argc, char *argv[], uint64_t rsp){
         currentProcess->readBuffer.buffer[i] = '\0';
         currentProcess->writeBuffer.buffer[i] = '\0';
     }
+
     return 1;
+}
+
+//FIXME: No repetir código.
+int sysPs(ProcessData* data[]) {
+    int dim = 0;
+    
+    queue_t queues[7]  = {level0Queue, level1Queue, level2Queue, level3Queue, level4Queue, level5Queue, blockedList};
+
+    PCBNodeCDT* current;
+    for (int i = 0; i < 7; i++) {
+        current = queues[i].head;
+        while (current != NULL) {
+            data[dim]->id = current->pcbEntry.id;
+            data[dim]->stack = current->pcbEntry.stack;
+            data[dim]->baseStack = current->pcbEntry.baseStack;
+            data[dim]->priority = current->pcbEntry.priority;
+            data[dim]->foreground = current->pcbEntry.foreground;
+            dim++;
+            current = current->next;
+        }
+    }
+
+    return dim;
 }
 
 ProcessControlBlockADT getEntry(uint32_t pid) {

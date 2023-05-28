@@ -16,6 +16,29 @@ GLOBAL _memoryDump
 GLOBAL _getRegs
 GLOBAL _wait
 
+GLOBAL _sysPs
+GLOBAL _sysFork
+GLOBAL _sysExecve
+
+_sysFork:
+    mov rax, 19
+    int 80h
+    ret
+
+_sysExecve
+    ;mov rcx, rdx
+    ;mov rdx, rsi
+    ;mov rdi, rsp    ; Se usa el valor del proceso actual.
+    mov rcx, rsp
+    mov rax, 18
+    int 80h
+    ret
+
+_sysPs:
+    mov rax, 21
+    int 80h
+    ret
+
 _read:
     mov rax, 0x0
     int 80h

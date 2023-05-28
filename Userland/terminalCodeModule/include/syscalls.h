@@ -2,6 +2,7 @@
 #define SYSCALLS_H
 
 #include <color.h>
+#include <ps.h>
 
 #define STDIN 0
 #define STDOUT 1
@@ -37,5 +38,6 @@ int _getRegs(uint64_t buffer[]);
 
 void _sysExecve(void* function, int argc, char *const argv[]);
 void _sysFork();
+int _sysPs(ProcessData* data[]);
 
 #endif

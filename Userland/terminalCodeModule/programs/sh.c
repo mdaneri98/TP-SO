@@ -22,6 +22,9 @@ static void (*commandsFunction[CMDS_COUNT])(void);
 static char lastCommand[BUFFER_MAX_LENGTH];
 static unsigned int bufferCount = 0;
 
+char lastArguments[MAX_ARGS_COUNT][100];  // Variable global para almacenar los argumentos
+int cantidad_argumentos = 0;           // Variable global para almacenar la cantidad de argumentos
+
 // Structure for maintaining commands history
 static char lines[MAX_LINES][BUFFER_MAX_LENGTH] = {{0}};
 static unsigned int lineCount = 0;
@@ -124,11 +127,47 @@ static int checkCommand(char* lastCommand) {
     }
     return -1;
 }
+/*
+static char *getArguments(){
+    char *arguments = lastCommand;
+    for(int i=0; lastCommand[i] != ' ' && lastCommand[i] != '\0';i++)
+        arguments++;
+    while(*arguments == ' ')
+        arguments++;
+    return arguments;
+}
+*/
+static int getArguments(char *cadena) {
+    int cantidad_argumentos = 0;
+    
+    // Eliminamos los espacios en blanco al comienzo y final de la cadena
+    while (*cadena && (*cadena == ' ')) {
+        cadena++;
+    }
+
+    // Si la cadena está vacía, no hay argumentos
+    if (!*cadena) {
+        return cantidad_argumentos;
+    }
+
+    // Utilizamos la función strtok() para separar la cadena en argumentos
+    char *token = strtok(cadena, " ");
+
+    // Guardamos los argumentos en la variable global
+    while (token && cantidad_argumentos < MAX_ARGUMENTOS) {
+        strcpy(argumentos[cantidad_argumentos], token);
+        cantidad_argumentos++;
+        token = strtok(NULL, " ");
+    }
+
+    return cantidad_argumentos;
+}
 
 static void runProgram(int idx) {
     if (idx >= 0 && idx < CMDS_COUNT) {
         _sysFork();
-        _sysExecve(commandsFunction[idx], 0, NULL);
+        int argsc = getArguments();
+        _sysExecve(commandsFunction[idx], argsc, lastArguments);
     }
 }
 
@@ -230,15 +269,6 @@ static void clearLines(){
     for(int i=0; i<MAX_LINES ;i++)
         for(int j=0; j<BUFFER_MAX_LENGTH ;lines[i][j++] = 0)
     lineCount = 0;
-}
-
-static char *getArguments(){
-    char *arguments = lastCommand;
-    for(int i=0; lastCommand[i] != ' ' && lastCommand[i] != '\0';i++)
-        arguments++;
-    while(*arguments == ' ')
-        arguments++;
-    return arguments;
 }
 
 static void refresh(){

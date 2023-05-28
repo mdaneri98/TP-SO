@@ -1,6 +1,6 @@
 
 
-/*
+
 static void help() {
     char *helpStr = "Predefined terminal programs:";
     printf("%s\n", helpStr);
@@ -12,4 +12,3 @@ static void help() {
     }
     
 }
-*/

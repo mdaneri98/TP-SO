@@ -11,6 +11,10 @@
 #define TO_NUM_LOWER 87
 #define BASE_HEXA 16
 
+#define bool int
+#define true 1
+#define false 0
+
 /*
 stringCompare: Returns -1 if str1 is smaller than str2, 1 otherwise, and 0 if they are equal.
 */
@@ -261,4 +265,55 @@ int stringHexToNum(char *number){
     }
 
     return toReturn;
+}
+
+
+char *strtok(char *str, const char *delim) {
+    static char *token = NULL;
+    char *result = NULL;
+    int foundDelim = false;
+
+    if (str != NULL) {
+        token = str;
+    }
+
+    if (token == NULL) {
+        return NULL;
+    }
+
+    // Saltar los delimitadores iniciales
+    while (*token) {
+        foundDelim = false;
+        for (unsigned int i = 0; delim[i] != '\0'; i++) {
+            if (*token == delim[i]) {
+                foundDelim = true;
+                break;
+            }
+        }
+        if (!foundDelim) {
+            break;
+        }
+        token++;
+    }
+
+    // Si llegamos al final de la cadena, no hay más tokens
+    if (*token == '\0') {
+        return NULL;
+    }
+
+    result = token;
+
+    // Buscar el próximo delimitador o el final de la cadena
+    while (*token) {
+        for (unsigned int i = 0; delim[i] != '\0'; i++) {
+            if (*token == delim[i]) {
+                *token = '\0';
+                token++;
+                return result;
+            }
+        }
+        token++;
+    }
+
+    return result;
 }

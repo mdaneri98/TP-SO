@@ -13,6 +13,7 @@
 #include <process.h>
 #include <scheduler.h>
 #include <interrupts.h>
+#include <ps.h>
 
 #define STDIN 0
 #define STDOUT 1
@@ -51,6 +52,7 @@ static uint64_t arqSysBlock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t
 static uint64_t arqSysKill(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
 static uint64_t arqSysExecve(uint64_t processFunction, uint64_t argc, uint64_t argv, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t rsp);
 static uint64_t arqSysFork(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+static uint64_t arqSysPs(uint64_t processes, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 
 static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 
@@ -84,6 +86,8 @@ void set_SYSCALLS(){
     syscalls[18] = (SyscallVec) arqSysExecve;
     syscalls[19] = (SyscallVec) arqSysFork;
     syscalls[20] = (SyscallVec) arqSysWait;
+    syscalls[21] = (SyscallVec) arqSysPs;
+
     for(int i=0; i<512; i++){
         stdin.buffer[i] = '\0';
         stdout.buffer[i] = '\0';
@@ -222,12 +226,14 @@ static uint64_t arqSysKill(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t 
     return 0;
 }
 
+static uint64_t arqSysPs(uint64_t processes, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
+    int c = sysPs((ProcessData**) processes);
+    return c;
+}
+
 static uint64_t arqSysExecve(uint64_t processFunction, uint64_t argc, uint64_t argv, uint64_t rsp, uint64_t nil2, uint64_t nil3, uint64_t nil4) {    
     processFunc pFunc = (processFunc) processFunction;
-    // char* argvAux[] = (char **) argv;
     return sysExecve(pFunc, argc, argv, rsp);
-    
-   return 0;
 }
 
 static uint64_t arqSysFork(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
