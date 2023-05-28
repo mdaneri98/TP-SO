@@ -20,6 +20,12 @@ GLOBAL _sysPs
 GLOBAL _sysFork
 GLOBAL _sysExecve
 GLOBAL _sysPriority
+GLOBAL _sysChangeState
+
+_sysChangeState:
+    mov rax, 23
+    int 80h
+    ret
 
 _sysKill:
     mov rax, 17

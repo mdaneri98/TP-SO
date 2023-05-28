@@ -538,6 +538,42 @@ int changePriority(uint32_t pid, unsigned int newPriority) {
     return -1;
 }
 
+/* Alterna entre los estados READY y BLOCKED para el proceso dado. */
+int changeState(uint32_t pid) {
+    if (!exists(pid)) {
+        return -1;
+    }
+
+    PCBNodeCDT* entry = getEntry(pid);
+    int priority = entry->pcbEntry.priority;
+    remove(entry);  // Lo eliminamos de la lista actual, para luego, agregarlo a la lista requerida.
+    
+    if (entry->pcbEntry.state == BLOCKED) {
+        PCBNodeCDT* current = multipleQueues[priority]->head;
+        if (current == NULL) {
+            multipleQueues[priority]->head = entry;
+        } else {   
+            while (current->next != NULL) {
+                current = current->next;
+            }
+            entry->pcbEntry.state = READY;
+            current->next = entry;
+        }    
+    } else {
+        PCBNodeCDT* current = multipleQueues[6]->head;
+        if (current == NULL) {
+            multipleQueues[6]->head = entry;
+        } else {   
+            while (current->next != NULL) {
+                current = current->next;
+            }
+            entry->pcbEntry.state = BLOCKED;
+            current->next = entry;
+        }    
+    }
+    return 1;
+}
+
 PCBNodeADT getCurrentProcess(){
     return current;
 }

@@ -183,6 +183,10 @@ static void nice(int argsc, char* argsv[]) {
     _sysPriority(stringToInt(argsv[0]), stringToInt(argsv[1]));
 }
 
+static void block(int argsc, char* argsv[]) {
+    _sysChangeState(stringToInt(argsv[0]));
+}
+
 
 /* Old functions */
 

@@ -54,6 +54,7 @@ static uint64_t arqSysExecve(uint64_t processFunction, uint64_t argc, uint64_t a
 static uint64_t arqSysFork(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 static uint64_t arqSysPs(uint64_t processes, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 static uint64_t arqSysPriority(uint64_t pid, uint64_t newPriority, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+static uint64_t arqSysChangeState(uint64_t pid, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 
 static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 
@@ -89,6 +90,8 @@ void set_SYSCALLS(){
     syscalls[20] = (SyscallVec) arqSysWait;
     syscalls[21] = (SyscallVec) arqSysPs;
     syscalls[22] = (SyscallVec) arqSysPriority;
+    syscalls[23] = (SyscallVec) arqSysChangeState;
+    
 
     for(int i=0; i<512; i++){
         stdin.buffer[i] = '\0';
@@ -224,6 +227,10 @@ static uint64_t arqSysPriority(uint64_t pid, uint64_t newPriority, uint64_t nil3
         return -1;
     }
     return changePriority(pid, newPriority);
+}
+
+static uint64_t arqSysChangeState(uint64_t pid, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
+    return changeState(pid);
 }
 
 // Lo modifiqué por que no debería matar el proceso actual, si no el proceso con el pid dado.
