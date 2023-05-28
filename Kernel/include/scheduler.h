@@ -35,5 +35,6 @@ ProcessControlBlockADT getCurrentProcessEntry();
 IPCBuffer *getPDEntry(ProcessControlBlockADT entry, uint32_t pd);
 void setProcessState(ProcessControlBlockADT entry, ProcessState state);
 int killProcess(uint32_t pid);
+int changePriority(uint32_t pid, unsigned int newPriority);
 
 #endif /* SCHEDULER_H */

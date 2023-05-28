@@ -502,6 +502,42 @@ int killProcess(uint32_t pid) {
     return remove(nodePCB);
 }
 
+int changePriority(uint32_t pid, unsigned int newPriority) {
+    /* No se puede cambiar a un proceso a la lista blocked de esta forma. */
+    if (!exists(pid) || newPriority >= 6) {
+        return -1;
+    }
+
+    PCBNodeCDT *entry = NULL;
+    for(int i=0; i<7 && entry->pcbEntry.id != pid ;i++){
+        entry = multipleQueues[i]->head;
+        while(entry != NULL){
+            if(entry->pcbEntry.id == pid){
+                return &entry->pcbEntry;
+            }
+            entry = entry->next;
+        }
+    }
+
+    if (entry->pcbEntry.id == pid) {
+        remove(entry);
+        
+        PCBNodeCDT* current = multipleQueues[newPriority]->head;
+        if (current == NULL) {
+            multipleQueues[newPriority]->head = entry;
+        } else {   
+            while (current->next != NULL) {
+                current = current->next;
+            }
+            current->next = entry;
+        }    
+
+        return 1;
+    }
+    
+    return -1;
+}
+
 PCBNodeADT getCurrentProcess(){
     return current;
 }

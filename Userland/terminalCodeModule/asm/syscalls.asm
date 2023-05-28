@@ -19,6 +19,7 @@ GLOBAL _wait
 GLOBAL _sysPs
 GLOBAL _sysFork
 GLOBAL _sysExecve
+GLOBAL _sysPriority
 
 _sysKill:
     mov rax, 17
@@ -30,7 +31,12 @@ _sysFork:
     int 80h
     ret
 
-_sysExecve
+_sysPriority:
+    mov rax, 22
+    int 80h
+    ret
+
+_sysExecve:
     ;mov rcx, rdx
     ;mov rdx, rsi
     ;mov rdi, rsp    ; Se usa el valor del proceso actual.

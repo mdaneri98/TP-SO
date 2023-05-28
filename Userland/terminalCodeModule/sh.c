@@ -4,6 +4,7 @@
 #include <syscalls.h>
 #include <terminal.h>
 #include <tron.h>
+#include <lib.h>
 
 #define BUFFER_MAX_LENGTH 250
 #define CMDS_COUNT 12
@@ -55,14 +56,15 @@ static void clearLine(char *line);
 static int getArguments(char* lastCommand);
 static void pageFault();
 
-static void ps();
+static void ps(int argsc, char* argsv[]);
+static void nice(int argsc, char* argsv[]);
 
 // Source code begins here
 void sh(int argsc, char* argsv[]) {
     loadCommands();
     clearLines();
 
-    ps();
+    ps(0, NULL);
 
     while(1) {
         printString(PROMPT);
@@ -166,13 +168,19 @@ static void runProgram(int idx) {
 }
 
 /* New functions */
-static void ps() {
+static void ps(int argsc, char* argsv[]) {
     ProcessData data[256];
 
     int c = _sysPs(&data);
     for (int i = 0; i < c; i++)
         printf("ID: %d, Priority: %d, Stack: %x, Base: %x, Foreground: %d\n", data[i].id, data[i].priority, data[i].stack, data[i].baseStack, data[i].foreground);
+}
 
+static void nice(int argsc, char* argsv[]) {
+    if (argsc < 2) {
+        //Error.
+    }
+    _sysPriority(stringToInt(argsv[0]), stringToInt(argsv[1]));
 }
 
 
