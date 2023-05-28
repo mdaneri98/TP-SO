@@ -7,7 +7,7 @@
 #include <lib.h>
 
 #define BUFFER_MAX_LENGTH 250
-#define CMDS_COUNT 12
+#define CMDS_COUNT 13
 #define MAX_ARGS_COUNT 5
 #define PROMPT "user$ "
 #define MAX_LINES 50
@@ -41,6 +41,7 @@ static void sleep();
 
 static void clear();
 static void beep();
+static void help();
 static void clock();
 static void loadCommands();
 static void printRegisters();
@@ -64,7 +65,7 @@ void sh(int argsc, char* argsv[]) {
     loadCommands();
     clearLines();
 
-    ps(0, NULL);
+    // ps(0, NULL);
 
     while(1) {
         printString(PROMPT);
@@ -161,9 +162,12 @@ static int getArguments(char *cadena) {
 
 static void runProgram(int idx) {
     if (idx >= 0 && idx < CMDS_COUNT) {
+        ps(0, NULL);
+        /*
         _sysFork();
         int argsc = getArguments(lastCommand);
         _sysExecve(commandsFunction[idx], argsc, lastArguments);
+        */
     }
 }
 
@@ -172,8 +176,11 @@ static void ps(int argsc, char* argsv[]) {
     ProcessData data[256];
 
     int c = _sysPs(&data);
-    for (int i = 0; i < c; i++)
+    for (int i = 0; i < c; i++) {  
+        clearLine(lines[lineCount % MAX_LINES]);
+        stringFormat(lines[lineCount++ % MAX_LINES], BUFFER_MAX_LENGTH, "ID: %d, Priority: %d, Stack: %x, Base: %x, Foreground: %d", data[i].id, data[i].priority, data[i].stack, data[i].baseStack, data[i].foreground);
         printf("ID: %d, Priority: %d, Stack: %x, Base: %x, Foreground: %d\n", data[i].id, data[i].priority, data[i].stack, data[i].baseStack, data[i].foreground);
+    }
 }
 
 static void nice(int argsc, char* argsv[]) {
@@ -276,6 +283,12 @@ static void loadCommands() {
     commandsName[11] = "help";
     commandsDesc[11] = "Prints the help manual for using the terminal.";
     commandsFunction[11] = help;
+    
+    /* Los programas nuevos no deberían ser programas built-in, por eso, no deberían estar en este arreglo.
+    Por simplicidad, usamos el mismo vector. */
+    commandsName[12] = "ps";
+    commandsDesc[12] = "In work.";
+    commandsFunction[12] = ps;
 }
 
 static void clearLine(char *line){

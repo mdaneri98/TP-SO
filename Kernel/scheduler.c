@@ -453,20 +453,28 @@ int sysExecve(processFunc process, int argc, char *argv[], uint64_t rsp){
     return 1;
 }
 
-int sysPs(ProcessData* data[]) {
+int sysPs(ProcessData data[]) {
     int dim = 0;
     
-    queue_t queues[7]  = {level0Queue, level1Queue, level2Queue, level3Queue, level4Queue, level5Queue, blockedList};
+    /* Proceso current */
+    data[dim].id = current->pcbEntry.id;
+    data[dim].stack = current->pcbEntry.stack;
+    data[dim].baseStack = current->pcbEntry.baseStack;
+    data[dim].priority = current->pcbEntry.priority;
+    data[dim].foreground = current->pcbEntry.foreground;
+    dim++;
 
+    /* Procesos en estado READY y BLOCKED */
+    queue_t queues[7]  = {level0Queue, level1Queue, level2Queue, level3Queue, level4Queue, level5Queue, blockedList};
     PCBNodeCDT* current;
     for (int i = 0; i < 7; i++) {
         current = queues[i].head;
         while (current != NULL) {
-            data[dim]->id = current->pcbEntry.id;
-            data[dim]->stack = current->pcbEntry.stack;
-            data[dim]->baseStack = current->pcbEntry.baseStack;
-            data[dim]->priority = current->pcbEntry.priority;
-            data[dim]->foreground = current->pcbEntry.foreground;
+            data[dim].id = current->pcbEntry.id;
+            data[dim].stack = current->pcbEntry.stack;
+            data[dim].baseStack = current->pcbEntry.baseStack;
+            data[dim].priority = current->pcbEntry.priority;
+            data[dim].foreground = current->pcbEntry.foreground;
             dim++;
             current = current->next;
         }
@@ -508,6 +516,14 @@ int changePriority(uint32_t pid, unsigned int newPriority) {
         return -1;
     }
 
+    /* ¿Es el proceso current? En caso afirmativo, no está en ninguna lista, por ende,
+        solo le cambiamos el priority y retornamos. 
+    */
+    if (current->pcbEntry.id == pid) {
+        current->pcbEntry.priority = pid;
+        return 1;
+    }
+
     PCBNodeCDT *entry = NULL;
     for(int i=0; i<7 && entry->pcbEntry.id != pid ;i++){
         entry = multipleQueues[i]->head;
@@ -520,6 +536,7 @@ int changePriority(uint32_t pid, unsigned int newPriority) {
     }
 
     if (entry->pcbEntry.id == pid) {
+        // FIXME: Hay que remover el proceso de la lista, sin eliminar los fd y demás.
         remove(entry);
         
         PCBNodeCDT* current = multipleQueues[newPriority]->head;

@@ -26,7 +26,7 @@ void *scheduler(void *stack);
 int sysFork();
 int sysExecve(processFunc process, int argc, char *argv[], uint64_t rsp);
 int sysKill(uint32_t pid);
-int sysPs(ProcessData* data[]);
+int sysPs(ProcessData data[]);
 
 void createInit();
 ProcessControlBlockADT getEntry(uint32_t pid);

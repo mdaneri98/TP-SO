@@ -9,7 +9,8 @@
 // Source code begins here
 void startTerminal() {
 
-    _sysExecve(sh, 0, NULL);
+    //_sysExecve(sh, 0, NULL); //No funciona execve.
+    sh(0, NULL);
 
 }
 

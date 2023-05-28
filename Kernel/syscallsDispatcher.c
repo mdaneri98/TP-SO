@@ -18,7 +18,7 @@
 #define STDIN 0
 #define STDOUT 1
 #define STDERR 2
-#define TOTAL_SYSCALLS 21
+#define TOTAL_SYSCALLS 24
 #define AUX_BUFF_DIM 512
 
 #define ERROR -1
@@ -244,7 +244,7 @@ static uint64_t arqSysKill(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t 
 }
 
 static uint64_t arqSysPs(uint64_t processes, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
-    int c = sysPs((ProcessData**) processes);
+    int c = sysPs((ProcessData*) processes);
     return c;
 }
 
