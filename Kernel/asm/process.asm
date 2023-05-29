@@ -1,54 +1,51 @@
-GLOBAL copyState
+GLOBAL setNewStack
 GLOBAL setProcess
 GLOBAL createInitStack
 GLOBAL startSystem
-GLOBAL createWaiterStack
+GLOBAL createIdleStack
 
 section .text
 
-;---------------------------------------------------------------------------------------------------|
-; Func copyState: Copies the current process state into a new stack, preserving rsp and rbp         |
-;             of the target stack, isolating the new process from its caller                        |
-;    args:                                                                                          |
-;       -rdi: Location of the pointer of the Target stack                                           |
-;       -rsi: Pointer of the Source stack                                                           |
-;   return: void                                                                                    |
-;---------------------------------------------------------------------------------------------------|
-copyState:
+;----------------------------------------------------------------------------------------------------|
+; Func setNewStack: Sets the stack for fork, changing its structure like its on a int20h istead of   |
+;                 the int80h where this function was called, the return value of the iretq will      |
+;                 to the userland fork syscall, so we are overriding rax with the return value of 0  |
+;                 to let the user know that its in the child process created by fork                 |
+;    args:                                                                                           |
+;       -rdi: Pointer of the Target stack                                                            |
+;   return: void                                                                                     |
+;----------------------------------------------------------------------------------------------------|
+setNewStack:
     push rbp
     mov rbp, rsp
     push rax
     push rcx
-    push rdi
+    push rdx
+
+    xor rax, rax
+
+    mov rax, rdi
+    mov [rdi+18*8], rax     ; We override the old value of the target RSP for the new one
+    add rax, 19*8           ; We compute the new RBP value for this process
+    mov [rdi+4*8], rax      ; We override that value on the stack
 
     xor rcx, rcx
+    xor rdx, rdx
     xor rax, rax
+    mov rcx, 14
+    mov rdx, 0
 
-    mov rax, [rdi]
+.loop:
+    mov rax, [rdi+rdx*8+8]
+    mov [rdi+rdx*8], rax
+    inc rdx
+    cmp rdx, rcx
+    jne .loop
 
-    sub rax, 19*8                   ; The size of the complete process stack info
-    mov [rdi], rax                  ; Update current value of the target stack
-    mov rdi, rax                    ; Now we use the stack location for updating its values
-    xor rax, rax
+    mov rax, 0
+    mov [rdi+14*8], rax   ; The return value for fork
 
-.loop:                              ; Loop to copy all the stack info of the current process
-    cmp rcx, 19
-    jz .end
-
-    mov rax, [rsi+rcx*8]
-    mov [rdi+rcx*8], rax
-
-    xor rax, rax
-    inc rcx
-    jmp .loop
-
-.end:
-    mov rax, rdi
-    add rax, 19*8
-    mov [rdi+10*8], rax        ; Correct value of RBP for the new process
-    mov [rdi+18*8], rdi        ; Value of the stack of the new process
-
-    pop rdi
+    pop rdx
     pop rcx
     pop rax
     mov rsp, rbp
@@ -101,7 +98,7 @@ createInitStack:
     mov rbp, rsp
 
     mov rax, rdi
-    sub rax, 20*8                   ; The size of the complete process stack info
+    sub rax, 19*8                   ; The size of the complete process stack info
     mov rdi, rax
     add rax, 19*8
     mov [rdi+10*8], rax             ; Correct value of RBP for the new process
@@ -120,7 +117,7 @@ createInitStack:
     pop rbp
     ret
 
-createWaiterStack:
+createIdleStack:
     push rbp
     mov rbp, rsp
 

@@ -18,7 +18,7 @@
 #define STDIN 0
 #define STDOUT 1
 #define STDERR 2
-#define TOTAL_SYSCALLS 24
+#define TOTAL_SYSCALLS 25
 #define AUX_BUFF_DIM 512
 
 #define ERROR -1
@@ -57,6 +57,7 @@ static uint64_t arqSysPriority(uint64_t pid, uint64_t newPriority, uint64_t nil3
 static uint64_t arqSysChangeState(uint64_t pid, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 
 static uint64_t arqSysIdle(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 
 typedef uint64_t (*SyscallVec)(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t r9, uint64_t rsp);
 
@@ -91,6 +92,7 @@ void set_SYSCALLS(){
     syscalls[21] = (SyscallVec) arqSysPs;
     syscalls[22] = (SyscallVec) arqSysPriority;
     syscalls[23] = (SyscallVec) arqSysChangeState;
+    syscalls[24] = (SyscallVec) arqSysWait;
     
 
     for(int i=0; i<512; i++){
@@ -235,12 +237,15 @@ static uint64_t arqSysChangeState(uint64_t pid, uint64_t nil2, uint64_t nil3, ui
 
 // Lo modifiqué por que no debería matar el proceso actual, si no el proceso con el pid dado.
 static uint64_t arqSysKill(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
-    if (pid == 1) {
+    if (pid < 3) {
         return -1;
     }
-    int r = killProcess(pid);
-    int20h();
-    return r;
+    ProcessControlBlockADT toKill = getEntry(pid);
+    if(setProcessState(toKill, EXITED)){
+        int20h();
+        return 1;
+    }
+    return -1;
 }
 
 static uint64_t arqSysPs(uint64_t processes, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
@@ -350,6 +355,15 @@ static uint64_t arqSysChangeFontSize(uint64_t newSize, uint64_t nil1, uint64_t n
 
 static uint64_t arqSysIdle(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
     _hlt();
+    return 0;
+}
+
+static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
+    ProcessControlBlockADT current = getCurrentProcessEntry();
+    while(hasOpenChilds(current)){
+        setProcessState(current, BLOCKED);
+        int20h();
+    }
     return 0;
 }
 

@@ -24,8 +24,7 @@ typedef struct IPCBuffer{
 
 void *scheduler(void *stack);
 int sysFork(void *currentProcessStack);
-int sysExecve(processFunc process, int argc, char *argv[], uint64_t rsp);
-int sysKill(uint32_t pid);
+int sysExecve(processFunc process, int argc, char *argv[], void *rsp);
 int sysPs(ProcessData data[]);
 
 void createInit();
@@ -33,8 +32,7 @@ ProcessControlBlockADT getEntry(uint32_t pid);
 PCBNodeADT getCurrentProcess();
 ProcessControlBlockADT getCurrentProcessEntry();
 IPCBuffer *getPDEntry(ProcessControlBlockADT entry, uint32_t pd);
-void setProcessState(ProcessControlBlockADT entry, ProcessState state);
-int killProcess(uint32_t pid);
+int setProcessState(ProcessControlBlockADT entry, ProcessState state);
 int changePriority(uint32_t pid, unsigned int newPriority);
 int changeState(uint32_t pid);
 int hasOpenChilds(ProcessControlBlockADT entry);
