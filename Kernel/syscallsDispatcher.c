@@ -252,8 +252,8 @@ static uint64_t arqSysExecve(uint64_t processFunction, uint64_t argc, uint64_t a
     return sysExecve((processFunc)processFunction, argc, (char**)argv, (void*)rsp);
 }
 
-static uint64_t arqSysFork(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
-    return sysFork();
+static uint64_t arqSysFork(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t rsp) {
+    return sysFork((void *)rsp);
 }
 
 static uint64_t arqSysMemoryDump(uint64_t direction, uint64_t buffer, uint64_t nil1, uint64_t nil2, uint64_t  nil3, uint64_t nil4, uint64_t nil5) {

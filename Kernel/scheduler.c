@@ -5,6 +5,7 @@
 #include <keyboard.h>
 #include <syscallDispatcher.h>
 #include <libasm.h>
+#include <lib.h>
 #include <video.h>
 #include <ps.h>
 
@@ -23,6 +24,10 @@ typedef struct ProcessControlBlockCDT {
     char foreground;
     ProcessState state;
     uint8_t priority;
+
+    // Variables neccesary for computing processes hierarchy
+    uint32_t parentId;
+    uint32_t childsIds[PD_SIZE];
 
     // Variables neccesary for computing priority scheduling
     uint8_t quantums;
@@ -61,6 +66,8 @@ static void closePDs(pid);
 static void removeReferences(IPCBuffer *pdBuffer, uint32_t pid);
 static void insertInQueue(PCBNodeCDT *node);
 static void insertInBlockedQueue(PCBNodeCDT *node);
+static void checkChilds(ProcessControlBlockADT pcbEntry);
+static void setParentReady(ProcessControlBlockADT pcbEntry);
 static void checkBlocked();
 static void checkExited();
 static void next();
@@ -312,6 +319,8 @@ static void insertInBlockedQueue(PCBNodeCDT *node){
 
 int remove(PCBNodeCDT *toRemove) {
     closePDs(toRemove->pcbEntry.id);
+    checkChilds(&toRemove->pcbEntry);
+    setParentReady(&toRemove->pcbEntry);
     freeMemory(toRemove->pcbEntry.memoryFromMM);
     freePCB(toRemove);
 
@@ -346,6 +355,28 @@ static void removeReferences(IPCBuffer *pdBuffer, uint32_t pid){
     }
 }
 
+static void checkChilds(ProcessControlBlockADT pcbEntry){
+    ProcessControlBlockADT parent = getEntry(pcbEntry->parentId);
+    ProcessControlBlockADT child;
+    for(int i=0; i<PD_SIZE ;i++){
+        if(pcbEntry->childsIds[i] != 0){
+            child = getEntry(pcbEntry->childsIds[i]);
+            child->parentId = parent->id;
+            for(int i=0; i<PD_SIZE ;i++){
+                if(parent->childsIds[i] != 0){
+                    parent->childsIds[i] = child->id;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+static void setParentReady(ProcessControlBlockADT pcbEntry){
+    ProcessControlBlockADT parent = getEntry(pcbEntry->parentId);
+    setProcessState(parent, READY);
+}
+
 // It always has to be at least one process on the list
 uint32_t unusedID() {
     uint32_t max;
@@ -378,22 +409,29 @@ char exists(uint32_t pid) {
     return FALSE;
 }
 
-int sysFork() {
+int sysFork(void *currentProcessStack){
     PCBNodeCDT *newNode = allocPCB();
     if(newNode == NULL){
         return -1;
     }
     PCBNodeCDT *currentNode = current;
     void *memoryForFork = allocMemory(currentNode->pcbEntry.stackSize);
-    void *newStack = (void *)((uint64_t) memoryForFork + currentNode->pcbEntry.stackSize);
-    if(newStack == NULL){
+    if(memoryForFork == NULL){
         return -1;
     }
+    
+    uint64_t newStackOffset = (uint64_t)currentProcessStack - (uint64_t)currentNode->pcbEntry.memoryFromMM;
+    void *newStack = (void *)((uint64_t) memoryForFork + currentNode->pcbEntry.stackSize);
+    newNode->pcbEntry.stack = newStack;
+
+    uint64_t newBaseStackOffset = (uint64_t)currentNode->pcbEntry.baseStack - (uint64_t)currentNode->pcbEntry.memoryFromMM;
+    newNode->pcbEntry.baseStack = (void *)((uint64_t)memoryForFork + newBaseStackOffset);
+
     newNode->pcbEntry.stackSize = currentNode->pcbEntry.stackSize;
     newNode->pcbEntry.memoryFromMM = memoryForFork;
-    newNode->pcbEntry.baseStack = newStack;
-    copyState(&newStack, currentNode->pcbEntry.stack);
-    newNode->pcbEntry.stack = newStack;
+    
+    memcpy(memoryForFork, (void *)currentNode->pcbEntry.memoryFromMM, newBaseStackOffset);
+    copyState(newStack, currentNode->pcbEntry.stack);
 
     newNode->pcbEntry.foreground = currentNode->pcbEntry.foreground;
     newNode->pcbEntry.state = currentNode->pcbEntry.state;
@@ -417,6 +455,13 @@ int sysFork() {
     // Should be other id
     uint64_t parentId = currentNode->pcbEntry.id;
     newNode->pcbEntry.id = unusedID();
+    newNode->pcbEntry.parentId = parentId;
+    for(int i=0; i<PD_SIZE ;i++){
+        if(currentNode->pcbEntry.childsIds[i] != 0){
+            currentNode->pcbEntry.childsIds[i] = newNode->pcbEntry.id;
+            break;
+        }
+    }
 
     newNode->pcbEntry.writeBuffer.buffId = newNode->pcbEntry.id;
     newNode->pcbEntry.readBuffer.buffId = newNode->pcbEntry.id;
