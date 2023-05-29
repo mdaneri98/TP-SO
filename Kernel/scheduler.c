@@ -407,7 +407,9 @@ uint32_t unusedID() {
 
 char exists(uint32_t pid) {
     PCBNodeCDT *aux;
-    
+    if(current->pcbEntry.id == pid || idle->pcbEntry.id == pid){
+        return TRUE;
+    }
     for(int i=0; i<7 ;i++){
         aux = multipleQueues[i]->head;
         while(aux != NULL){
@@ -673,7 +675,7 @@ IPCBuffer *getPDEntry(ProcessControlBlockADT entry, uint32_t pd){
 }
 
 int setProcessState(ProcessControlBlockADT process, ProcessState state){
-    if(process->id < 3 || !exists(process->id)){
+    if(!exists(process->id) || (process->id < 3 && state == EXITED)){
         return 0;
     }
     process->state = state;
