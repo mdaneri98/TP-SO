@@ -160,15 +160,16 @@ SECTION .text
 _syscallsHandler:
 	pushStateWithoutRAX
 
+	push rsp					; We need to use the rsp as a aditional parameter for all the syscalls that needs to deal with processes
+	push r9
 	mov r9, r8
 	mov r8, rcx
 	mov rcx, rdx
 	mov rdx, rsi
 	mov rsi, rdi
 	mov rdi, rax
-	push rsp					; We need to use the rsp as a aditional parameter for all the syscalls that needs to deal with processes
 	call syscallsDispatcher
-	add rsp, 8
+	add rsp, 8*2
 
 	popStateWithoutRAX
 	iretq

@@ -43,10 +43,6 @@ _sysPriority:
     ret
 
 _sysExecve:
-    ;mov rcx, rdx
-    ;mov rdx, rsi
-    ;mov rdi, rsp    ; Se usa el valor del proceso actual.
-    mov rcx, rsp
     mov rax, 18
     int 80h
     ret

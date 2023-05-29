@@ -440,7 +440,6 @@ int sysExecve(processFunc process, int argc, char *argv[], uint64_t rsp){
     if(setProcess(process, argc, argv, rsp) == -1){
         return -1;
     }
-    currentProcess->stack = rsp;
     currentProcess->currentInterval = 0;
     currentProcess->agingInterval = 0;
     currentProcess->priority = 0;

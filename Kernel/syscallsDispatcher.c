@@ -117,8 +117,8 @@ void set_SYSCALLS(){
     stderr.buffId = STDERR;
 }
 
-uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t r9, uint64_t rsp) {    
-    uint64_t toReturn = syscalls[rax](rdi, rsi, rdx, r10, r8, r9, rsp);
+uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t rcx, uint64_t r8, uint64_t r9, uint64_t rsp) {    
+    uint64_t toReturn = syscalls[rax](rdi, rsi, rdx, rcx, r8, r9, rsp);
     return toReturn;
 }
 
@@ -248,9 +248,8 @@ static uint64_t arqSysPs(uint64_t processes, uint64_t nil1, uint64_t nil2, uint6
     return c;
 }
 
-static uint64_t arqSysExecve(uint64_t processFunction, uint64_t argc, uint64_t argv, uint64_t rsp, uint64_t nil2, uint64_t nil3, uint64_t nil4) {    
-    processFunc pFunc = (processFunc) processFunction;
-    return sysExecve(pFunc, argc, argv, rsp);
+static uint64_t arqSysExecve(uint64_t processFunction, uint64_t argc, uint64_t argv, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t rsp) {    
+    return sysExecve((processFunc)processFunction, argc, (char**)argv, (void*)rsp);
 }
 
 static uint64_t arqSysFork(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
