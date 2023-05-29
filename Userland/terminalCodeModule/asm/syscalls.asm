@@ -21,9 +21,15 @@ GLOBAL _sysFork
 GLOBAL _sysExecve
 GLOBAL _sysPriority
 GLOBAL _sysChangeState
+GLOBAL _wait
 
 _sysChangeState:
     mov rax, 23
+    int 80h
+    ret
+
+_wait:
+    mov rax, 0x18
     int 80h
     ret
 
