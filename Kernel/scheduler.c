@@ -434,7 +434,7 @@ int sysFork(void *currentProcessStack){
     }
     
     // We add 8 bytes to give space to the RAX return value
-    uint64_t newStackOffset = (uint64_t)currentProcessStack - (uint64_t)currentNode->pcbEntry.memoryFromMM + 8;
+    uint64_t newStackOffset = (uint64_t)currentProcessStack - (uint64_t)currentNode->pcbEntry.memoryFromMM - 8;
     void *newStack = (void *)((uint64_t) memoryForFork + newStackOffset);
     newNode->pcbEntry.stack = newStack;
 
