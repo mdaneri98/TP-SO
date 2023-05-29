@@ -43,5 +43,6 @@ void _sysKill(uint32_t pid);
 void _sysPriority(uint32_t pid, unsigned int newPriority);
 void _sysChangeState(uint32_t pid);
 void _idle();
+void _wait();
 
 #endif

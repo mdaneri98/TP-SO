@@ -607,6 +607,18 @@ int changePriority(uint32_t pid, unsigned int newPriority) {
     return -1;
 }
 
+int hasOpenChilds(ProcessControlBlockADT entry){
+    for(int i=0; i<PD_SIZE ;i++){
+        if(entry->childsIds[i] != 0){
+            ProcessControlBlockADT child = entry->childsIds[i];
+            if(child->state != EXITED){
+                return TRUE;
+            }
+        }
+    }
+    return FALSE;
+}
+
 /* Alterna entre los estados READY y BLOCKED para el proceso dado. */
 int changeState(uint32_t pid) {
     if (!exists(pid)) {
