@@ -56,7 +56,7 @@ static uint64_t arqSysPs(uint64_t processes, uint64_t nil2, uint64_t nil3, uint6
 static uint64_t arqSysPriority(uint64_t pid, uint64_t newPriority, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 static uint64_t arqSysChangeState(uint64_t pid, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 
-static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+static uint64_t arqSysIdle(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 
 typedef uint64_t (*SyscallVec)(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t r9, uint64_t rsp);
 
@@ -87,7 +87,7 @@ void set_SYSCALLS(){
     syscalls[17] = (SyscallVec) arqSysKill;
     syscalls[18] = (SyscallVec) arqSysExecve;
     syscalls[19] = (SyscallVec) arqSysFork;
-    syscalls[20] = (SyscallVec) arqSysWait;
+    syscalls[20] = (SyscallVec) arqSysIdle;
     syscalls[21] = (SyscallVec) arqSysPs;
     syscalls[22] = (SyscallVec) arqSysPriority;
     syscalls[23] = (SyscallVec) arqSysChangeState;
@@ -348,7 +348,7 @@ static uint64_t arqSysChangeFontSize(uint64_t newSize, uint64_t nil1, uint64_t n
     return 0;
 }
 
-static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
+static uint64_t arqSysIdle(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
     _hlt();
     return 0;
 }

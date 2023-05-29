@@ -190,15 +190,20 @@ void createInit() {
 
     initNode->pcbEntry.pdTable[0] = getSTDIN();
     initNode->pcbEntry.pdTable[0]->references[0] = &initNode->pcbEntry;
+    initNode->pcbEntry.childsIds[0] = 0;
 
     initNode->pcbEntry.pdTable[1] = getSTDOUT();
     initNode->pcbEntry.pdTable[1]->references[0] = &initNode->pcbEntry;
+    initNode->pcbEntry.childsIds[1] = 0;
 
     initNode->pcbEntry.pdTable[2] = getSTDERR();
     initNode->pcbEntry.pdTable[2]->references[0] = &initNode->pcbEntry;
+    initNode->pcbEntry.childsIds[2] = 0;
+    initNode->pcbEntry.parentId = 0;
     
     for(int i=3; i<PD_SIZE ;i++){
         initNode->pcbEntry.pdTable[i] = NULL;
+        initNode->pcbEntry.childsIds[i] = 0;
     }
     initNode->pcbEntry.stackSize = DEFAULT_PROCESS_STACK_SIZE;
     initNode->pcbEntry.baseStack = initStack;
@@ -374,6 +379,9 @@ static void checkChilds(ProcessControlBlockADT pcbEntry){
 
 static void setParentReady(ProcessControlBlockADT pcbEntry){
     ProcessControlBlockADT parent = getEntry(pcbEntry->parentId);
+    if(parent == 0){
+        return;
+    }
     setProcessState(parent, READY);
 }
 

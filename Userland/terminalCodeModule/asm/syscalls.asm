@@ -14,7 +14,7 @@ GLOBAL _getPenY
 GLOBAL _changeFont
 GLOBAL _memoryDump
 GLOBAL _getRegs
-GLOBAL _wait
+GLOBAL _idle
 
 GLOBAL _sysPs
 GLOBAL _sysFork
@@ -133,7 +133,7 @@ _getRegs:
     int 80h
     ret
     
-_wait:
+_idle:
     mov rax, 0x14
     int 80h
     ret

@@ -9,6 +9,8 @@ extern char bss;
 extern char endOfBinary;
 
 void * memset(void * destiny, int32_t c, uint64_t length);
+static void idle();
+static void init();
 
 typedef int (*processFunc)(int, char **);
 
@@ -18,18 +20,18 @@ void _start(processFunc process, int argc, char *argv[]) {
 	} else if(process == NULL){
 		init();
 	} else{
-		waiter();
+		idle();
 	}
 	// We need to implement the exit syscall
 	// exit(return);
 }
 
-void init(){
+static void init(){
 	startTerminal();
 }
-void waiter(){
+static void idle(){
 	while(1){
-		_wait();
+		_idle();
 	}
 }
 
