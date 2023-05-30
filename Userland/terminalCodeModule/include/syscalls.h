@@ -8,6 +8,9 @@
 #define STDOUT 1
 #define STDERR 2
 
+// Sacar de acá y pasar, cuando esté hecho, a .h de semáforos.
+typedef int sem_t;
+
 /* 
 write: Escribe a pantalla el buffer con el color especificado.
 Por ahora solo tenemos como fd STDIN y STDERR (igual que stdin pero con rojito)
@@ -27,8 +30,8 @@ void _clock(int *hours, int *minutes, int *seconds);
 void _getScreenH(uint16_t *height);
 void _getScreenW(uint16_t *width);
 void _gameRead(unsigned char *data);
-void _getPtrToPixel(uint64_t x,uint64_t y, Color *c);
-void _drawLine(uint16_t fromX, uint16_t fromY, uint16_t toX, uint16_t toY, Color *color);
+void _getPtrToPixel(uint64_t x,uint64_t y, Color* c);
+void _drawLine(uint16_t fromX, uint16_t fromY, uint16_t toX, uint16_t toY, Color* color);
 void _getPenX(uint16_t *penX);
 void _getPenY(uint16_t *penY);
 void _changeFont(uint64_t newSize);
@@ -36,13 +39,17 @@ void _changeFont(uint64_t newSize);
 void _memoryDump(uint64_t *direction, uint8_t buffer[]);
 int _getRegs(uint64_t buffer[]);
 
-void _sysExecve(void* function, int argc, char *const argv[]);
+void _sysExecve(void* function, int argc, char* argv[]);
 int _sysFork();
-int _sysPs(ProcessData* data[]);
+int _sysPs(ProcessData (*data)[]);
 void _sysKill(uint32_t pid);
 void _sysPriority(uint32_t pid, unsigned int newPriority);
 void _sysChangeState(uint32_t pid);
 void _idle();
 void _wait();
+
+void _sysSemDown(sem_t* sem);
+void _sysSemUp(sem_t* sem);
+sem_t _sysSemOpen(char* name, int initial);
 
 #endif

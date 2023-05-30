@@ -5,7 +5,9 @@
 // #include <string.h>
 // #include <drawings.h>
 
-#define COMMANDS_COUNT 8
+#define PROMPT "user$ "
+#define CMDS_COUNT 17
+#define MAX_ARGS_COUNT 5
 
 #define MINUTES 2
 #define HOURS 4

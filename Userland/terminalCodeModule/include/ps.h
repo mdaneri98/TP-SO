@@ -11,4 +11,6 @@ typedef struct ProcessData {
     uint8_t priority;
 } ProcessData;
 
+int ps(int argsc, char* argsv[]);
+
 #endif
