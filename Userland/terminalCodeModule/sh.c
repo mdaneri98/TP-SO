@@ -54,7 +54,7 @@ static void memoryDump();
 static void refresh();
 static void clearLines();
 static void clearLine(char *line);
-static int getArguments(char* lastCommand);
+static int getArguments(int idx, char* lastCommand);
 static void pageFault();
 
 static void ps(int argsc, char* argsv[]);
@@ -65,7 +65,6 @@ void sh(int argsc, char* argsv[]) {
     loadCommands();
     clearLines();
 
-    // ps(0, NULL);
 
     while(1) {
         printString(PROMPT);
@@ -134,9 +133,13 @@ static int checkCommand(char* lastCommand) {
     return -1;
 }
 
-static int getArguments(char *cadena) {
+/* Almacena los argumentos en la variable lastArguments, dada la función obtenida por idx. */
+static int getArguments(int idx, char *cadena) {
     int cantidad_argumentos = 0;
     
+    stringCopy(lastArguments[cantidad_argumentos], commandsName[idx]);
+    cantidad_argumentos++;
+
     // Eliminamos los espacios en blanco al comienzo y final de la cadena
     while (*cadena && (*cadena == ' ')) {
         cadena++;
@@ -160,14 +163,13 @@ static int getArguments(char *cadena) {
     return cantidad_argumentos;
 }
 
-static void runProgram(int idx) {
+static void runProgram(int idx) {    
     if (idx >= 0 && idx < CMDS_COUNT) {
-        ps(0, NULL);
-        /*
-        _sysFork();
-        int argsc = getArguments(lastCommand);
-        _sysExecve(commandsFunction[idx], argsc, lastArguments);
-        */
+        if (_sysFork() == 0) {
+            int argsc = getArguments(idx, lastCommand);
+            _sysExecve(commandsFunction[idx], argsc, lastArguments);
+        }
+        //El proceso padre sigue ejecutando normalmente.
     }
 }
 
@@ -186,13 +188,27 @@ static void ps(int argsc, char* argsv[]) {
 static void nice(int argsc, char* argsv[]) {
     if (argsc < 2) {
         //Error.
+        return;
     }
-    _sysPriority(stringToInt(argsv[0]), stringToInt(argsv[1]));
+    _sysPriority(stringToInt(argsv[1]), stringToInt(argsv[2]));
 }
 
 static void block(int argsc, char* argsv[]) {
-    _sysChangeState(stringToInt(argsv[0]));
+    if (argsc < 2) {
+        //Error.
+        return;
+    }
+    _sysChangeState(stringToInt(argsv[1]));
 }
+
+static void kill(int argsc, char* argsv[]) {
+    if (argsc < 2) {
+        //Error.
+        return;
+    }
+    _sysKill(stringToInt(argsv[1]));
+}
+
 
 
 /* Old functions */

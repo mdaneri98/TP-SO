@@ -37,7 +37,7 @@ void _memoryDump(uint64_t *direction, uint8_t buffer[]);
 int _getRegs(uint64_t buffer[]);
 
 void _sysExecve(void* function, int argc, char *const argv[]);
-void _sysFork();
+int _sysFork();
 int _sysPs(ProcessData* data[]);
 void _sysKill(uint32_t pid);
 void _sysPriority(uint32_t pid, unsigned int newPriority);
