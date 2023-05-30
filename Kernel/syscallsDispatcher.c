@@ -13,10 +13,9 @@
 #include <process.h>
 #include <scheduler.h>
 #include <interrupts.h>
+#include "pipe.h"
+#include "bufferManagment.h"
 
-#define STDIN 0
-#define STDOUT 1
-#define STDERR 2
 #define TOTAL_SYSCALLS 21
 #define AUX_BUFF_DIM 512
 
@@ -24,10 +23,6 @@
 #define NULL (void *)0
 
 #define DEFAULT_FREQUENCY 1500
-
-IPCBuffer stdin;
-IPCBuffer stdout;
-IPCBuffer stderr;
 
 static uint64_t arqSysRead(uint64_t buff, uint64_t dim, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5);
 
@@ -84,28 +79,39 @@ void set_SYSCALLS(){
     syscalls[18] = (SyscallVec) arqSysExecve;
     syscalls[19] = (SyscallVec) arqSysFork;
     syscalls[20] = (SyscallVec) arqSysWait;
+
+    IPCBuffer * stdin = getSTDIN();
+    IPCBuffer * stdout = getSTDOUT();
+    IPCBuffer * stderr = getSTDERR();
+
     for(int i=0; i<512; i++){
-        stdin.buffer[i] = '\0';
-        stdout.buffer[i] = '\0';
-        stderr.buffer[i] = '\0';
+        stdin->buffer[i] = '\0';
+        stdout->buffer[i] = '\0';
+        stderr->buffer[i] = '\0';
     }
     for(int i=0; i<PD_SIZE ;i++){
-        stdin.references[i] = NULL;
-        stdout.references[i] = NULL;
-        stderr.references[i] = NULL;
+        stdin->references[i] = NULL;
+        stdout->references[i] = NULL;
+        stderr->references[i] = NULL;
     }
     // We set the "pd" to the STDIN-STDOUT-STDERR entries
-    stdin.status = READ;
-    stdin.bufferDim = 0;
-    stdin.buffId = STDIN;
+    stdin->status = READ;
+    stdin->bufferDim = 0;
+    stdin->buffId = STDIN;
+    stdin->buffStart = 0;
+    stdin->opositeEnd = NULL;
 
-    stdout.status = WRITE;
-    stdout.bufferDim = 0;
-    stdout.buffId = STDOUT;
-
-    stderr.status = WRITE;
-    stderr.bufferDim = 0;
-    stderr.buffId = STDERR;
+    stdout->status = WRITE;
+    stdout->bufferDim = 0;
+    stdout->buffId = STDOUT;
+    stdout->buffStart = 0;
+    stdout->opositeEnd = NULL;
+    
+    stderr->status = WRITE;
+    stderr->bufferDim = 0;
+    stderr->buffId = STDERR;
+    stderr->buffStart = 0;
+    stderr->opositeEnd = NULL;   
 }
 
 uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t r9, uint64_t rsp) {    
@@ -138,17 +144,22 @@ static uint64_t arqSysRead(uint64_t pd, uint64_t buff, uint64_t count, uint64_t 
         return 0;
     }
     char *auxBuff = (char *) buff;
-    int bytesRead = 0;
-    char c;
-    while( bytesRead < count && buffToRead->bufferDim > 0){
+    //FIXME: readBuffer general 
+    if(buffToRead->buffId == PIPE){
+        return readPipe(buffToRead,count, auxBuff);
+    } else {
+        int bytesRead = 0;
+        char c;
+        while( bytesRead < count && buffToRead->bufferDim > 0){
         c = buffToRead->buffer[bytesRead];
         buffToRead->bufferDim--;
         auxBuff[bytesRead++] = c;
+        }
+        for(int j=bytesRead, k=0; j<PD_BUFF_SIZE; j++, k++){
+            buffToRead->buffer[k] = buffToRead->buffer[j];
+        }
+        return bytesRead;
     }
-    for(int j=bytesRead, k=0; j<PD_BUFF_SIZE; j++, k++){
-        buffToRead->buffer[k] = buffToRead->buffer[j];
-    }
-    return bytesRead;
 }
 
 static uint64_t arqSysWrite(uint64_t pd, uint64_t buff, uint64_t count, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4) {
@@ -156,6 +167,7 @@ static uint64_t arqSysWrite(uint64_t pd, uint64_t buff, uint64_t count, uint64_t
     if(current == NULL){
         return 0;
     }
+    //Pendant: find a way to send the correct pd when writing on a pipe 
     IPCBuffer *buffToWrite = getPDEntry(current, pd);
     if(buffToWrite == NULL || buffToWrite->status == CLOSED || buffToWrite->status == READ){
         return 0;
@@ -167,7 +179,34 @@ static uint64_t arqSysWrite(uint64_t pd, uint64_t buff, uint64_t count, uint64_t
     if(buffToWrite->status == CLOSED){
         return 0;
     }
+
     char *auxBuff = (char *) buff;
+    int bytesWritten = writeOnBuffer(buffToWrite, auxBuff, count);
+    if(bytesWritten == 0){
+        return 0;
+    }
+    if(buffToWrite->buffId == STDOUT){
+        for(int i=0; i<bytesWritten ;i++){
+            scrPrintChar(buffToWrite->buffer[i]);
+            buffToWrite->buffer[i] = '\0';
+            //buffToWrite->buffStart = (buffToWrite->buffStart+1)%PD_BUFF_SIZE;
+            buffToWrite->bufferDim--;
+        }
+    } else if(buffToWrite->buffId == STDERR){
+        Color red = { 0x0 , 0x0, 0xFF };
+        for(int i=0; i<bytesWritten ;i++){
+            scrPrintCharWithColor(buffToWrite->buffer[i], red);
+            buffToWrite->buffer[i] = '\0';
+            //buffToWrite->buffStart = (buffToWrite->buffStart+1)%PD_BUFF_SIZE;
+            buffToWrite->bufferDim--;
+        }
+    } else if(buffToWrite->buffId == PIPE){
+        actualizeReadBuff(buffToWrite);
+    }
+    
+    return bytesWritten;
+    /* OLD
+   
     int bytesWritten = 0;
     char c;
     while( bytesWritten < count && buffToWrite->bufferDim < PD_BUFF_SIZE - 1){
@@ -189,7 +228,9 @@ static uint64_t arqSysWrite(uint64_t pd, uint64_t buff, uint64_t count, uint64_t
             buffToWrite->bufferDim--;
         }
     }
+    
     return bytesWritten;
+    */
 }
 
 static uint64_t arqSysBlock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
@@ -331,14 +372,4 @@ static uint64_t arqSysChangeFontSize(uint64_t newSize, uint64_t nil1, uint64_t n
 static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
     _hlt();
     return 0;
-}
-
-IPCBuffer *getSTDIN(){
-    return &stdin;
-}
-IPCBuffer *getSTDOUT(){
-    return &stdout;
-}
-IPCBuffer *getSTDERR(){
-    return &stderr;
 }
