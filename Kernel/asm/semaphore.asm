@@ -41,7 +41,8 @@ semLock:
 ; Func semUnlock:                                                                                   |
 ;                                                                                                   |
 ;    args:                                                                                          |
-;       -rdi: pointer to sem current value                                                          |                                                                        |
+;       -rdi: pointer to sem current value                                                          |
+;       -rdx: mutex to modify sem                                                                   |                                                                        
 ;   return: void                                                                                    |
 ;---------------------------------------------------------------------------------------------------|
 semUnlock:

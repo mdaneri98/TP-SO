@@ -6,7 +6,7 @@
 
 #define NULL (void *)0
 
-void semLock(uint64_t* sem, uint64_t currentValue);
-void semUnLock(uint64_t * currentValue);
+void semLock(uint64_t* semValue, uint64_t * mutex);
+void semUnLock(uint64_t * semValue, uint64_t * mutex);
 
 #endif /* SEMAPHORE_H */
