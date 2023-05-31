@@ -1,6 +1,7 @@
 #include <memoryManager.h> 
 #include <lib.h>
 #include <scheduler.h>
+#include <processManagement.h>
 
 #define TRUE 1
 #define FALSE 0
@@ -18,40 +19,7 @@ typedef struct list{
     MMNode *head;
 } queue_t;
 
-
-/* Inicio eliminar */
-typedef struct ProcessControlBlockCDT {
-    uint32_t id;
-    char foreground;
-    ProcessState state;
-    uint8_t priority;
-
-    // Variables neccesary for computing priority scheduling
-    uint8_t quantums;
-    uint64_t agingInterval;
-    uint64_t currentInterval;
-    
-    // Each process will have its own buffers for reading and writing (since we don't have a filesystem)
-    IPCBuffer readBuffer;
-    IPCBuffer writeBuffer;
-
-    // All the information necessary for running the stack of the process
-    void *stack;
-    void *baseStack;
-    uint64_t stackSize;
-    void *memoryFromMM;
-
-    IPCBuffer *pdTable[PD_SIZE];
-} ProcessControlBlockCDT;
-
-typedef struct pcb_node {
-    struct pcb_node *next;
-    struct pcb_node *previous;
-    ProcessControlBlockCDT pcbEntry;
-} PCBNodeCDT;
-/* Fin eliminar */
-
-#define PCB_BLOCK sizeof(MMNode) + sizeof(PCBNodeCDT)
+#define PCB_BLOCK sizeof(MMNode) + PCBNodeSize
 
 typedef struct MemoryManager_t{
     queue_t freeList;
@@ -62,6 +30,8 @@ typedef struct MemoryManager_t{
 
 MemoryManager_t memoryManager;
 MemoryManager_t PCBMemoryManager;
+
+uint64_t PCBNodeSize;
 
 static void initMemory(MemoryManager_t *memoryForMemoryManager, void *const restrict init, uint64_t size);
 static void *genericAllocMemory(MemoryManager_t *memoryForMemoryManager, uint64_t blockSize, uint64_t memoryToAllocate);
@@ -133,6 +103,7 @@ static void genericFreeMemory(MemoryManager_t *memoryForMemoryManager, void *con
 void createMemoryManager(void *const restrict init, uint64_t size) {
 	initMemory(&memoryManager, init, size);
     initMemory(&PCBMemoryManager, PCB_LOCATION, 0x140000);
+    PCBNodeSize = getPCBNodeSize();
 }
 
 void *allocMemory(const uint64_t memoryToAllocate){

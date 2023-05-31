@@ -1,3 +1,6 @@
+#ifndef PROCESS_MANAGEMENT_H
+#define PROCESS_MANAGEMENT_H
+
 #include <stdint.h>
 
 // State for processes
@@ -14,6 +17,8 @@ typedef enum BufferId {STDIN, STDOUT, STDERR, PIPE} BufferId;
 typedef struct ProcessControlBlockCDT *ProcessControlBlockADT;
 
 typedef struct IPCBuffer IPCBuffer;
+
+uint64_t getPCBNodeSize();
 
 struct IPCBuffer{
     char buffer[PD_BUFF_SIZE];
@@ -35,6 +40,10 @@ typedef struct ProcessControlBlockCDT {
     uint8_t quantums;
     uint64_t agingInterval;
     uint64_t currentInterval;
+
+    // All related to process hierarchy
+    uint32_t parentId;
+    uint32_t childsIds[PD_SIZE];
     
     // Each process will have its own buffers for reading and writing (since we don't have a filesystem)
     IPCBuffer readBuffer;
@@ -48,3 +57,5 @@ typedef struct ProcessControlBlockCDT {
 
     IPCBuffer *pdTable[PD_SIZE];
 } ProcessControlBlockCDT;
+
+#endif /* PROCESS_MANAGEMENT_H */

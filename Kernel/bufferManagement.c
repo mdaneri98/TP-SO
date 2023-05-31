@@ -1,7 +1,7 @@
 #ifndef BUFFER_MANAGMENT_H
 #define BUFFER_MANAGMENT_H
 
-#include "bufferManagment.h"
+#include <bufferManagement.h>
 
 IPCBuffer stdin;
 IPCBuffer stdout;

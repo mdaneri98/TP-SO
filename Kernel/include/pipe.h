@@ -1,11 +1,10 @@
 #ifndef PIPE_H
 #define PIPE_H
 
-#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 
-#include "processManagment.h" //struct IPCBuffer, BufferState, ProcessState
+#include <processManagement.h> //struct IPCBuffer, BufferState, ProcessState
 
 #define ERROR -1;
 

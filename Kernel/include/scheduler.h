@@ -2,7 +2,7 @@
 #define SCHEDULER_H
 #include <process.h>
 #include <ps.h>
-#include "bufferManagment.h"
+#include <bufferManagement.h>
 
 typedef struct PCBNodeCDT *PCBNodeADT;
 

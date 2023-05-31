@@ -1,4 +1,6 @@
-#include "pipe.h"
+#include <pipe.h>
+
+#define NULL (void *)0
 
 void actualizeReadBuff(IPCBuffer * wEnd);
 
@@ -68,7 +70,6 @@ uint64_t readPipe(IPCBuffer * rEnd, uint64_t count, char * writeBuff){
             rEnd->buffStart = (rEnd->buffStart+1)%PD_BUFF_SIZE;
             toWriteIndex++;
         }
-        printf("rEnd->readEnd: %p\n", rEnd->opositeEnd);
         actualizeReadBuff(rEnd->opositeEnd);
         return toWriteIndex;
     } else {

@@ -13,8 +13,8 @@
 #include <process.h>
 #include <scheduler.h>
 #include <interrupts.h>
-#include "pipe.h"
-#include "bufferManagment.h"
+#include <pipe.h>
+#include <bufferManagement.h>
 #include <ps.h>
 
 #define TOTAL_SYSCALLS 26
@@ -60,6 +60,9 @@ typedef uint64_t (*SyscallVec)(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_
 // SYSCALLS ARRAY
 static SyscallVec syscalls[TOTAL_SYSCALLS];
 
+IPCBuffer *stdinP;
+IPCBuffer *stdoutP;
+IPCBuffer *stderrP;
 
 // EVERY NEW SYSCALL MUST BE LOADED IN THIS ARRAY
 void set_SYSCALLS(){
@@ -91,34 +94,38 @@ void set_SYSCALLS(){
     syscalls[24] = (SyscallVec) arqSysWait;
     syscalls[25] = (SyscallVec) arqSysExit;
 
+    stdinP = getSTDIN();
+    stdoutP = getSTDOUT();
+    stderrP = getSTDERR();
+
     for(int i=0; i<512; i++){
-        stdin->buffer[i] = '\0';
-        stdout->buffer[i] = '\0';
-        stderr->buffer[i] = '\0';
+        stdinP->buffer[i] = '\0';
+        stdoutP->buffer[i] = '\0';
+        stderrP->buffer[i] = '\0';
     }
     for(int i=0; i<PD_SIZE ;i++){
-        stdin->references[i] = NULL;
-        stdout->references[i] = NULL;
-        stderr->references[i] = NULL;
+        stdinP->references[i] = NULL;
+        stdoutP->references[i] = NULL;
+        stderrP->references[i] = NULL;
     }
     // We set the "pd" to the STDIN-STDOUT-STDERR entries
-    stdin->status = READ;
-    stdin->bufferDim = 0;
-    stdin->buffId = STDIN;
-    stdin->buffStart = 0;
-    stdin->opositeEnd = NULL;
+    stdinP->status = READ;
+    stdinP->bufferDim = 0;
+    stdinP->buffId = STDIN;
+    stdinP->buffStart = 0;
+    stdinP->opositeEnd = NULL;
 
-    stdout->status = WRITE;
-    stdout->bufferDim = 0;
-    stdout->buffId = STDOUT;
-    stdout->buffStart = 0;
-    stdout->opositeEnd = NULL;
+    stdoutP->status = WRITE;
+    stdoutP->bufferDim = 0;
+    stdoutP->buffId = STDOUT;
+    stdoutP->buffStart = 0;
+    stdoutP->opositeEnd = NULL;
     
-    stderr->status = WRITE;
-    stderr->bufferDim = 0;
-    stderr->buffId = STDERR;
-    stderr->buffStart = 0;
-    stderr->opositeEnd = NULL;   
+    stderrP->status = WRITE;
+    stderrP->bufferDim = 0;
+    stderrP->buffId = STDERR;
+    stderrP->buffStart = 0;
+    stderrP->opositeEnd = NULL;   
 }
 
 uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t rcx, uint64_t r8, uint64_t r9, uint64_t rsp) {    

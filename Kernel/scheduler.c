@@ -1,5 +1,6 @@
 #include <memoryManager.h>
 #include <process.h>
+#include <processManagement.h>
 #include <scheduler.h>
 #include <interrupts.h>
 #include <keyboard.h>
@@ -39,6 +40,7 @@ static void insertInQueue(PCBNodeCDT *node);
 static void insertInBlockedQueue(PCBNodeCDT *node);
 static void checkChilds(ProcessControlBlockADT pcbEntry);
 static void setParentReady(ProcessControlBlockADT pcbEntry);
+static void removeReferences(IPCBuffer *pdBuff, uint32_t pid);
 static void checkBlocked();
 static void checkExited();
 static void next();
@@ -550,6 +552,32 @@ static PCBNodeCDT *removeFromQueue(uint32_t pid){
     }
 }
 
+static void setParentReady(ProcessControlBlockADT pcbEntry){
+    ProcessControlBlockADT parent = getEntry(pcbEntry->parentId);
+    for(int i=0; i<PD_SIZE ;i++){
+        parent->childsIds[i] = parent->childsIds[i] == pcbEntry->id ? 0 : parent->childsIds[i];
+    }
+    setProcessState(parent, READY);
+    return;
+}
+
+static void checkChilds(ProcessControlBlockADT pcbEntry){
+    ProcessControlBlockADT parent = getEntry(pcbEntry->parentId);
+    ProcessControlBlockADT child;
+    for(int i=0; i<PD_SIZE ;i++){
+        if(pcbEntry->childsIds[i] != 0){
+            child = getEntry(pcbEntry->childsIds[i]);
+            child->parentId = parent->id;
+        }
+    }
+}
+
+static void removeReferences(IPCBuffer *pdBuff, uint32_t pid){
+    for(int i=0; i<PD_SIZE ;i++){
+        pdBuff->references[i] = pdBuff->references[i] == pid ? 0 : pdBuff->references[i];
+    }
+}
+
 /* Alterna entre los estados READY y BLOCKED para el proceso dado. */
 int changeState(uint32_t pid) {
     if (!exists(pid)) {
@@ -604,4 +632,8 @@ int setProcessState(ProcessControlBlockADT process, ProcessState state){
     }
     process->state = state;
     return 1;
+}
+
+uint64_t getPCBNodeSize(){
+    return sizeof(PCBNodeCDT);
 }
