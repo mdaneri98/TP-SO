@@ -27,8 +27,9 @@ static char *commandsDesc[CMDS_COUNT];
 static void (*commandsFunction[CMDS_COUNT])(int, char **);
 
 // Structure for the command reader
-static char lastCommand[BUFFER_MAX_LENGTH];
+static char lastCommand[BUFFER_MAX_LENGTH*2];
 static unsigned int bufferCount = 0;
+static char* secondCommand = NULL;  /* Apunta dos direcciones posteriores de donde se ubica el | en lastCommand, si así es el caso. */
 
 char lastArguments[MAX_ARGS_COUNT][100];  // Variable global para almacenar los argumentos
 int cantidad_argumentos = 0;           // Variable global para almacenar la cantidad de argumentos
@@ -41,8 +42,8 @@ static unsigned int lineCount = 0;
 static int fontSize = 1;
 
 // Prototypes
-static void runProgram(int idx);
-static int awaitCommand();
+static void runProgram(int idx, int jdx);
+static void awaitCommand(int* idx, int* jdx);
 static int checkCommand(char* lastCommand);
 static void sleep();
 
@@ -73,9 +74,13 @@ void sh(int argsc, char* argsv[]) {
 
     while(1) {
         printString(PROMPT);
-        int idx = awaitCommand();
-        if (idx >= 0 && idx < CMDS_COUNT) {
-            runProgram(idx);
+
+        int idx;    /* Index in the commandsFunction of the first program */
+        int jdx;    /* Index in the commandsFunction of the second program */
+        awaitCommand(&idx, &jdx);
+
+        if (idx >= 0 && idx < CMDS_COUNT) {            
+            runProgram(idx, jdx);
         } else {
             char *errMsg = "Invalid command. Use \'help\' to display the available commands with a description for their use";
             printString(errMsg);
@@ -89,7 +94,7 @@ void sh(int argsc, char* argsv[]) {
 
 }
 
-static int awaitCommand() {
+static void awaitCommand(int* idx, int* jdx) {
     int c;
     clearLine(lastCommand);
     while ((c = getChar()) != '\n') { 
@@ -121,11 +126,18 @@ static int awaitCommand() {
     stringCopy(lines[lineCount % MAX_LINES], BUFFER_MAX_LENGTH, PROMPT);
     stringCopy(lines[lineCount++ % MAX_LINES] + stringLength(PROMPT), BUFFER_MAX_LENGTH - stringLength(PROMPT), lastCommand);
 
-    int idx = checkCommand(lastCommand);
+    *idx = checkCommand(lastCommand);
     
-    bufferCount = 0;
+    /* Vemos el caso si el input fue pipeado */
+    secondCommand = firstOccurence(lastCommand, '|');
+    if (secondCommand == NULL) {
+        *jdx = -1;
+    } else {
+        secondCommand += 2; /* Luego del pipe, tiene que haber un espacio. */
+        *jdx = checkCommand(secondCommand);
+    }
 
-    return idx;
+    bufferCount = 0;
 }
 
 static int checkCommand(char* lastCommand) {
@@ -168,12 +180,21 @@ static int getArguments(int idx, char *cadena) {
     return cantidad_argumentos;
 }
 
-static void runProgram(int idx) {    
+static void runProgram(int idx, int jdx) {    
     if (idx >= 0 && idx < CMDS_COUNT) {
-        if (_sysFork() == 0) {
-            int argsc = getArguments(idx, lastCommand);
-            _sysExecve(commandsFunction[idx], argsc, (char**) lastArguments);
+        if (jdx >= 0 && jdx < CMDS_COUNT) { /* Caso si el input está pipeado. */
+            int argsc1 = getArguments(idx, lastCommand);
+            int argsc2 = getArguments(jdx, secondCommand);
+
+            //FIXME: Habría que forkear, y redirigir los pipes.
+
+        } else {
+            if (_sysFork() == 0) {
+                int argsc = getArguments(idx, lastCommand);
+                _sysExecve(commandsFunction[idx], argsc, (char**) lastArguments);
+            }
         }
+
         //El proceso padre sigue ejecutando normalmente.
         _wait();
     }
