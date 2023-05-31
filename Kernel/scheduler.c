@@ -9,7 +9,7 @@
 #include <video.h>
 #include <ps.h>
 
-#define DEFAULT_PROCESS_STACK_SIZE 0x1500
+#define DEFAULT_PROCESS_STACK_SIZE 0x2000
 #define QUANTUM_SIZE 55
 
 #define INIT_ID 1
