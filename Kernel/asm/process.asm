@@ -25,8 +25,8 @@ setNewStack:
     xor rax, rax
 
     mov rax, rdi
+    add rax, 21*8           ; We compute the new RBP value for this process
     mov [rdi+18*8], rax     ; We override the old value of the target RSP for the new one
-    add rax, 19*8           ; We compute the new RBP value for this process
     mov [rdi+4*8], rax      ; We override that value on the stack
 
     xor rcx, rcx

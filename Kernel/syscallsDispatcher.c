@@ -18,7 +18,7 @@
 #define STDIN 0
 #define STDOUT 1
 #define STDERR 2
-#define TOTAL_SYSCALLS 25
+#define TOTAL_SYSCALLS 26
 #define AUX_BUFF_DIM 512
 
 #define ERROR -1
@@ -58,6 +58,7 @@ static uint64_t arqSysChangeState(uint64_t pid, uint64_t nil2, uint64_t nil3, ui
 
 static uint64_t arqSysIdle(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+static uint64_t arqSysExit(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 
 typedef uint64_t (*SyscallVec)(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t r9, uint64_t rsp);
 
@@ -93,7 +94,7 @@ void set_SYSCALLS(){
     syscalls[22] = (SyscallVec) arqSysPriority;
     syscalls[23] = (SyscallVec) arqSysChangeState;
     syscalls[24] = (SyscallVec) arqSysWait;
-    
+    syscalls[25] = (SyscallVec) arqSysExit;
 
     for(int i=0; i<512; i++){
         stdin.buffer[i] = '\0';
@@ -365,6 +366,11 @@ static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t
         int20h();
     }
     return 0;
+}
+
+static uint64_t arqSysExit(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
+    setProcessState(getCurrentProcessEntry(), EXITED);
+    int20h();
 }
 
 IPCBuffer *getSTDIN(){

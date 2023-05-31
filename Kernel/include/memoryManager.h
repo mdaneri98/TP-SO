@@ -19,6 +19,8 @@ void freePCB(void *const blockToFree);
 
 uint64_t getPowerOfTwo(uint64_t number);
 
+void copyBlocks(void *const target, void *const source);
+
 uint64_t getFreeMemoryAmount();
 
 uint64_t getUsedMemoryAmount();

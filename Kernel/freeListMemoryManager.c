@@ -176,6 +176,17 @@ uint64_t getUsedMemoryAmount(){
     return memoryManager.usedMemory;
 }
 
+void copyBlocks(void *target, void *source){
+    MMNode *targetHeader = (MMNode *) ((uint64_t)target - sizeof(MMNode));
+    MMNode *sourceHeader = (MMNode *) ((uint64_t)source - sizeof(MMNode));
+    int limit = targetHeader->memSize > sourceHeader->memSize ? sourceHeader->memSize : targetHeader->memSize;
+    uint8_t *s = (uint8_t *)source;
+    uint8_t *t = (uint8_t *)target;
+    for(int i=0; i<limit ;i++){
+        t[i] = s[i];
+    }
+}
+
 uint64_t getPowerOfTwo(uint64_t number){
     if (number == 1) { return 0; }
     int power = 0;

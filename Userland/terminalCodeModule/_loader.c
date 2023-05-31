@@ -23,7 +23,7 @@ void _start(processFunc process, int argc, char *argv[]) {
 		idle();
 	}
 	// We need to implement the exit syscall
-	// exit(return);
+	_sysExit();
 }
 
 static void init(){

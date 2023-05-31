@@ -15,13 +15,19 @@ GLOBAL _changeFont
 GLOBAL _memoryDump
 GLOBAL _getRegs
 GLOBAL _idle
-
+GLOBAL _sysKill
 GLOBAL _sysPs
 GLOBAL _sysFork
 GLOBAL _sysExecve
 GLOBAL _sysPriority
 GLOBAL _sysChangeState
 GLOBAL _wait
+GLOBAL _sysExit
+
+_sysExit:
+    mov rax, 25
+    int 80h
+    ret
 
 _sysChangeState:
     mov rax, 23

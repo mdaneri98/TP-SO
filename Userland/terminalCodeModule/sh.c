@@ -18,6 +18,9 @@
 #define MAX_ARGS_COUNT 5
 #define MAX_LINES 50
 
+#define TRUE 1
+#define FALSE 0
+
 // Structures for help command
 static char *commandsName[CMDS_COUNT];
 static char *commandsDesc[CMDS_COUNT];
@@ -172,6 +175,7 @@ static void runProgram(int idx) {
             _sysExecve(commandsFunction[idx], argsc, (char**) lastArguments);
         }
         //El proceso padre sigue ejecutando normalmente.
+        _wait();
     }
 }
 
