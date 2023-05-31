@@ -34,7 +34,7 @@ queue semaphoreQueue;
 semaphore_t nodes[MAX_SEM_QUEUE_SIZE];
 semaphore_t sem;
 
-uint64_t semOpen(char* semId, uint64_t currentValue){
+uint64_t* semOpen(char* semId, uint64_t currentValue){
     sem.name = semId; 
     sem.currentValue = currentValue;
 
@@ -45,13 +45,15 @@ uint64_t semOpen(char* semId, uint64_t currentValue){
         newNode->semaphore.name = semId;
         newNode->semaphore.currentValue = currentValue;
         newNode->nextNode = NULL;
+
+        return &newNode->semaphore.currentValue;
     } else {
         node_t* auxNode = semaphoreQueue.head;
 
         while (auxNode->nextNode != NULL) {
             /* Chequeamos que ninguno de los semáforos tenga el mismo nombre, o en caso que coincidan, devolvemos el currentValue del semáforo. */
             if(strcmp(auxNode->semaphore.name, semId)){
-                return auxNode->semaphore.currentValue;
+                return &auxNode->semaphore.currentValue;
             }
             auxNode = auxNode->nextNode;
         }
@@ -63,7 +65,7 @@ uint64_t semOpen(char* semId, uint64_t currentValue){
         newNode->semaphore.currentValue = currentValue;
         newNode->nextNode = NULL;
 
-        return newNode->semaphore.currentValue;
+        return &newNode->semaphore.currentValue;
     }
 
     return -1;
