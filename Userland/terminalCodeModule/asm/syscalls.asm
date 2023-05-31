@@ -14,7 +14,55 @@ GLOBAL _getPenY
 GLOBAL _changeFont
 GLOBAL _memoryDump
 GLOBAL _getRegs
+GLOBAL _idle
+GLOBAL _sysKill
+GLOBAL _sysPs
+GLOBAL _sysFork
+GLOBAL _sysExecve
+GLOBAL _sysPriority
+GLOBAL _sysChangeState
 GLOBAL _wait
+GLOBAL _sysExit
+
+_sysExit:
+    mov rax, 25
+    int 80h
+    ret
+
+_sysChangeState:
+    mov rax, 23
+    int 80h
+    ret
+
+_wait:
+    mov rax, 0x18
+    int 80h
+    ret
+
+_sysKill:
+    mov rax, 17
+    int 80h
+    ret
+
+_sysFork:
+    mov rax, 19
+    int 80h
+    ret
+
+_sysPriority:
+    mov rax, 22
+    int 80h
+    ret
+
+_sysExecve:
+    mov rax, 18
+    int 80h
+    ret
+
+_sysPs:
+    mov rax, 21
+    int 80h
+    ret
 
 _read:
     mov rax, 0x0
@@ -97,7 +145,7 @@ _getRegs:
     int 80h
     ret
     
-_wait:
+_idle:
     mov rax, 0x14
     int 80h
     ret

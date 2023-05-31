@@ -4,7 +4,7 @@
 
 #define TRUE 1
 #define FALSE 0
-#define BLOCK_SIZE 4096
+#define BLOCK_SIZE 0x1000
 #define PCB_LOCATION 0x50000
 
 typedef struct node{
@@ -18,7 +18,40 @@ typedef struct list{
     MMNode *head;
 } queue_t;
 
-#define PCB_BLOCK sizeof(MMNode) + sizeof(PCBNode)
+
+/* Inicio eliminar */
+typedef struct ProcessControlBlockCDT {
+    uint32_t id;
+    char foreground;
+    ProcessState state;
+    uint8_t priority;
+
+    // Variables neccesary for computing priority scheduling
+    uint8_t quantums;
+    uint64_t agingInterval;
+    uint64_t currentInterval;
+    
+    // Each process will have its own buffers for reading and writing (since we don't have a filesystem)
+    IPCBuffer readBuffer;
+    IPCBuffer writeBuffer;
+
+    // All the information necessary for running the stack of the process
+    void *stack;
+    void *baseStack;
+    uint64_t stackSize;
+    void *memoryFromMM;
+
+    IPCBuffer *pdTable[PD_SIZE];
+} ProcessControlBlockCDT;
+
+typedef struct pcb_node {
+    struct pcb_node *next;
+    struct pcb_node *previous;
+    ProcessControlBlockCDT pcbEntry;
+} PCBNodeCDT;
+/* Fin eliminar */
+
+#define PCB_BLOCK sizeof(MMNode) + sizeof(PCBNodeCDT)
 
 typedef struct MemoryManager_t{
     queue_t freeList;
@@ -141,6 +174,17 @@ uint64_t getFreeMemoryAmount(){
 
 uint64_t getUsedMemoryAmount(){
     return memoryManager.usedMemory;
+}
+
+void copyBlocks(void *target, void *source){
+    MMNode *targetHeader = (MMNode *) ((uint64_t)target - sizeof(MMNode));
+    MMNode *sourceHeader = (MMNode *) ((uint64_t)source - sizeof(MMNode));
+    int limit = targetHeader->memSize > sourceHeader->memSize ? sourceHeader->memSize : targetHeader->memSize;
+    uint8_t *s = (uint8_t *)source;
+    uint8_t *t = (uint8_t *)target;
+    for(int i=0; i<limit ;i++){
+        t[i] = s[i];
+    }
 }
 
 uint64_t getPowerOfTwo(uint64_t number){

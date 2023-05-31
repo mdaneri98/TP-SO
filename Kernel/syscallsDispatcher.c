@@ -15,8 +15,9 @@
 #include <interrupts.h>
 #include "pipe.h"
 #include "bufferManagment.h"
+#include <ps.h>
 
-#define TOTAL_SYSCALLS 21
+#define TOTAL_SYSCALLS 26
 #define AUX_BUFF_DIM 512
 
 #define ERROR -1
@@ -46,8 +47,13 @@ static uint64_t arqSysBlock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t
 static uint64_t arqSysKill(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
 static uint64_t arqSysExecve(uint64_t processFunction, uint64_t argc, uint64_t argv, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t rsp);
 static uint64_t arqSysFork(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+static uint64_t arqSysPs(uint64_t processes, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+static uint64_t arqSysPriority(uint64_t pid, uint64_t newPriority, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+static uint64_t arqSysChangeState(uint64_t pid, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 
+static uint64_t arqSysIdle(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+static uint64_t arqSysExit(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 
 typedef uint64_t (*SyscallVec)(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t r9, uint64_t rsp);
 
@@ -78,11 +84,12 @@ void set_SYSCALLS(){
     syscalls[17] = (SyscallVec) arqSysKill;
     syscalls[18] = (SyscallVec) arqSysExecve;
     syscalls[19] = (SyscallVec) arqSysFork;
-    syscalls[20] = (SyscallVec) arqSysWait;
-
-    IPCBuffer * stdin = getSTDIN();
-    IPCBuffer * stdout = getSTDOUT();
-    IPCBuffer * stderr = getSTDERR();
+    syscalls[20] = (SyscallVec) arqSysIdle;
+    syscalls[21] = (SyscallVec) arqSysPs;
+    syscalls[22] = (SyscallVec) arqSysPriority;
+    syscalls[23] = (SyscallVec) arqSysChangeState;
+    syscalls[24] = (SyscallVec) arqSysWait;
+    syscalls[25] = (SyscallVec) arqSysExit;
 
     for(int i=0; i<512; i++){
         stdin->buffer[i] = '\0';
@@ -114,8 +121,8 @@ void set_SYSCALLS(){
     stderr->opositeEnd = NULL;   
 }
 
-uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t r9, uint64_t rsp) {    
-    uint64_t toReturn = syscalls[rax](rdi, rsi, rdx, r10, r8, r9, rsp);
+uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t rcx, uint64_t r8, uint64_t r9, uint64_t rsp) {    
+    uint64_t toReturn = syscalls[rax](rdi, rsi, rdx, rcx, r8, r9, rsp);
     return toReturn;
 }
 
@@ -253,28 +260,42 @@ static uint64_t arqSysUnblock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64
     return 0;
 }
 
-static uint64_t arqSysKill(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
-    ProcessControlBlockADT current = getEntry(pid);
-    if(current == NULL){
+static uint64_t arqSysPriority(uint64_t pid, uint64_t newPriority, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
+    /* Proceso init y hlt no deben ser cambiados de prioridad. */
+    if (pid == 1 || pid == 2) {
         return -1;
     }
-    setProcessState(current, EXITED);
-    int20h();
-    return 0;
+    return changePriority(pid, newPriority);
 }
 
-static uint64_t arqSysExecve(uint64_t processFunction, uint64_t argc, uint64_t argv, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t rsp) {
-    /* FIXME: Error en la conversión de argv.
-    processFunc pFunc = (processFunc) processFunction;
-    
-    char* argvAux[] = (char **) argv;
-    return sysExecve(pFunc, argc, argvAux, rsp);
-    */
-   return 0;
+static uint64_t arqSysChangeState(uint64_t pid, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
+    return changeState(pid);
 }
 
-static uint64_t arqSysFork(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
-    return sysFork();
+// Lo modifiqué por que no debería matar el proceso actual, si no el proceso con el pid dado.
+static uint64_t arqSysKill(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
+    if (pid < 3) {
+        return -1;
+    }
+    ProcessControlBlockADT toKill = getEntry(pid);
+    if(setProcessState(toKill, EXITED)){
+        int20h();
+        return 1;
+    }
+    return -1;
+}
+
+static uint64_t arqSysPs(uint64_t processes, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
+    int c = sysPs((ProcessData*) processes);
+    return c;
+}
+
+static uint64_t arqSysExecve(uint64_t processFunction, uint64_t argc, uint64_t argv, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t rsp) {    
+    return sysExecve((processFunc)processFunction, argc, (char**)argv, (void*)rsp);
+}
+
+static uint64_t arqSysFork(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t rsp) {
+    return sysFork((void *)rsp);
 }
 
 static uint64_t arqSysMemoryDump(uint64_t direction, uint64_t buffer, uint64_t nil1, uint64_t nil2, uint64_t  nil3, uint64_t nil4, uint64_t nil5) {
@@ -369,7 +390,21 @@ static uint64_t arqSysChangeFontSize(uint64_t newSize, uint64_t nil1, uint64_t n
     return 0;
 }
 
-static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
+static uint64_t arqSysIdle(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
     _hlt();
     return 0;
+}
+
+static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
+    ProcessControlBlockADT current = getCurrentProcessEntry();
+    while(hasOpenChilds(current)){
+        setProcessState(current, BLOCKED);
+        int20h();
+    }
+    return 0;
+}
+
+static uint64_t arqSysExit(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
+    setProcessState(getCurrentProcessEntry(), EXITED);
+    int20h();
 }
