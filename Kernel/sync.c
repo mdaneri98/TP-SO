@@ -1,17 +1,8 @@
 #include "memoryManager.h"
 #include <stdio.h>
-#include <string.h>
 #include <sync.h>
 #include <semaphore.h>
-
-#define MAX_SEM_QUEUE_SIZE 50
-
-/*
-my_sem_open(SEM_ID, 1)  "sem"
-my_sem_wait(SEM_ID);    "sem"
-my_sem_post(SEM_ID);    "sem"
-my_sem_close(SEM_ID);   "sem"
-*/
+#include <string.h>
 
 typedef struct {
     char * name;
@@ -37,8 +28,6 @@ semaphore_t sem;
 
 semaphore_t * getSemById(char * semId);
 
-semaphore_t * getSemById(char * semId);
-
 uint64_t* semOpen(char* semId, uint64_t currentValue){
     sem.name = semId; 
     sem.currentValue = currentValue;
@@ -58,7 +47,7 @@ uint64_t* semOpen(char* semId, uint64_t currentValue){
 
         while (auxNode->nextNode != NULL) {
             /* Chequeamos que ninguno de los semáforos tenga el mismo nombre, o en caso que coincidan, devolvemos el currentValue del semáforo. */
-            if(stringCompare(auxNode->semaphore.name, semId)){
+            if(strcmp(auxNode->semaphore.name, semId)){
                 return &auxNode->semaphore.currentValue;
             }
             auxNode = auxNode->nextNode;
@@ -75,43 +64,30 @@ uint64_t* semOpen(char* semId, uint64_t currentValue){
 
         return &newNode->semaphore.currentValue;
     }
-    return -1;
+    return NULL;
 }
 
 uint64_t semWait(char*semId) {
-    node_t* auxNode = semaphoreQueue.head;
-
-    while (auxNode->nextNode != NULL) {
-        /* Chequeamos que ninguno de los semáforos tenga el mismo nombre, o en caso que coincidan, devolvemos el currentValue del semáforo. */
-        if(stringCompare(auxNode->semaphore.name, semId)){
-            uint64_t* currentValue = auxNode->semaphore.currentValue;
-            uint64_t* mutex = auxNode->semaphore.mutex;
-            semLock(currentValue, mutex);
-            return 0;
-        }
-        auxNode = auxNode->nextNode;
+    semaphore_t * sem = getSemById(semId);
+    if(sem == NULL){
+        return -1;
     }
-    return -1;  /* El semáforo con semId no se encontraba en la lista. */
+    semLock(&sem->currentValue, &sem->mutex);
+    return 0;
 }
 
 uint64_t semPost(char*semId){
-    node_t* auxNode = semaphoreQueue.head;
-
-    while (auxNode->nextNode != NULL) {
-        /* Chequeamos que ninguno de los semáforos tenga el mismo nombre, o en caso que coincidan, devolvemos el currentValue del semáforo. */
-        if(stringCompare(auxNode->semaphore.name, semId)){
-            uint64_t* currentValue = auxNode->semaphore.currentValue;
-            semUnLock(currentValue);
-            return 0;
-        }
-        auxNode = auxNode->nextNode;
+    semaphore_t * sem = getSemById(semId);
+    if(sem == NULL){
+        return -1;      /* El semáforo con semId no se encontraba en la lista. */
     }
-    return -1;  /* El semáforo con semId no se encontraba en la lista. */
+    semUnlock(&sem->currentValue, &sem->mutex);
+    return 0;
 }
 
 uint64_t semClose(char*semId){
     node_t* auxNode = semaphoreQueue.head;
-    while (auxNode->nextNode != NULL && auxNode->nextNode->semaphore.name != semId) {
+    while (auxNode->nextNode != NULL && !strcmp(auxNode->nextNode->semaphore.name, semId)) {
         auxNode = auxNode->nextNode;
     } 
     if(auxNode->nextNode == NULL){
@@ -124,10 +100,10 @@ uint64_t semClose(char*semId){
 
 semaphore_t * getSemById(char * semId){
     node_t* auxNode = semaphoreQueue.head;
-    while(auxNode->nextNode != NULL && auxNode->semaphore.name != semId){
+    while(auxNode->nextNode != NULL && !strcmp(auxNode->semaphore.name, semId)){
         auxNode = auxNode->nextNode;
     }
-    if(auxNode->nextNode == NULL && auxNode->semaphore.name != semId){
+    if(auxNode->nextNode == NULL && !strcmp(auxNode->semaphore.name, semId)){
         return NULL;
     } else {
         return &auxNode->semaphore;
