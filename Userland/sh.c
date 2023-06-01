@@ -32,7 +32,6 @@ static unsigned int bufferCount = 0;
 static char* secondCommand = NULL;  /* Apunta dos direcciones posteriores de donde se ubica el | en lastCommand, si así es el caso. */
 
 char lastArguments[MAX_ARGS_COUNT][100];  // Variable global para almacenar los argumentos
-int cantidad_argumentos = 0;           // Variable global para almacenar la cantidad de argumentos
 
 // Structure for maintaining commands history
 static char lines[MAX_LINES][BUFFER_MAX_LENGTH] = {{0}};
@@ -153,10 +152,10 @@ static int checkCommand(char* lastCommand) {
 /* Almacena los argumentos en la variable lastArguments, dada la función obtenida por idx. */
 static int getArguments(int idx, char *cadena) {
     int cantidad_argumentos = 0;
-    
+    /*
     stringCopy(lastArguments[cantidad_argumentos], BUFFER_MAX_LENGTH, commandsName[idx]);
     cantidad_argumentos++;
-
+    */
     // Eliminamos los espacios en blanco al comienzo y final de la cadena
     while (*cadena && (*cadena == ' ')) {
         cadena++;
