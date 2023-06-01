@@ -2,6 +2,7 @@
 #include <lib.h>
 #include <scheduler.h>
 #include <processManagement.h>
+#include <sync.h>
 
 #define TRUE 1
 #define FALSE 0
@@ -20,6 +21,7 @@ typedef struct list{
 } queue_t;
 
 #define PCB_BLOCK sizeof(MMNode) + PCBNodeSize
+#define SEM_BLOCK sizeof(MMNode) + semNodeSize
 
 typedef struct MemoryManager_t{
     queue_t freeList;
@@ -28,10 +30,11 @@ typedef struct MemoryManager_t{
     uint64_t totalMemory;
 } MemoryManager_t;
 
-MemoryManager_t memoryManager;
-MemoryManager_t PCBMemoryManager;
+MemoryManager_t userMemoryManager;
+MemoryManager_t kernelMemoryManager;
 
 uint64_t PCBNodeSize;
+uint64_t semNodeSize;
 
 static void initMemory(MemoryManager_t *memoryForMemoryManager, void *const restrict init, uint64_t size);
 static void *genericAllocMemory(MemoryManager_t *memoryForMemoryManager, uint64_t blockSize, uint64_t memoryToAllocate);
@@ -101,17 +104,22 @@ static void genericFreeMemory(MemoryManager_t *memoryForMemoryManager, void *con
 }
 
 void createMemoryManager(void *const restrict init, uint64_t size) {
-	initMemory(&memoryManager, init, size);
-    initMemory(&PCBMemoryManager, PCB_LOCATION, 0x140000);
+	initMemory(&userMemoryManager, init, size);
+    initMemory(&kernelMemoryManager, PCB_LOCATION, 0x140000);
     PCBNodeSize = getPCBNodeSize();
+    semNodeSize = getSemNodeSize();
 }
 
 void *allocMemory(const uint64_t memoryToAllocate){
-    return genericAllocMemory(&memoryManager, BLOCK_SIZE, memoryToAllocate);
+    return genericAllocMemory(&userMemoryManager, BLOCK_SIZE, memoryToAllocate);
 }
 
 void *allocPCB(){
-    return genericAllocMemory(&PCBMemoryManager, PCB_BLOCK, PCB_BLOCK);
+    return genericAllocMemory(&kernelMemoryManager, PCB_BLOCK, PCBNodeSize);
+}
+
+void *allocSemaphore(){
+    return genericAllocMemory(&kernelMemoryManager, SEM_BLOCK, semNodeSize);
 }
 
 void *reAllocMemory(void *const memoryToRealloc, uint64_t newSize){
@@ -132,19 +140,23 @@ void *reAllocMemory(void *const memoryToRealloc, uint64_t newSize){
 }
 
 void freeMemory(void *const memoryToFree){
-    genericFreeMemory(&memoryManager, memoryToFree);
+    genericFreeMemory(&userMemoryManager, memoryToFree);
 }
 
 void freePCB(void *const blockToFree){
-    genericFreeMemory(&PCBMemoryManager, blockToFree);
+    genericFreeMemory(&kernelMemoryManager, blockToFree);
+}
+
+void freeSemaphore(void *const semToFree){
+    genericFreeMemory(&kernelMemoryManager, semToFree);
 }
 
 uint64_t getFreeMemoryAmount(){
-    return memoryManager.freeMemory;
+    return userMemoryManager.freeMemory;
 }
 
 uint64_t getUsedMemoryAmount(){
-    return memoryManager.usedMemory;
+    return userMemoryManager.usedMemory;
 }
 
 void copyBlocks(void *target, void *source){

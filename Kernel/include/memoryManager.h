@@ -13,9 +13,13 @@ void *reAllocMemory(void *const memoryToRealloc, uint64_t newSize);
 
 void *allocPCB();
 
+void *allocSemaphore();
+
 void freeMemory(void *const memoryToFree);
 
 void freePCB(void *const blockToFree);
+
+void freeSemaphore(void *const semToFree);
 
 uint64_t getPowerOfTwo(uint64_t number);
 

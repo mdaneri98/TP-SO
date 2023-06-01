@@ -1,5 +1,4 @@
-#include "memoryManager.h"
-#include <stdio.h>
+#include <memoryManager.h>
 #include <sync.h>
 #include <semaphore.h>
 #include <string.h>
@@ -33,7 +32,7 @@ uint64_t* semOpen(char* semId, uint64_t currentValue){
     sem.currentValue = currentValue;
 
     if(semaphoreQueue.head == NULL){
-        node_t* newNode = malloc(sizeof(node_t)); 
+        node_t* newNode = allocSemaphore(sizeof(node_t)); 
         semaphoreQueue.head = newNode;
         semaphoreQueue.tail = newNode;
         newNode->semaphore.name = semId;
@@ -47,14 +46,14 @@ uint64_t* semOpen(char* semId, uint64_t currentValue){
 
         while (auxNode->nextNode != NULL) {
             /* Chequeamos que ninguno de los semáforos tenga el mismo nombre, o en caso que coincidan, devolvemos el currentValue del semáforo. */
-            if(strcmp(auxNode->semaphore.name, semId)){
+            if(stringCompare(auxNode->semaphore.name, semId)){
                 return &auxNode->semaphore.currentValue;
             }
             auxNode = auxNode->nextNode;
         }
 
         /* Si no había un semáforo con el nombre dado, lo creamos. */
-        node_t* newNode = malloc(sizeof(node_t));
+        node_t* newNode = allocSemaphore(sizeof(node_t));
         semaphoreQueue.tail->nextNode = newNode;
         newNode->semaphore.name = semId;
         newNode->semaphore.currentValue = currentValue;
@@ -87,25 +86,29 @@ uint64_t semPost(char*semId){
 
 uint64_t semClose(char*semId){
     node_t* auxNode = semaphoreQueue.head;
-    while (auxNode->nextNode != NULL && !strcmp(auxNode->nextNode->semaphore.name, semId)) {
+    while (auxNode->nextNode != NULL && !stringCompare(auxNode->nextNode->semaphore.name, semId)) {
         auxNode = auxNode->nextNode;
     } 
     if(auxNode->nextNode == NULL){
         return -1;
     }
     auxNode->nextNode = auxNode->nextNode->nextNode;
-    free(auxNode->nextNode);
+    freeSemaphore(auxNode->nextNode);
     return 1;
 }
 
 semaphore_t * getSemById(char * semId){
     node_t* auxNode = semaphoreQueue.head;
-    while(auxNode->nextNode != NULL && !strcmp(auxNode->semaphore.name, semId)){
+    while(auxNode->nextNode != NULL && !stringCompare(auxNode->semaphore.name, semId)){
         auxNode = auxNode->nextNode;
     }
-    if(auxNode->nextNode == NULL && !strcmp(auxNode->semaphore.name, semId)){
+    if(auxNode->nextNode == NULL && !stringCompare(auxNode->semaphore.name, semId)){
         return NULL;
     } else {
         return &auxNode->semaphore;
     }
+}
+
+uint64_t getSemNodeSize(){
+    return sizeof(node_t);
 }
