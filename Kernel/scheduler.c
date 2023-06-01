@@ -4,7 +4,7 @@
 #include <scheduler.h>
 #include <interrupts.h>
 #include <keyboard.h>
-#include <syscallDispatcher.h>
+#include <syscallsDispatcher.h>
 #include <libasm.h>
 #include <lib.h>
 #include <video.h>

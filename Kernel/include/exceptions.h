@@ -1,6 +1,6 @@
-#ifndef _EXCEPTIONS_H_
-#define _EXCEPTIONS_H_
+#ifndef EXCEPTIONS_H_
+#define EXCEPTIONS_H_
 
-void set_EXCEPTIONS();
+void setExceptions();
 
-#endif // _EXCEPTIONS_H_
+#endif /* EXCEPTIONS_H_ */

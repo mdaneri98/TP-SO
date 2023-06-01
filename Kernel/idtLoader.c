@@ -2,8 +2,6 @@
 #include <idtLoader.h>
 #include <defs.h>
 #include <interrupts.h>
-#include <syscallDispatcher.h>
-#include <exceptions.h>
 
 #define NULL (void *) 0
 
@@ -20,21 +18,20 @@ typedef struct {
 
 #pragma pack(pop)		    /* Reestablece la alinceación actual */
 
-DESCR_INT * idt = (DESCR_INT *) 0;	// IDT de 255 entradas
+DESCR_INT *idt = (DESCR_INT *)0;	// IDT de 255 entradas
 
-static void setup_IDT_entry (int index, uint64_t offset);
+static void setupIDTEntry(int index, uint64_t offset);
 
-void load_idt() {
+void loadIDT(){
   _cli();
 
-
-  setup_IDT_entry (0x00, (uint64_t)&_exception0Handler);    // Zero Division
-  setup_IDT_entry (0x05, (uint64_t)&_exception5Handler);    // Bounds Exception
-  setup_IDT_entry (0x06, (uint64_t)&_exception6Handler);    // Invalid Opcode
-  setup_IDT_entry (0x0D, (uint64_t)&_exception14Handler);   // Page fault
-  setup_IDT_entry (0x20, (uint64_t)&_irq00Handler);         // Timer tick
-  setup_IDT_entry (0x21, (uint64_t)&_irq01Handler);         // Keyboard
-  setup_IDT_entry (0x80, (uint64_t)&_syscallsHandler);      // Syscalls - Software
+  setupIDTEntry (0x00, (uint64_t)&_exception0Handler);    // Zero Division
+  setupIDTEntry (0x05, (uint64_t)&_exception5Handler);    // Bounds Exception
+  setupIDTEntry (0x06, (uint64_t)&_exception6Handler);    // Invalid Opcode
+  setupIDTEntry (0x0D, (uint64_t)&_exception14Handler);   // Page fault
+  setupIDTEntry (0x20, (uint64_t)&_irq00Handler);         // Timer tick
+  setupIDTEntry (0x21, (uint64_t)&_irq01Handler);         // Keyboard
+  setupIDTEntry (0x80, (uint64_t)&_syscallsHandler);      // Syscalls - Software
 
 	//Solo interrupcion timer tick y keyboard habilitadas
 	picMasterMask(0xFC); 
@@ -43,7 +40,7 @@ void load_idt() {
 	_sti();
 }
 
-static void setup_IDT_entry (int index, uint64_t offset) {
+static void setupIDTEntry (int index, uint64_t offset){
   idt[index].selector = 0x08;
   idt[index].offset_l = offset & 0xFFFF;
   idt[index].offset_m = (offset >> 16) & 0xFFFF;

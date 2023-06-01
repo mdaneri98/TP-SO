@@ -1,5 +1,6 @@
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
+
 #include <process.h>
 #include <ps.h>
 #include <bufferManagement.h>
@@ -13,7 +14,7 @@ int sysPs(ProcessData data[]);
 
 void createInit();
 
-ProcessControlBlockADT getEntry(uint32_t pid); //ESTE
+ProcessControlBlockADT getEntry(uint32_t pid);
 
 PCBNodeADT getCurrentProcess();
 ProcessControlBlockADT getCurrentProcessEntry();

@@ -3,27 +3,27 @@
 #include <string.h>
 #include <lib.h>
 
-static char buffer[64] = { '0' };
+static char buffer[64] = { '\0' };
 
-struct vbe_mode_info_structure {
-    uint16_t attributes;        // deprecated, only bit 7 should be of interest to you, and it indicates the mode supports a linear frame buffer.
-    uint8_t window_a;           // deprecated
-    uint8_t window_b;           // deprecated
-    uint16_t granularity;       // deprecated; used while calculating bank numbers
+struct vbe_mode_info_structure{
+    uint16_t attributes;            // deprecated, only bit 7 should be of interest to you, and it indicates the mode supports a linear frame buffer.
+    uint8_t window_a;               // deprecated
+    uint8_t window_b;               // deprecated
+    uint16_t granularity;           // deprecated; used while calculating bank numbers
     uint16_t window_size;
     uint16_t segment_a;
     uint16_t segment_b;
-    uint32_t win_func_ptr;      // deprecated; used to switch banks from protected mode without returning to real mode
-    uint16_t pitch;         // number of bytes per horizontal line
-    uint16_t width;         // width in pixels
-    uint16_t height;            // height in pixels
-    uint8_t w_char;         // unused...
-    uint8_t y_char;         // ...
+    uint32_t win_func_ptr;          // deprecated; used to switch banks from protected mode without returning to real mode
+    uint16_t pitch;                 // number of bytes per horizontal line
+    uint16_t width;                 // width in pixels
+    uint16_t height;                // height in pixels
+    uint8_t w_char;                 // unused...
+    uint8_t y_char;                 // ...
     uint8_t planes;
-    uint8_t bpp;            // bits per pixel in this mode
-    uint8_t banks;          // deprecated; total number of banks in this mode
+    uint8_t bpp;                    // bits per pixel in this mode
+    uint8_t banks;                  // deprecated; total number of banks in this mode
     uint8_t memory_model;
-    uint8_t bank_size;      // deprecated; size of a bank, almost always 64 KB but may be 16 KB...
+    uint8_t bank_size;              // deprecated; size of a bank, almost always 64 KB but may be 16 KB...
     uint8_t image_pages;
     uint8_t reserved0;
 
@@ -37,7 +37,7 @@ struct vbe_mode_info_structure {
     uint8_t reserved_position;
     uint8_t direct_color_attributes;
 
-    uint32_t framebuffer;       // physical address of the linear frame buffer; write here to draw to the screen
+    uint32_t framebuffer;           // physical address of the linear frame buffer; write here to draw to the screen
     uint32_t off_screen_mem_off;
     uint16_t off_screen_mem_size;   // size of memory in the framebuffer but not being displayed on the screen
     uint8_t reserved1[206];
@@ -48,65 +48,73 @@ struct vbe_mode_info_structure {
 struct vbe_mode_info_structure* screenData = (void*)0x5C00; //Configurado en sysvar.asm
 
 static uint16_t penX = 0, penY = 0;
-static Color penColor = {0x7F, 0x7F, 0x7F};    // 3 bytes de color.
+static Color penColor = { 0x7F, 0x7F, 0x7F };    // 3 bytes de color.
 static uint8_t bytesPerPixel = 3;
 static uint8_t fontSize = 1;
 
-void* getPtrToPixel(uint16_t x, uint16_t y) {
+void* getPtrToPixel(uint16_t x, uint16_t y){
     /*
-    Punto (x,y) en la pantalla. Como la memoria es continua, para llegar a ese punto es mediante la sig. ecuación:
+    (x,y) Pointer on screen. Because the memory is contigious, we need to do the following equation
+        to calculate the right position:
     */
     return (void*)(screenData->framebuffer + bytesPerPixel * (x + (y * (uint64_t)screenData->width)));
 }
 
 
-uint16_t scrGetWidth(void) {
+uint16_t scrGetWidth(void){
     return screenData->width;
 }
 
-uint16_t scrGetHeight(void) {
+uint16_t scrGetHeight(void){
     return screenData->height;
 }
 
-uint16_t scrGetPenX(void) {
+uint16_t scrGetPenX(void){
     return penX;
 }
 
-uint16_t scrGetPenY(void) {
+uint16_t scrGetPenY(void){
     return penY;
 }
 
-void scrClear(void) {
+void scrClear(void){
     uint8_t *pos = (uint8_t*)((uint64_t)screenData->framebuffer);
-    for (uint32_t len = bytesPerPixel * (uint32_t)screenData->width * screenData->height; len; len--, pos++)
+    for(uint32_t len = bytesPerPixel * (uint32_t)screenData->width * screenData->height; len; len--, pos++){
         *pos = 0;
+    }
     penX = 0;
     penY = 0;
 }
 
 void scrSetPixel(uint16_t x, uint16_t y, Color color) {
-    if (x >= screenData->width || y >= screenData->height)
+    if(x >= screenData->width || y >= screenData->height){
         return;
-
+    }
     Color* pos = (Color*)getPtrToPixel(x, y);
     *pos = color;
 }
 
 void scrDrawRect(uint16_t x, uint16_t y, uint16_t width, uint16_t height, Color color) {
-    if (x >= screenData->width || y >= screenData->height)
+    if(x >= screenData->width || y >= screenData->height){
         return;
+    }
     
     uint16_t maxWidth = screenData->width - x;
-    if (width > maxWidth) width = maxWidth;
+    if(width > maxWidth){
+        width = maxWidth;
+    }
     
     uint16_t maxHeight = screenData->height - y;
-    if (height > maxHeight) height = maxHeight;
+    if(height > maxHeight){
+        height = maxHeight;
+    }
 
     Color* ptr = (Color*)getPtrToPixel(x, y);
     unsigned int adv = screenData->width - width;
-    for (int i=0; i<height; i++) {
-        for (int c=0; c<width; c++)
+    for(int i=0; i<height; i++) {
+        for(int c=0; c<width; c++){
             *(ptr++) = color;
+        }
         ptr += adv;
     }
 }
@@ -116,10 +124,10 @@ void scrDrawLine(uint16_t fromX, uint16_t fromY, uint16_t toX, uint16_t toY, Col
     unsigned int dy = toY < fromY ? (fromY - toY) : (toY - fromY);
     
     // Lines can be drawn by iterating either horizontally or vertically. We check which way is best by comparing dx and dy.
-    if (dy < dx) {
+    if(dy < dx){
         // We draw the line iterating horizontally.
         // We ensure fromX < toX by swapping the points if necessary.
-        if (fromX > toX) {
+        if(fromX > toX){
             uint16_t tmp = fromX;
             fromX = toX;
             toX = tmp;
@@ -128,18 +136,23 @@ void scrDrawLine(uint16_t fromX, uint16_t fromY, uint16_t toX, uint16_t toY, Col
             toY = tmp;
         }
 
-        if (fromX >= screenData->width) return;
+        if (fromX >= screenData->width){
+            return;
+        }
 
         double m = (double)(toY - fromY) / (double)(toX - fromX);
         double b = fromY - m*fromX;
-        if (toX >= screenData->width) toX = screenData->width - 1;
+        if (toX >= screenData->width){
+            toX = screenData->width - 1;
+        }
 
-        for (uint16_t x = fromX; x <= toX; x++)
+        for (uint16_t x = fromX; x <= toX; x++){
             scrSetPixel(x, (uint16_t)(m*x+b + 0.5), color);
-    } else {
+        }
+    } else{
         // We draw the line iterating vertically.
         // We ensure fromY < toY by swapping the points if necessary.
-        if (fromY > toY) {
+        if(fromY > toY) {
             uint16_t tmp = fromX;
             fromX = toX;
             toX = tmp;
@@ -148,14 +161,19 @@ void scrDrawLine(uint16_t fromX, uint16_t fromY, uint16_t toX, uint16_t toY, Col
             toY = tmp;
         }
 
-        if (fromY >= screenData->height) return;
+        if(fromY >= screenData->height){
+            return;
+        }
 
         double m = (double)(toX - fromX) / (double)(toY - fromY);
         double b = fromX - m*fromY;
-        if (toY >= screenData->height) toY = screenData->height - 1;
+        if(toY >= screenData->height){
+            toY = screenData->height - 1;
+        }
 
-        for (uint16_t y = fromY; y <= toY; y++)
+        for(uint16_t y = fromY; y <= toY; y++){
             scrSetPixel((uint16_t)(m*y+b + 0.5), y, color);
+        }
     }
 }
 
@@ -176,9 +194,9 @@ void scrPrintNewline(void) {
     penX = 0; // pen x is set to full left.
 
     // If there is space for another line, we simply advance the pen y. Otherwise, we move up the entire screen and clear the lower part.
-    if (penY + (2*CHAR_HEIGHT*fontSize) <= screenData->height) {
+    if(penY + (2*CHAR_HEIGHT*fontSize) <= screenData->height){
         penY += CHAR_HEIGHT*fontSize;
-    } else {
+    } else{
         void* dst = (void*)((uint64_t)screenData->framebuffer);
 
         // Apunta a la segunda línea de la pantalla. Linea ~ HEIGHT de un char.(son varias lineas de pixeles)
@@ -207,8 +225,9 @@ void scrPrintCharWithColor(char c, Color color){
 }
 
 void scrBackspace(){
-    if(penX < 0x00 && penY == CHAR_HEIGHT*fontSize)
+    if(penX < 0x00 && penY == CHAR_HEIGHT*fontSize){
         return;
+    }
     int aux = (long) penX;
     if(aux - CHAR_WIDTH*fontSize < 0){
         penX = screenData->width - CHAR_WIDTH*fontSize;
@@ -218,8 +237,9 @@ void scrBackspace(){
     Color black = {0x00, 0x00, 0x00};
     for (int h=0; h<CHAR_HEIGHT*fontSize; h++) {
         Color* pos = (Color*)getPtrToPixel(penX, penY+h);
-        for(int i=0; i<CHAR_WIDTH*fontSize ;i++)
+        for(int i=0; i<CHAR_WIDTH*fontSize ;i++){
             pos[i] = black;
+        }
     }
 }
 
@@ -236,43 +256,53 @@ void scrPrintChar(char c) {
         scrPrint("   ");
         return;
     }
-    
-    if (c >= FIRST_CHAR && c <= LAST_CHAR) {
+
+    if (c >= FIRST_CHAR && c <= LAST_CHAR){
         int w, offset = 0, j;
 	    char* data = font + 32*(c-33);
-	    for (int h=0; h<CHAR_HEIGHT; h++) {
+	    for (int h=0; h<CHAR_HEIGHT; h++){
             offset = h*(fontSize-1);
             for(j=0; j<fontSize ;j++){
                 char *auxData = data;
                 Color* pos = (Color*)getPtrToPixel(penX, penY + h + offset--);
                 w = 0;
-                for(int i=0; i<fontSize ;i++, w++)
+                for(int i=0; i<fontSize ;i++, w++){
                     if (*auxData & 0b00000001) pos[w] = penColor;
-                for(int i=0; i<fontSize ;i++, w++)
+                }
+                for(int i=0; i<fontSize ;i++, w++){
                     if (*auxData & 0b00000010) pos[w] = penColor;
-                for(int i=0; i<fontSize ;i++, w++)
+                }
+                for(int i=0; i<fontSize ;i++, w++){
                     if (*auxData & 0b00000100) pos[w] = penColor;
-                for(int i=0; i<fontSize ;i++, w++)
+                }
+                for(int i=0; i<fontSize ;i++, w++){
                     if (*auxData & 0b00001000) pos[w] = penColor;
-                for(int i=0; i<fontSize ;i++, w++)
+                }
+                for(int i=0; i<fontSize ;i++, w++){
                     if (*auxData & 0b00010000) pos[w] = penColor;
-                for(int i=0; i<fontSize ;i++, w++)
+                }
+                for(int i=0; i<fontSize ;i++, w++){
                     if (*auxData & 0b00100000) pos[w] = penColor;
-                for(int i=0; i<fontSize ;i++, w++)
+                }
+                for(int i=0; i<fontSize ;i++, w++){
                     if (*auxData & 0b01000000) pos[w] = penColor;
-                for(int i=0; i<fontSize ;i++, w++)
+                }
+                for(int i=0; i<fontSize ;i++, w++){
                     if (*auxData & 0b10000000) pos[w] = penColor;
+                }
                 auxData++;
-                for(int i=0; i<fontSize ;i++, w++)
+                for(int i=0; i<fontSize ;i++, w++){
                     if (*auxData & 0b00000001) pos[w++] = penColor;
+                }
             }
             data += 2;
     	}
     }
 
     penX += CHAR_WIDTH*fontSize;
-    if (penX > screenData->width - CHAR_WIDTH*fontSize)
+    if (penX > screenData->width - CHAR_WIDTH*fontSize){
         scrPrintNewline();
+    }
 }
 
 uint32_t scrPrint(char* s) {
@@ -292,13 +322,11 @@ static uint32_t toBase(uint64_t value, char * buffer, uint32_t base)
 	uint32_t digits = 0;
 
 	//Calculate characters for each digit
-	do
-	{
+	do{
 		uint32_t remainder = value % base;
 		*p++ = (remainder < 10) ? remainder + '0' : remainder + 'A' - 10;
 		digits++;
-	}
-	while (value /= base);
+	} while (value /= base);
 
 	// Terminate string in buffer.
 	*p = 0;
@@ -306,8 +334,7 @@ static uint32_t toBase(uint64_t value, char * buffer, uint32_t base)
 	//Reverse string in buffer.
 	p1 = buffer;
 	p2 = p - 1;
-	while (p1 < p2)
-	{
+	while (p1 < p2){
 		char tmp = *p1;
 		*p1 = *p2;
 		*p2 = tmp;
@@ -318,8 +345,7 @@ static uint32_t toBase(uint64_t value, char * buffer, uint32_t base)
 	return digits;
 }
 
-void scrPrintBase(uint64_t value, uint32_t base)
-{
+void scrPrintBase(uint64_t value, uint32_t base){
     toBase(value, buffer, base);
     scrPrint(buffer);
 }

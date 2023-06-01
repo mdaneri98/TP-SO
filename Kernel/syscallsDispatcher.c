@@ -16,6 +16,7 @@
 #include <pipe.h>
 #include <bufferManagement.h>
 #include <ps.h>
+#include <scheduler.h>
 
 #define TOTAL_SYSCALLS 26
 #define AUX_BUFF_DIM 512
@@ -65,7 +66,7 @@ IPCBuffer *stdoutP;
 IPCBuffer *stderrP;
 
 // EVERY NEW SYSCALL MUST BE LOADED IN THIS ARRAY
-void set_SYSCALLS(){
+void setSyscalls(){
     syscalls[0] = (SyscallVec) arqSysRead;
     syscalls[1] = (SyscallVec) arqSysWrite;
     syscalls[2] = (SyscallVec) arqSysClear;
@@ -141,7 +142,7 @@ uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t r
  * @param count 
  * @return Amount of bytes read. -1 in case of error
  */
-static uint64_t arqSysRead(uint64_t pd, uint64_t buff, uint64_t count, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5){
+static uint64_t arqSysRead(uint64_t pd, uint64_t buff, uint64_t count, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4){
     ProcessControlBlockADT current = getCurrentProcessEntry();
     if(current == NULL){
         return 0;

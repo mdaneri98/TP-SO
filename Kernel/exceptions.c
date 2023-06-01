@@ -3,6 +3,10 @@
 #include <idtLoader.h>
 #include <keyboard.h>
 #include <interrupts.h>
+#include <scheduler.h>
+
+#define STDIN 0
+#define NULL (void *)0
 
 #define REGDUMP_SIZE 18
 
@@ -20,7 +24,7 @@ static void page_fault();
 
 static exceptionRoutines routines[15];
 
-void set_EXCEPTIONS(){
+void setExceptions(){
 	routines[0] = zero_division;
 	routines[5] = bounds_exception;
 	routines[6] = invalid_opcode;
@@ -84,10 +88,11 @@ void exceptionDispatcher(int exception, uint64_t regdump[REGDUMP_SIZE], uint64_t
 	scrPrintChar('\n');
 	scrPrintNewline();
 	scrPrint("Press any key to continue");
-	while(readBuffer() < 0) _hlt();
+	char c;
+	syscallsDispatcher(0, STDIN, &c, 1, (uint64_t) NULL, (uint64_t) NULL, (uint64_t) NULL,(uint64_t) NULL);
 	scrClear();
-
-	return;
+	setProcessState(getCurrentProcessEntry(), EXITED);
+    int20h();
 }
 
 static void zero_division() {

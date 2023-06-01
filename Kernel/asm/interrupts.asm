@@ -148,13 +148,6 @@ SECTION .text
 	mov rsi, regdump				; Pointer to the vector that contains the registers info
 	mov rdi, %1						; Exception ID
 	call exceptionDispatcher
-
-	call getStackBase
-
-	mov [rsp+8+8+8], rax
-	mov rax, [userSpace]
-	mov [rsp], rax
-	iretq
 %endmacro
 
 _syscallsHandler:

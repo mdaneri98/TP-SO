@@ -1,8 +1,6 @@
-#ifndef _IDT_LOADER_H
-#define _IDT_LOADER_H
+#ifndef IDT_LOADER_H
+#define IDT_LOADER_H
 
-void load_idt();
+void loadIDT();
 
-void hardReset();
-
-#endif // _IDT_LOADER_H
+#endif /* IDT_LOADER_H */

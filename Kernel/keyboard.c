@@ -2,7 +2,8 @@
 #include <video.h>
 #include <keyboard.h>
 #include <string.h>
-#include <syscallDispatcher.h>
+#include <syscallsDispatcher.h>
+#include <bufferManagement.h>
 
 #define CODES 56
 #define LETTERS 25

@@ -2,18 +2,17 @@
   Defs.h
 ****************************************************/
 
-#ifndef _defs_
-#define _defs_
+#ifndef DEFS_H
+#define DEFS_H
 
-
-/* Flags para derechos de acceso de los segmentos */
-#define ACS_PRESENT     0x80            /* segmento presente en memoria */
-#define ACS_CSEG        0x18            /* segmento de codigo */
-#define ACS_DSEG        0x10            /* segmento de datos */
-#define ACS_READ        0x02            /* segmento de lectura */
-#define ACS_WRITE       0x02            /* segmento de escritura */
+/* Flags used for memory access rights */
+#define ACS_PRESENT     0x80            // Actual segment in memory
+#define ACS_CSEG        0x18            // Code segment
+#define ACS_DSEG        0x10            // Data segment
+#define ACS_READ        0x02            // Read segment
+#define ACS_WRITE       0x02            // Write segment
 #define ACS_IDT         ACS_DSEG
-#define ACS_INT_386 	0x0E		/* Interrupt GATE 32 bits */
+#define ACS_INT_386 	0x0E		          // Interrupt GATE 32 bits
 #define ACS_INT         ( ACS_PRESENT | ACS_INT_386 )
 
 
@@ -22,4 +21,4 @@
 #define ACS_STACK       (ACS_PRESENT | ACS_DSEG | ACS_WRITE)
 
 
-#endif
+#endif /* DEFS_H */
