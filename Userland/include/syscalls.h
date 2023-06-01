@@ -9,7 +9,7 @@
 #define STDERR 2
 
 // Sacar de acá y pasar, cuando esté hecho, a .h de semáforos.
-typedef int sem_t;
+typedef uint64_t sem_t;
 
 /* 
 write: Escribe a pantalla el buffer con el color especificado.
@@ -48,8 +48,9 @@ void _sysChangeState(uint32_t pid);
 void _idle();
 void _wait();
 
-void _sysSemDown(sem_t* sem);
-void _sysSemUp(sem_t* sem);
-sem_t _sysSemOpen(char* name, int initial);
+
+uint64_t _sysSemDown(sem_t* sem);
+uint64_t _sysSemUp(sem_t* sem);
+sem_t* _sysSemOpen(char* name, int initial);
 
 #endif

@@ -16,7 +16,8 @@
 #include <pipe.h>
 #include <bufferManagement.h>
 #include <ps.h>
-#include <scheduler.h>
+#include <sync.h>
+
 
 #define TOTAL_SYSCALLS 26
 #define AUX_BUFF_DIM 512
@@ -51,6 +52,11 @@ static uint64_t arqSysFork(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t
 static uint64_t arqSysPs(uint64_t processes, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 static uint64_t arqSysPriority(uint64_t pid, uint64_t newPriority, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 static uint64_t arqSysChangeState(uint64_t pid, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+
+static uint64_t arqSysSemOpen(uint64_t sem_id, uint64_t initialValue, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+static uint64_t arqSysSemPost(uint64_t sem_id, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+static uint64_t arqSysSemWait(uint64_t sem_id, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+static uint64_t arqSysSemClose(uint64_t sem_id, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 
 static uint64_t arqSysIdle(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
@@ -95,6 +101,14 @@ void setSyscalls(){
     syscalls[24] = (SyscallVec) arqSysWait;
     syscalls[25] = (SyscallVec) arqSysExit;
 
+    /* Semaphores */
+    syscalls[26] = (SyscallVec) arqSysSemOpen;
+    syscalls[27] = (SyscallVec) arqSysSemPost;
+    syscalls[28] = (SyscallVec) arqSysSemWait;
+    syscalls[29] = (SyscallVec) arqSysSemClose;
+
+
+    /* Pipes */
     stdinP = getSTDIN();
     stdoutP = getSTDOUT();
     stderrP = getSTDERR();
@@ -246,6 +260,22 @@ static uint64_t arqSysWrite(uint64_t pd, uint64_t buff, uint64_t count, uint64_t
     
     return bytesWritten;
     */
+}
+
+static uint64_t arqSysSemOpen(uint64_t sem_id, uint64_t initialValue, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
+    return semOpen((char*) sem_id, initialValue);
+}
+
+static uint64_t arqSysSemWait(uint64_t sem_id, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
+    return semWait((char*) sem_id);
+}
+
+static uint64_t arqSysSemPost(uint64_t sem_id, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
+    return semPost((char*) sem_id);
+}
+
+static uint64_t arqSysSemClose(uint64_t sem_id, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
+    return semClose((char*) sem_id);
 }
 
 static uint64_t arqSysBlock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {

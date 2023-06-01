@@ -23,10 +23,31 @@ GLOBAL _sysPriority
 GLOBAL _sysChangeState
 GLOBAL _wait
 GLOBAL _sysExit
+GLOBAL _sysSemOpen
+GLOBAL _sysSemPost
+GLOBAL _sysSemWait
+GLOBAL _sysSemClose
+
 
 _sysExit:
     mov rax, 25
     int 80h
+    ret
+
+_sysSemOpen:
+    mov rax, 26
+    ret
+
+_sysSemPost:
+    mov rax, 27
+    ret
+
+_sysSemWait:
+    mov rax, 28
+    ret
+
+_sysSemClose:
+    mov rax, 29
     ret
 
 _sysChangeState:
