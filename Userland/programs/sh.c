@@ -4,26 +4,34 @@
 #include <syscalls.h>
 #include <terminal.h>
 #include <tron.h>
+#include <lib.h>
+
+#include <ps.h>
+#include <kill.h>
+#include <block.h>
+#include <phylo.h>
+#include <nice.h>
+
 
 #define BUFFER_MAX_LENGTH 250
-#define CMDS_COUNT 12
+#define CMDS_COUNT 17
 #define MAX_ARGS_COUNT 5
-#define PROMPT "user$ "
 #define MAX_LINES 50
+
 #define TRUE 1
 #define FALSE 0
 
 // Structures for help command
 static char *commandsName[CMDS_COUNT];
 static char *commandsDesc[CMDS_COUNT];
-static void (*commandsFunction[CMDS_COUNT])(void);
+static void (*commandsFunction[CMDS_COUNT])(int, char **);
 
 // Structure for the command reader
-static char lastCommand[BUFFER_MAX_LENGTH];
+static char lastCommand[BUFFER_MAX_LENGTH*2];
 static unsigned int bufferCount = 0;
+static char* secondCommand = NULL;  /* Apunta dos direcciones posteriores de donde se ubica el | en lastCommand, si así es el caso. */
 
 char lastArguments[MAX_ARGS_COUNT][100];  // Variable global para almacenar los argumentos
-int cantidad_argumentos = 0;           // Variable global para almacenar la cantidad de argumentos
 
 // Structure for maintaining commands history
 static char lines[MAX_LINES][BUFFER_MAX_LENGTH] = {{0}};
@@ -33,26 +41,27 @@ static unsigned int lineCount = 0;
 static int fontSize = 1;
 
 // Prototypes
-static void runProgram(int idx);
-static int awaitCommand();
+static void runProgram(int idx, int jdx);
+static void awaitCommand(int* idx, int* jdx);
 static int checkCommand(char* lastCommand);
 static void sleep();
 
 static void clear();
-static void beep();
-static void clock();
+static void beep(int argsc, char* argsv[]);
+static void help(int argsc, char* argsv[]);
+static void clock(int argsc, char* argsv[]);
 static void loadCommands();
-static void printRegisters();
-static void increment();
-static void decrement();
-static void playTron();
-static void divZero();
-static void invalidOpCode();
-static void memoryDump();
+static void printRegisters(int argsc, char* argsv[]);
+static void increment(int argsc, char* argsv[]);
+static void decrement(int argsc, char* argsv[]);
+static void playTron(int argsc, char* argsv[]);
+static void divZero(int argsc, char* argsv[]);
+static void invalidOpCode(int argsc, char* argsv[]);
+static void memoryDump(int argsc, char* argsv[]);
 static void refresh();
 static void clearLines();
 static void clearLine(char *line);
-static char *getArguments();
+static int getArguments(int idx, char* lastCommand);
 static void pageFault();
 
 
@@ -61,11 +70,16 @@ void sh(int argsc, char* argsv[]) {
     loadCommands();
     clearLines();
 
+
     while(1) {
         printString(PROMPT);
-        int idx = awaitCommand();
-        if (idx >= 0 && idx < CMDS_COUNT) {
-            runProgram(idx);
+
+        int idx;    /* Index in the commandsFunction of the first program */
+        int jdx;    /* Index in the commandsFunction of the second program */
+        awaitCommand(&idx, &jdx);
+
+        if (idx >= 0 && idx < CMDS_COUNT) {            
+            runProgram(idx, jdx);
         } else {
             char *errMsg = "Invalid command. Use \'help\' to display the available commands with a description for their use";
             printString(errMsg);
@@ -79,7 +93,7 @@ void sh(int argsc, char* argsv[]) {
 
 }
 
-static int awaitCommand() {
+static void awaitCommand(int* idx, int* jdx) {
     int c;
     clearLine(lastCommand);
     while ((c = getChar()) != '\n') { 
@@ -111,11 +125,18 @@ static int awaitCommand() {
     stringCopy(lines[lineCount % MAX_LINES], BUFFER_MAX_LENGTH, PROMPT);
     stringCopy(lines[lineCount++ % MAX_LINES] + stringLength(PROMPT), BUFFER_MAX_LENGTH - stringLength(PROMPT), lastCommand);
 
-    int idx = checkCommand(lastCommand);
+    *idx = checkCommand(lastCommand);
     
-    bufferCount = 0;
+    /* Vemos el caso si el input fue pipeado */
+    // secondCommand = firstOccurence(lastCommand, '|');
+    if (secondCommand == NULL) {
+        *jdx = -1;
+    } else {
+        secondCommand += 2; /* Luego del pipe, tiene que haber un espacio. */
+        *jdx = checkCommand(secondCommand);
+    }
 
-    return idx;
+    bufferCount = 0;
 }
 
 static int checkCommand(char* lastCommand) {
@@ -127,19 +148,14 @@ static int checkCommand(char* lastCommand) {
     }
     return -1;
 }
-/*
-static char *getArguments(){
-    char *arguments = lastCommand;
-    for(int i=0; lastCommand[i] != ' ' && lastCommand[i] != '\0';i++)
-        arguments++;
-    while(*arguments == ' ')
-        arguments++;
-    return arguments;
-}
-*/
-static int getArguments(char *cadena) {
+
+/* Almacena los argumentos en la variable lastArguments, dada la función obtenida por idx. */
+static int getArguments(int idx, char *cadena) {
     int cantidad_argumentos = 0;
-    
+    /*
+    stringCopy(lastArguments[cantidad_argumentos], BUFFER_MAX_LENGTH, commandsName[idx]);
+    cantidad_argumentos++;
+    */
     // Eliminamos los espacios en blanco al comienzo y final de la cadena
     while (*cadena && (*cadena == ' ')) {
         cadena++;
@@ -154,8 +170,8 @@ static int getArguments(char *cadena) {
     char *token = strtok(cadena, " ");
 
     // Guardamos los argumentos en la variable global
-    while (token && cantidad_argumentos < MAX_ARGUMENTOS) {
-        strcpy(argumentos[cantidad_argumentos], token);
+    while (token && cantidad_argumentos < MAX_ARGS_COUNT) {
+        stringCopy(lastArguments[cantidad_argumentos], BUFFER_MAX_LENGTH, token);
         cantidad_argumentos++;
         token = strtok(NULL, " ");
     }
@@ -163,16 +179,31 @@ static int getArguments(char *cadena) {
     return cantidad_argumentos;
 }
 
-static void runProgram(int idx) {
+static void runProgram(int idx, int jdx) {    
     if (idx >= 0 && idx < CMDS_COUNT) {
-        _sysFork();
-        int argsc = getArguments();
-        _sysExecve(commandsFunction[idx], argsc, lastArguments);
+        if (jdx >= 0 && jdx < CMDS_COUNT) { /* Caso si el input está pipeado. */
+            int argsc1 = getArguments(idx, lastCommand);
+            int argsc2 = getArguments(jdx, secondCommand);
+
+            //FIXME: Habría que forkear, y redirigir los pipes.
+
+        } else {
+            if (_sysFork() == 0) {
+                int argsc = getArguments(idx, lastCommand);
+                _sysExecve(commandsFunction[idx], argsc, (char**) lastArguments);
+            }
+        }
+
+        //El proceso padre sigue ejecutando normalmente.
+        _wait();
     }
 }
 
 
-static void help() {
+
+/* Old functions */
+
+static void help(int argsc, char* argsv[]) {
     char *helpStr = "Predefined terminal programs:";
     printf("%s\n", helpStr);
     stringFormat(lines[lineCount++ % MAX_LINES], BUFFER_MAX_LENGTH, "%s", helpStr);
@@ -180,8 +211,7 @@ static void help() {
         clearLine(lines[lineCount % MAX_LINES]);
         stringFormat(lines[lineCount++ % MAX_LINES], BUFFER_MAX_LENGTH, "%d.%s: %s", i+1 , commandsName[i], commandsDesc[i]);
         printf("%d.%s: %s\n", i+1 , commandsName[i], commandsDesc[i]);
-    }
-    
+    }    
 }
 
 static void clear(){
@@ -189,7 +219,7 @@ static void clear(){
 	_clear();
 }
 
-static void beep(){
+static void beep(int argsc, char* argsv[]){
     char *beepMsg= "I'm supposed to be beeping...";
     printf("%s\n", beepMsg);
     clearLine(lines[lineCount % MAX_LINES]);
@@ -204,7 +234,7 @@ static int getFormat(int num) {
 	return dec * 10 + units;
 }
 
-static void clock() {
+static void clock(int argsc, char* argsv[]) {
     int hours;
     int minutes;
     int seconds;
@@ -259,6 +289,24 @@ static void loadCommands() {
     commandsName[11] = "help";
     commandsDesc[11] = "Prints the help manual for using the terminal.";
     commandsFunction[11] = help;
+    
+    /* Los programas nuevos no deberían ser programas built-in, por eso, no deberían estar en este arreglo.
+    Por simplicidad, usamos el mismo vector. */
+    commandsName[12] = "ps";
+    commandsDesc[12] = "Prints important data for each process in the system.";
+    commandsFunction[12] = ps;
+    commandsName[13] = "kill";
+    commandsDesc[13] = "Kills the process that matches with the id given.";
+    commandsFunction[13] = kill;
+    commandsName[14] = "block";
+    commandsDesc[14] = "Blocks the process that matches with the id given.";
+    commandsFunction[14] = kill;
+    commandsName[15] = "nice";
+    commandsDesc[15] = "Changes the priority of the process with the id given to the new priority.";
+    commandsFunction[15] = nice;
+    commandsName[16] = "phylo";
+    commandsDesc[16] = "Starts the phylo process. You can add a filosopher with the a keyword and r to remove a filosopher.";
+    commandsFunction[16] = phylo;
 }
 
 static void clearLine(char *line){
@@ -288,7 +336,7 @@ static void refresh(){
     }
 }
 
-static void printRegisters() {
+static void printRegisters(int argsc, char* argsv[]) {
     char * regsName[17] = {"RIP", "RAX", "RBX", "RCX", "RDX", "RDI", "RSI", "RBP", "RSP", "R8 ", "R9", "R10", "R11", "R12", "R13", "R14", "R15"};
 
     uint64_t regsInfo[17]; 
@@ -308,7 +356,7 @@ static void printRegisters() {
 
 }
 
-static void increment(){
+static void increment(int argsc, char* argsv[]){
     if(fontSize < 5){
         _changeFont(++fontSize);
         refresh();
@@ -322,7 +370,7 @@ static void increment(){
     }
 }
 
-static void decrement(){
+static void decrement(int argsc, char* argsv[]){
     if(fontSize > 1){
         _changeFont(--fontSize);
         refresh();
@@ -336,28 +384,28 @@ static void decrement(){
     }
 }
 
-static void playTron(){
+static void playTron(int argsc, char* argsv[]){
     tron();
     _changeFont(fontSize);
     refresh();
 }
 
-static void divZero(){
+static void divZero(int argsc, char* argsv[]){
     printf("About to cause an exception...\n");
     _sleep(1500);
     runDivzero();
 }
 
-static void invalidOpCode(){
+static void invalidOpCode(int argsc, char* argsv[]){
     printf("About to cause an exception...\n");
     _sleep(1500);
     runInvalidOpcode();
 }
 
-static void memoryDump(){
+static void memoryDump(int argsc, char* argsv[]){
     uint8_t dump[32];
-    char *argument = getArguments();
     unsigned long direction = 0;
+    /*
     if(*argument == 0 || !isHex(argument)){
         char *argErr = "You need to specify a memory direction in hex format.";
         stringCopy(lines[lineCount++ % BUFFER_MAX_LENGTH], BUFFER_MAX_LENGTH, argErr);
@@ -370,7 +418,7 @@ static void memoryDump(){
     else{
         direction = stringHexToNum(argument);
     }
-
+*/
 
     _memoryDump((uint64_t *)direction, dump);
     clearLine(lines[lineCount % MAX_LINES]);
@@ -403,4 +451,23 @@ static void pageFault(){
     printf("About to cause an exception...");
     _sleep(1500);
     runPageFault();
+}
+
+static void sleep(int argsc, char* argsv[]) {
+    unsigned long millis = 0;
+    if(*lastArguments == 0)
+        millis = 2000;
+    else if(*lastArguments == '0' && *(lastArguments + 1) == 0)
+        millis = 0;
+    else{
+        millis = stringToNum(*lastArguments);
+        if(millis == 0){
+            char *argErr = "You can enter only one number.";
+            stringCopy(lines[lineCount++ % BUFFER_MAX_LENGTH], BUFFER_MAX_LENGTH, argErr);
+            printString(argErr);
+            putChar('\n');
+            return;
+        }
+    }
+    _sleep(millis);
 }
