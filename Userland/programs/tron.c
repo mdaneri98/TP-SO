@@ -1,6 +1,6 @@
 #include <tron.h>
 #include <syscalls.h>
-#include <terminal.h>
+#include <sh.h>
 #include <player.h>
 
 #define DOT  0x000001

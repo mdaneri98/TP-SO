@@ -19,7 +19,7 @@
 #include <sync.h>
 
 
-#define TOTAL_SYSCALLS 26
+#define TOTAL_SYSCALLS 30
 #define AUX_BUFF_DIM 512
 
 #define ERROR -1

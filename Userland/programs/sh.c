@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <syscalls.h>
-#include <terminal.h>
 #include <tron.h>
 #include <lib.h>
+#include <sh.h>
 
 #include <ps.h>
 #include <kill.h>
@@ -60,7 +60,7 @@ static void invalidOpCode(int argsc, char* argsv[]);
 static void memoryDump(int argsc, char* argsv[]);
 static void refresh();
 static void clearLines();
-static void clearLine(char *line);
+void clearLine(char *line);
 static int getArguments(int idx, char* lastCommand);
 static void pageFault();
 
@@ -309,7 +309,7 @@ static void loadCommands() {
     commandsFunction[16] = phylo;
 }
 
-static void clearLine(char *line){
+void clearLine(char *line){
     for(int i=0; i<BUFFER_MAX_LENGTH ;line[i++] = 0);
 }
 
@@ -470,4 +470,17 @@ static void sleep(int argsc, char* argsv[]) {
         }
     }
     _sleep(millis);
+}
+
+char **getShLines(){
+    return lines;
+}
+unsigned int *getShLinecount(){
+    return &lineCount;
+}
+char **getCommandsNames(){
+    return commandsName;
+}
+char **getCommandsDesc(){
+    return commandsDesc;
 }

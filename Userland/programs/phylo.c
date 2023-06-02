@@ -3,7 +3,6 @@
 #include <phylo.h>
 #include <filosopher.h>
 #include <string.h>
-#include <terminal.h>
 
 #define BUFFER_MAX_LENGTH 250
 

@@ -1,9 +1,9 @@
 /* _loader.c */
 #include <stdint.h>
-#include <terminal.h>
 #include <string.h>
 #include <syscalls.h>
 #include <stdio.h>
+#include <sh.h>
 
 extern char bss;
 extern char endOfBinary;
@@ -27,7 +27,7 @@ void _start(processFunc process, int argc, char *argv[]) {
 }
 
 static void init(){
-	startTerminal();
+	sh(0, NULL);
 }
 static void idle(){
 	while(1){
