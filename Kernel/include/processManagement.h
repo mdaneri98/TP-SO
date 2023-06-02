@@ -39,7 +39,7 @@ typedef struct ProcessControlBlockCDT {
     // Variables neccesary for computing priority scheduling
     uint8_t quantums;
     uint64_t agingInterval;
-    uint64_t currentInterval;
+    uint64_t counterInit;
 
     // All related to process hierarchy
     uint32_t parentId;

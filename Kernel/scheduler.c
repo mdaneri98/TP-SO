@@ -62,8 +62,8 @@ PCBNodeCDT *idle = NULL;
 queue_t *multipleQueues[] = {&level0Queue, &level1Queue, &level2Queue, 
                                 &level3Queue, &level4Queue, &level5Queue, &blockedList};
 
-// CPU speed in MHz
-uint32_t cpuSpeed;
+// Processor's Time Stamp Counter Frequency
+uint64_t TSCFrequency;
 
 void *scheduler(void *rsp) {
     // When the system starts up, the current field is always NULL
@@ -75,9 +75,12 @@ void *scheduler(void *rsp) {
 
     // Backup of the caller stack
     current->pcbEntry.stack = rsp;
-    uint64_t cicles = readTimeStampCounter();
+    uint64_t counterFinish = readTimeStampCounter();
     current->pcbEntry.agingInterval /= 2;
-    current->pcbEntry.agingInterval += (cicles - current->pcbEntry.currentInterval)/cpuSpeed;
+
+    // We check if it reached the value overflow
+    uint64_t newInterval = (counterFinish - current->pcbEntry.counterInit)/TSCFrequency;
+    current->pcbEntry.agingInterval += newInterval;
 
     checkBlocked();
     checkExited();
@@ -90,7 +93,7 @@ void *scheduler(void *rsp) {
     if(current->pcbEntry.quantums < 1 || current->pcbEntry.state == BLOCKED){
         next();
     }
-    current->pcbEntry.currentInterval = readTimeStampCounter()/cpuSpeed;
+    current->pcbEntry.counterInit = readTimeStampCounter();
 
     return current->pcbEntry.stack;
 }
@@ -178,7 +181,7 @@ void createInit() {
     initNode->pcbEntry.id = INIT_ID;
     initNode->pcbEntry.foreground = 1;
     initNode->pcbEntry.state = READY;
-    initNode->pcbEntry.currentInterval = 0;
+    initNode->pcbEntry.counterInit = 0;
     initNode->pcbEntry.agingInterval = 0;
     initNode->pcbEntry.quantums = 1;
     initNode->pcbEntry.priority = 0;
@@ -191,16 +194,21 @@ void createInit() {
     idleNode->pcbEntry.id=IDLE_ID;
     idleNode->pcbEntry.foreground = 1;
     idleNode->pcbEntry.state = READY;
-    idleNode->pcbEntry.currentInterval = 0;
+    idleNode->pcbEntry.counterInit = 0;
     idleNode->pcbEntry.agingInterval = 0;
     idleNode->pcbEntry.quantums = 1;
     idle = idleNode;
     
     current = NULL;
-    
-    cpuSpeed = (uint32_t) getCPUSpeed();
-    // We pass the CPU speed from MHz to KHz (it makes the calculus of intervals in ms easier)
-    cpuSpeed *= 1000;
+
+    // getCPULevel();
+
+    uint64_t CPUCristalClockSpeed = getCPUCristalSpeed();
+    uint64_t CPUTSCNumerator = getTSCNumerator();
+    uint64_t CPUTSCDenominator = getTSCDenominator();
+
+    // Check the 0x15 CPUID documentation for more info about this calculation
+    TSCFrequency = (CPUCristalClockSpeed*CPUTSCNumerator)/CPUTSCDenominator;
 }
 
 /*
@@ -231,6 +239,7 @@ static void next(){
     // If the last node isn't READY, we set the idle
     if (current == NULL) {
         current = idle;
+        current->pcbEntry.agingInterval = 0;
         current->pcbEntry.quantums = 1;
         current->pcbEntry.state = RUNNING;
         return;
@@ -383,7 +392,7 @@ int sysFork(void *currentProcessStack){
 
     newNode->pcbEntry.quantums = currentNode->pcbEntry.quantums;
     newNode->pcbEntry.agingInterval = currentNode->pcbEntry.agingInterval;
-    newNode->pcbEntry.currentInterval = currentNode->pcbEntry.currentInterval;
+    newNode->pcbEntry.counterInit = currentNode->pcbEntry.counterInit;
 
     for(int i=0; i<PD_SIZE ;i++){
         IPCBuffer *iBuffer = currentNode->pcbEntry.pdTable[i];
@@ -429,7 +438,7 @@ int sysExecve(processFunc process, int argc, char **argv, void *rsp){
     if(setProcess(process, argc, argv, rsp) == -1){
         return -1;
     }
-    currentProcess->currentInterval = 0;
+    currentProcess->counterInit = 0;
     currentProcess->agingInterval = 0;
     currentProcess->priority = 0;
     currentProcess->quantums = 1;

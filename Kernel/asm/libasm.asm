@@ -1,5 +1,8 @@
 GLOBAL cpuVendor
-GLOBAL getCPUSpeed
+GLOBAL getCPUCristalSpeed
+GLOBAL getTSCNumerator
+GLOBAL getTSCDenominator
+GLOBAL getCPULevel
 GLOBAL readTimeStampCounter
 GLOBAL _hours
 GLOBAL _seconds
@@ -98,13 +101,99 @@ _playSound:
 	pop rbp
 	ret
 
-getCPUSpeed:
+;-------------------------------------------------------------------------------------------------------------------|
+; getCPUCristalSpeed: Uses the cpuid instruction to get the CPU Cristal Clock Speed, needed to calculate the TSC	|
+;					frequency																						|
+; returns: CPU Cristal Speed (uint64_t)																				|
+;-------------------------------------------------------------------------------------------------------------------|
+getCPUCristalSpeed:
 	push rbp
 	mov rbp, rsp
+	push rbx
+	push rcx
+	push rdx
+
+; This instructions should enable the level 0x15 of the cpuid instruction
+	xor rax, rax
+	xor rbx, rbx
+	xor rcx, rcx
+	mov ecx, MISC_ENABLE
+	rdmsr
+	mov ecx, MISC_ENABLE_MASK
+	and eax, ecx
+	mov ecx, MISC_ENABLE
+	wrmsr
+
 
 	xor rax, rax
-	mov ax, WORD [0x0000000000005A00 + 256] ; CPU Speed location - Source: Sysvar.asm on Bootloader/Pure64/src
+	xor rbx, rbx
+	xor rcx, rcx
+	xor rdx, rdx
 
+	mov eax, 0x15
+	cpuid			; Result stored in ECX
+	
+	xor rax, rax
+	mov rax, rcx
+
+	pop rdx
+	pop rcx
+	pop rdx
+	mov rsp, rbp
+	pop rbp
+	ret
+
+;-------------------------------------------------------------------------------------------------------------------|
+; getTSCNumerator: Uses the cpuid instruction to get the TSC numerator, needed to calculate the TSC frequency		|
+; returns: Time Stamp Counter Numerator (uint64_t)																	|
+;-------------------------------------------------------------------------------------------------------------------|
+getTSCNumerator:
+	push rbp
+	mov rbp, rsp
+	push rbx
+	push rcx
+	push rdx
+
+	xor rax, rax
+	xor rbx, rbx
+	xor rcx, rcx
+	xor rdx, rdx
+
+	mov eax, 0x15
+	cpuid			; Result stored in EBX
+
+	xor rax, rax
+	mov rax, rbx
+
+	pop rdx
+	pop rcx
+	pop rdx
+	mov rsp, rbp
+	pop rbp
+	ret
+
+;-------------------------------------------------------------------------------------------------------------------|
+; getTSCDenominator: Uses the cpuid instruction to get the TSC denominator, needed to calculate the TSC frequency	|
+; returns: Time Stamp Counter Denominator (uint64_t)																|
+;-------------------------------------------------------------------------------------------------------------------|
+getTSCDenominator:
+	push rbp
+	mov rbp, rsp
+	push rbx
+	push rcx
+	push rdx
+
+	xor rax, rax
+	xor rbx, rbx
+	xor rcx, rcx
+	xor rdx, rdx
+
+	mov eax, 0x15
+	cpuid			; Result already stored in EAX/RAX
+
+	pop rdx
+	pop rcx
+	pop rdx
 	mov rsp, rbp
 	pop rbp
 	ret
@@ -113,18 +202,45 @@ readTimeStampCounter:
 	push rbp
 	mov rbp, rsp
 	push rdx
+	push rcx
 
 	xor rax, rax
 	xor rdx, rdx
 
 	rdtsc				; We read te Time-Stamp counter	- Leaves the result in EDX:EAX
 
-	and rdx, QWORD 0xFFFFFFFF00000000	; We override the useless data in the low order bits
-	and rax, QWORD 0x00000000FFFFFFFF ; We do the same thing with the high order bits
+	xor rcx, rcx
+	mov rcx, higherMask
+	and rdx, rcx		; We override the useless data in the low order bits
 	
+	xor rcx, rcx
+	mov rcx, lowerMask
+	and rax, rcx		; We do the same thing with the high order bits
+
 	or rax, rdx			; We put the entire 64-bit number on the return-value register rax
 
+	pop rcx
 	pop rdx
 	mov rsp, rbp
 	pop rbp
 	ret
+
+getCPULevel:
+	push rbp
+	mov rbp, rsp
+
+	xor rax, rax
+	xor rdx, rdx
+	mov rax, 0x0
+	cpuid
+
+	mov rsp, rbp
+	pop rbp
+	ret
+
+section .data
+	lowerMask equ 0x00000000FFFFFFFF
+	higherMask equ 0xFFFFFFFF00000000
+
+	MISC_ENABLE equ 0x1A0				; Memory Location of the LCMV bit, needed to compute the TSC frequency
+	MISC_ENABLE_MASK equ 0xFFBFFFFF		; Mask that we are going to use to enable the 0x15 cpuid level
