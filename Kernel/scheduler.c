@@ -345,6 +345,7 @@ char exists(uint32_t pid) {
             if(aux->pcbEntry.id == pid){
                 return TRUE;
             }
+            aux = aux->next;
         }
     }
     return FALSE;
@@ -385,6 +386,15 @@ int sysFork(void *currentProcessStack){
     newNode->pcbEntry.currentInterval = currentNode->pcbEntry.currentInterval;
 
     for(int i=0; i<PD_SIZE ;i++){
+        IPCBuffer *iBuffer = currentNode->pcbEntry.pdTable[i];
+        if(iBuffer != NULL){
+            for(int j=0; j<PD_SIZE ;j++){
+                if(iBuffer->references[j] == NULL){
+                    iBuffer->references[j] = &newNode->pcbEntry;
+                    break;
+                }
+            }
+        }
         newNode->pcbEntry.pdTable[i] = currentNode->pcbEntry.pdTable[i];
         newNode->pcbEntry.readBuffer.references[i] = currentNode->pcbEntry.readBuffer.references[i];
         newNode->pcbEntry.writeBuffer.references[i] = currentNode->pcbEntry.writeBuffer.references[i];

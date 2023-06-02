@@ -391,8 +391,6 @@ static void playTron(int argsc, char* argsv[]){
 }
 
 static void divZero(int argsc, char* argsv[]){
-    printf("About to cause an exception...\n");
-    _sleep(1500);
     runDivzero();
 }
 

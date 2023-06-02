@@ -1,6 +1,3 @@
-#ifndef BUFFER_MANAGMENT_H
-#define BUFFER_MANAGMENT_H
-
 #include <bufferManagement.h>
 
 IPCBuffer stdin;
@@ -9,7 +6,7 @@ IPCBuffer stderr;
 
 uint64_t writeOnBuffer(IPCBuffer * wEnd, char * dataToWrite, uint64_t count){
     //solo me copia lo que entra en el buffer de write
-    if(wEnd->status == WRITE || wEnd->status == READ_WRITE ){
+    if(wEnd->status == WRITE || wEnd->status == READ_WRITE){
         uint64_t wIndex;
         uint64_t bytesWritten = 0;
         while(wEnd->bufferDim < PD_BUFF_SIZE && bytesWritten < count){
@@ -18,7 +15,7 @@ uint64_t writeOnBuffer(IPCBuffer * wEnd, char * dataToWrite, uint64_t count){
             wEnd->bufferDim++;
         }
         return bytesWritten;
-    } else {
+    } else{
         return 0;
     }
 }
@@ -40,5 +37,3 @@ IPCBuffer *getSTDOUT(){
 IPCBuffer *getSTDERR(){
     return &stderr;
 }
-
-#endif /*BUFFER_MANAGMENT_H*/
