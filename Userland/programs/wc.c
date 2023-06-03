@@ -5,21 +5,22 @@
 #include <cat.h> //actualizar include path
 
 #define COUNT_BUFF_SIZE 12
-char c;
+char i;
 int count;
-char * countString[COUNT_BUFF_SIZE];
+char countString[COUNT_BUFF_SIZE];
 
 
 int wc(int argsc, char* argsv[]) {
     //recibe por stdin o por un buffer
     if (argsc <= 1) {
         count = 0;
-        while((c = getChar()) != -1){
-            if(c == '\n'){
+        while((i = getChar()) != -1){
+            if(i == '\n'){
                 count++;
             }
         }
-        putChar(numToString(count, countString, COUNT_BUFF_SIZE));
+        numToString(count, countString, COUNT_BUFF_SIZE);
+        printString(countString);
     } 
     /*else {
         
