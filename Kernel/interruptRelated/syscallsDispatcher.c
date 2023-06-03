@@ -1,9 +1,5 @@
 #include <stdint.h>
 #include <video.h>
-
-/* Los prototipos de los syscalls internos deben estar en el .c así no se tiene acceso desde afuera. */
-// #include <kernelSyscalls.h>
-
 #include <keyboard.h>
 #include <string.h>
 #include <time.h>
@@ -111,8 +107,10 @@ void setSyscalls(){
 }
 
 uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t rcx, uint64_t r8, uint64_t r9, uint64_t rsp) {    
-    uint64_t toReturn = syscalls[rax](rdi, rsi, rdx, rcx, r8, r9, rsp);
-    return toReturn;
+    if(rax < TOTAL_SYSCALLS){
+        return syscalls[rax](rdi, rsi, rdx, rcx, r8, r9, rsp);
+    }
+    return -1;
 }
 
 /**

@@ -5,7 +5,6 @@
 #include <scheduler.h>
 #include <interrupts.h>
 #include <memoryManager.h>
-#include <exceptions.h>
 #include <syscallsDispatcher.h>
 
 #define USERLAND_STACK 0x800000
@@ -62,7 +61,6 @@ int main(){
 	createMemoryManager(USERLAND_STACK, getUserSpaceStackBase() - USERLAND_STACK);
 
 	setSyscalls();
-  	setExceptions();
 
 	createInit();
 
