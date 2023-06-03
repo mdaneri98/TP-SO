@@ -5,7 +5,7 @@ void addKey(uint8_t alKey);     // IRQ-0 HANDLER
 
 char gameRead();
 void resetBuffer();
-char readBuffer();
+char readKeyboardBuffer();
 char getScanCode(char c);
 int toBuff(char c, unsigned char k);
 

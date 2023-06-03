@@ -2,7 +2,6 @@ GLOBAL cpuVendor
 GLOBAL getCPUCristalSpeed
 GLOBAL getTSCNumerator
 GLOBAL getTSCDenominator
-GLOBAL getCPULevel
 GLOBAL readTimeStampCounter
 GLOBAL _hours
 GLOBAL _seconds
@@ -103,7 +102,7 @@ _playSound:
 
 ;-------------------------------------------------------------------------------------------------------------------|
 ; getCPUCristalSpeed: Uses the cpuid instruction to get the CPU Cristal Clock Speed, needed to calculate the TSC	|
-;					frequency																						|
+;					frequency. First it enables the 0x15 level of cpuid, just in case it's not allowed by the system|
 ; returns: CPU Cristal Speed (uint64_t)																				|
 ;-------------------------------------------------------------------------------------------------------------------|
 getCPUCristalSpeed:
@@ -221,19 +220,6 @@ readTimeStampCounter:
 
 	pop rcx
 	pop rdx
-	mov rsp, rbp
-	pop rbp
-	ret
-
-getCPULevel:
-	push rbp
-	mov rbp, rsp
-
-	xor rax, rax
-	xor rdx, rdx
-	mov rax, 0x0
-	cpuid
-
 	mov rsp, rbp
 	pop rbp
 	ret

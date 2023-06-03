@@ -2,15 +2,15 @@
 #define PIPE_H
 
 #include <stdint.h>
-#include <string.h>
-
-#include <processManagement.h> //struct IPCBuffer, BufferState, ProcessState
+#include <scheduler.h>
+#include <bufferManagement.h>
 
 #define ERROR -1;
 
 /*Prototipes*/
-uint64_t pipe(ProcessControlBlockADT process);
-uint64_t readPipe(IPCBuffer * rEnd, uint64_t count, char * writeBuff);
-void actualizeReadBuff(IPCBuffer * wEnd);
+int openPipe(ProcessControlBlockADT process, int pipeFds[2]);
+void closePipe(IPCBufferADT bufferEnd);
+uint64_t readPipe(IPCBufferADT rEnd, char *writeBuff, uint64_t count);
+uint64_t writePipe(IPCBufferADT wEnd, char *dataToRead, uint64_t count);
 
 #endif /*PIPE_H*/

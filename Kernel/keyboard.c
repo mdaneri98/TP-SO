@@ -167,20 +167,16 @@ static int isCapslock(int index){
 }
 
 int toBuff(char c, unsigned char k){
-    IPCBuffer *stdin = getSTDIN();
-    uint32_t bufferDim = stdin->bufferDim;
-    stdin->buffer[stdin->bufferDim++] = c;
+    IPCBufferADT stdin = getSTDIN();
+    uint32_t bufferDim = getBufferDim(stdin);
+    copyToBuffer(stdin, &c, 1);
     if(bufferDim == 0){
-        for(int i=0; i<PD_SIZE ;i++){
-            if(stdin->references[i] != NULL){
-                setProcessState(stdin->references[i], READY);
-            }
-        }
+        setBufferReferencesReady(stdin);
     }
     return 1;
 }
 
-char readBuffer(){
+char readKeyboardBuffer(){
     if (isBuffEmpty())
     {
         return -1;

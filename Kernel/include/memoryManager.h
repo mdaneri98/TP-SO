@@ -9,21 +9,25 @@ void createMemoryManager(void *const restrict init, uint64_t size);
 
 void *allocMemory(const uint64_t memoryToAllocate);
 
-void *reAllocMemory(void *const memoryToRealloc, uint64_t newSize);
+void *reAllocMemory(void const *memoryToRealloc, uint64_t newSize);
 
 void *allocPCB();
 
 void *allocSemaphore();
 
-void freeMemory(void *const memoryToFree);
+void *allocBuffer();
 
-void freePCB(void *const blockToFree);
+void freeMemory(void const *memoryToFree);
 
-void freeSemaphore(void *const semToFree);
+void freePCB(void const *blockToFree);
+
+void freeSemaphore(void const *semToFree);
+
+void freeBuffer(void const *bufferToFree);
 
 uint64_t getPowerOfTwo(uint64_t number);
 
-void copyBlocks(void *const target, void *const source);
+void copyBlocks(void const *target, void const *source);
 
 uint64_t getFreeMemoryAmount();
 

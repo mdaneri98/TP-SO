@@ -1,6 +1,5 @@
 #include <memoryManager.h>
 #include <process.h>
-#include <processManagement.h>
 #include <scheduler.h>
 #include <interrupts.h>
 #include <keyboard.h>
@@ -9,6 +8,7 @@
 #include <lib.h>
 #include <video.h>
 #include <ps.h>
+#include <pipe.h>
 
 #define DEFAULT_PROCESS_STACK_SIZE 0x2000
 #define QUANTUM_SIZE 55
@@ -18,6 +18,30 @@
 
 #define TRUE 1
 #define FALSE 0
+
+typedef struct ProcessControlBlockCDT {
+    uint32_t id;
+    char foreground;
+    ProcessState state;
+    uint8_t priority;
+
+    // Variables neccesary for computing priority scheduling
+    uint8_t quantums;
+    uint64_t agingInterval;
+    uint64_t counterInit;
+
+    // All related to process hierarchy
+    uint32_t parentId;
+    uint32_t childsIds[PD_SIZE];
+
+    // All the information necessary for running the stack of the process
+    void *stack;
+    void *baseStack;
+    uint64_t stackSize;
+    void *memoryFromMM;
+
+    IPCBufferADT pdTable[PD_SIZE];
+} ProcessControlBlockCDT;
 
 /* Structures */
 typedef struct pcb_node {
@@ -40,7 +64,7 @@ static void insertInQueue(PCBNodeCDT *node);
 static void insertInBlockedQueue(PCBNodeCDT *node);
 static void checkChilds(ProcessControlBlockADT pcbEntry);
 static void setParentReady(ProcessControlBlockADT pcbEntry);
-static void removeReferences(IPCBuffer *pdBuff, uint32_t pid);
+static void removeReferences(IPCBufferADT pdBuff, uint32_t pid);
 static void checkBlocked();
 static void checkExited();
 static void next();
@@ -157,16 +181,22 @@ void createInit() {
     idleNode->previous = NULL;
     idleNode->next = NULL;
 
-    initNode->pcbEntry.pdTable[0] = getSTDIN();
-    initNode->pcbEntry.pdTable[0]->references[0] = &initNode->pcbEntry;
+    initStandardBuffers();
+
+    IPCBufferADT stdin = getSTDIN();
+    IPCBufferADT stdout = getSTDOUT();
+    IPCBufferADT stderr = getSTDERR();
+
+    initNode->pcbEntry.pdTable[0] = stdin;
+    setReferenceByIndex(initNode->pcbEntry.pdTable[0], &initNode->pcbEntry, 0);
     initNode->pcbEntry.childsIds[0] = 0;
 
-    initNode->pcbEntry.pdTable[1] = getSTDOUT();
-    initNode->pcbEntry.pdTable[1]->references[0] = &initNode->pcbEntry;
+    initNode->pcbEntry.pdTable[1] = stdout;
+    setReferenceByIndex(initNode->pcbEntry.pdTable[1], &initNode->pcbEntry, 1);
     initNode->pcbEntry.childsIds[1] = 0;
 
-    initNode->pcbEntry.pdTable[2] = getSTDERR();
-    initNode->pcbEntry.pdTable[2]->references[0] = &initNode->pcbEntry;
+    initNode->pcbEntry.pdTable[2] = stderr;
+    setReferenceByIndex(initNode->pcbEntry.pdTable[2], &initNode->pcbEntry, 2);
     initNode->pcbEntry.childsIds[2] = 0;
     initNode->pcbEntry.parentId = 0;
     
@@ -201,13 +231,11 @@ void createInit() {
     
     current = NULL;
 
-    // getCPULevel();
-
     uint64_t CPUCristalClockSpeed = getCPUCristalSpeed();
     uint64_t CPUTSCNumerator = getTSCNumerator();
     uint64_t CPUTSCDenominator = getTSCDenominator();
 
-    // Check the 0x15 CPUID documentation for more info about this calculation
+    // Check this 0x15 CPUID documentation https://sandpile.org/x86/cpuid.htm for more info about this calculation
     TSCFrequency = (CPUCristalClockSpeed*CPUTSCNumerator)/CPUTSCDenominator;
 }
 
@@ -315,10 +343,12 @@ static void closePDs(uint32_t pid){
         if(node->pcbEntry.id == pid){
             continue;
         }
+        IPCBufferADT aux;
         for(int i=0; i<PD_SIZE ;i++){
-            if(node->pcbEntry.pdTable[i] != NULL && node->pcbEntry.pdTable[i]->buffId == pid){
-                removeReferences(node->pcbEntry.pdTable[i], pid);
+            aux = node->pcbEntry.pdTable[i];
+            if(aux != NULL){
                 node->pcbEntry.pdTable[i] = NULL;
+                removeReferences(node, pid);
             }
         }
         node = node->next;
@@ -395,23 +425,18 @@ int sysFork(void *currentProcessStack){
     newNode->pcbEntry.counterInit = currentNode->pcbEntry.counterInit;
 
     for(int i=0; i<PD_SIZE ;i++){
-        IPCBuffer *iBuffer = currentNode->pcbEntry.pdTable[i];
+        IPCBufferADT iBuffer = currentNode->pcbEntry.pdTable[i];
         if(iBuffer != NULL){
+            ProcessControlBlockADT aux;
             for(int j=0; j<PD_SIZE ;j++){
-                if(iBuffer->references[j] == NULL){
-                    iBuffer->references[j] = &newNode->pcbEntry;
+                aux = getReferenceByIndex(iBuffer, j);
+                if(aux == NULL){
+                    setReferenceByIndex(iBuffer, &newNode->pcbEntry, j);
                     break;
                 }
             }
         }
         newNode->pcbEntry.pdTable[i] = currentNode->pcbEntry.pdTable[i];
-        newNode->pcbEntry.readBuffer.references[i] = currentNode->pcbEntry.readBuffer.references[i];
-        newNode->pcbEntry.writeBuffer.references[i] = currentNode->pcbEntry.writeBuffer.references[i];
-    }
-    
-    for(int i=0; i<PD_BUFF_SIZE ;i++){
-        newNode->pcbEntry.writeBuffer.buffer[i] = currentNode->pcbEntry.writeBuffer.buffer[i];
-        newNode->pcbEntry.readBuffer.buffer[i] = currentNode->pcbEntry.readBuffer.buffer[i];
     }
 
     // Should be other id
@@ -421,9 +446,6 @@ int sysFork(void *currentProcessStack){
     int i=0;
     while(currentNode->pcbEntry.childsIds[i++] != 0);
     currentNode->pcbEntry.childsIds[i] = newNode->pcbEntry.id;
-
-    newNode->pcbEntry.writeBuffer.buffId = newNode->pcbEntry.id;
-    newNode->pcbEntry.readBuffer.buffId = newNode->pcbEntry.id;
 
     insertInQueue(newNode);
 
@@ -442,11 +464,6 @@ int sysExecve(processFunc process, int argc, char **argv, void *rsp){
     currentProcess->agingInterval = 0;
     currentProcess->priority = 0;
     currentProcess->quantums = 1;
-    for(int i=0; i<PD_BUFF_SIZE ;i++){
-        currentProcess->readBuffer.buffer[i] = '\0';
-        currentProcess->writeBuffer.buffer[i] = '\0';
-    }
-
     return 1;
 }
 
@@ -591,9 +608,13 @@ static void checkChilds(ProcessControlBlockADT pcbEntry){
     }
 }
 
-static void removeReferences(IPCBuffer *pdBuff, uint32_t pid){
+static void removeReferences(IPCBufferADT pdBuffer, uint32_t pid){
+    ProcessControlBlockADT current;
     for(int i=0; i<PD_SIZE ;i++){
-        pdBuff->references[i] = pdBuff->references[i] == pid ? 0 : pdBuff->references[i];
+        current = getReferenceByIndex(pdBuffer, i);
+        if(current != NULL && current->id == pid){
+            setReferenceByIndex(pdBuffer, NULL, i);
+        }
     }
 }
 
@@ -641,7 +662,7 @@ ProcessControlBlockADT getCurrentProcessEntry(){
     return &current->pcbEntry;
 }
 
-IPCBuffer *getPDEntry(ProcessControlBlockADT entry, uint32_t pd){
+IPCBufferADT getPDEntry(ProcessControlBlockADT entry, uint32_t pd){
     return entry->pdTable[pd];
 }
 
@@ -655,4 +676,12 @@ int setProcessState(ProcessControlBlockADT process, ProcessState state){
 
 uint64_t getPCBNodeSize(){
     return sizeof(PCBNodeCDT);
+}
+
+void removeFromPDs(ProcessControlBlockADT process, IPCBufferADT buffToRemove){
+    for(int i=0; i < PD_SIZE ;i++){
+        if(process->pdTable[i] == buffToRemove){
+            process->pdTable[i] = NULL;
+        }
+    }
 }

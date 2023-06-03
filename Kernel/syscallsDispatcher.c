@@ -19,7 +19,7 @@
 #include <sync.h>
 
 
-#define TOTAL_SYSCALLS 30
+#define TOTAL_SYSCALLS 32
 #define AUX_BUFF_DIM 512
 
 #define ERROR -1
@@ -53,10 +53,13 @@ static uint64_t arqSysPs(uint64_t processes, uint64_t nil2, uint64_t nil3, uint6
 static uint64_t arqSysPriority(uint64_t pid, uint64_t newPriority, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 static uint64_t arqSysChangeState(uint64_t pid, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 
-static uint64_t arqSysSemOpen(uint64_t sem_id, uint64_t initialValue, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
-static uint64_t arqSysSemPost(uint64_t sem_id, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
-static uint64_t arqSysSemWait(uint64_t sem_id, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
-static uint64_t arqSysSemClose(uint64_t sem_id, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+static uint64_t arqSysSemOpen(uint64_t sem_id, uint64_t initialValue, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5);
+static uint64_t arqSysSemPost(uint64_t sem_id, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
+static uint64_t arqSysSemWait(uint64_t sem_id, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
+static uint64_t arqSysSemClose(uint64_t sem_id, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
+
+static uint64_t arqSysPipe(uint64_t pipePds, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
+static uint64_t arqSysClosePd(uint64_t pd, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
 
 static uint64_t arqSysIdle(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
@@ -66,10 +69,6 @@ typedef uint64_t (*SyscallVec)(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_
 
 // SYSCALLS ARRAY
 static SyscallVec syscalls[TOTAL_SYSCALLS];
-
-IPCBuffer *stdinP;
-IPCBuffer *stdoutP;
-IPCBuffer *stderrP;
 
 // EVERY NEW SYSCALL MUST BE LOADED IN THIS ARRAY
 void setSyscalls(){
@@ -107,40 +106,8 @@ void setSyscalls(){
     syscalls[28] = (SyscallVec) arqSysSemWait;
     syscalls[29] = (SyscallVec) arqSysSemClose;
 
-
-    /* Pipes */
-    stdinP = getSTDIN();
-    stdoutP = getSTDOUT();
-    stderrP = getSTDERR();
-
-    for(int i=0; i<512; i++){
-        stdinP->buffer[i] = '\0';
-        stdoutP->buffer[i] = '\0';
-        stderrP->buffer[i] = '\0';
-    }
-    for(int i=0; i<PD_SIZE ;i++){
-        stdinP->references[i] = NULL;
-        stdoutP->references[i] = NULL;
-        stderrP->references[i] = NULL;
-    }
-    // We set the "pd" to the STDIN-STDOUT-STDERR entries
-    stdinP->status = READ;
-    stdinP->bufferDim = 0;
-    stdinP->buffId = STDIN;
-    stdinP->buffStart = 0;
-    stdinP->opositeEnd = NULL;
-
-    stdoutP->status = WRITE;
-    stdoutP->bufferDim = 0;
-    stdoutP->buffId = STDOUT;
-    stdoutP->buffStart = 0;
-    stdoutP->opositeEnd = NULL;
-    
-    stderrP->status = WRITE;
-    stderrP->bufferDim = 0;
-    stderrP->buffId = STDERR;
-    stderrP->buffStart = 0;
-    stderrP->opositeEnd = NULL;   
+    syscalls[30] = (SyscallVec) arqSysPipe;
+    syscalls[31] = (SyscallVec) arqSysClosePd;
 }
 
 uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t rcx, uint64_t r8, uint64_t r9, uint64_t rsp) {    
@@ -161,34 +128,25 @@ static uint64_t arqSysRead(uint64_t pd, uint64_t buff, uint64_t count, uint64_t 
     if(current == NULL){
         return 0;
     }
-    IPCBuffer *buffToRead = getPDEntry(current, pd);
-    if(buffToRead == NULL || buffToRead->status == CLOSED || buffToRead->status == WRITE){
+    IPCBufferADT buffToRead = getPDEntry(current, pd);
+    BufferState buffStatus = getBufferState(buffToRead);
+    if(buffToRead == NULL || buffStatus == CLOSED || buffStatus == WRITE){
         return 0;
     }
-    while(buffToRead->bufferDim == 0 && buffToRead->status != CLOSED){
+    while(getBufferDim(buffToRead) == 0 && getBufferState(buffToRead) != CLOSED){
         setProcessState(current, BLOCKED);
         int20h();
     }
-    if(buffToRead->status == CLOSED){
+    if(getBufferState(buffToRead) == CLOSED){
         return 0;
     }
+
     char *auxBuff = (char *) buff;
-    //FIXME: readBuffer general 
-    if(buffToRead->buffId == PIPE){
-        return readPipe(buffToRead,count, auxBuff);
-    } else {
-        int bytesRead = 0;
-        char c;
-        while( bytesRead < count && buffToRead->bufferDim > 0){
-        c = buffToRead->buffer[bytesRead];
-        buffToRead->bufferDim--;
-        auxBuff[bytesRead++] = c;
-        }
-        for(int j=bytesRead, k=0; j<PD_BUFF_SIZE; j++, k++){
-            buffToRead->buffer[k] = buffToRead->buffer[j];
-        }
-        return bytesRead;
+    
+    if(getBufferId(buffToRead) == PIPE){
+        return readPipe(buffToRead, auxBuff, count);
     }
+    return readBuffer(buffToRead, auxBuff, count);
 }
 
 static uint64_t arqSysWrite(uint64_t pd, uint64_t buff, uint64_t count, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4) {
@@ -196,70 +154,37 @@ static uint64_t arqSysWrite(uint64_t pd, uint64_t buff, uint64_t count, uint64_t
     if(current == NULL){
         return 0;
     }
-    //Pendant: find a way to send the correct pd when writing on a pipe 
-    IPCBuffer *buffToWrite = getPDEntry(current, pd);
-    if(buffToWrite == NULL || buffToWrite->status == CLOSED || buffToWrite->status == READ){
+    IPCBufferADT buffToWrite = getPDEntry(current, pd);
+    BufferState buffState = getBufferState(buffToWrite);
+    if(buffToWrite == NULL || buffState == CLOSED || buffState == READ){
         return 0;
     }
-    while(buffToWrite->bufferDim == PD_BUFF_SIZE && buffToWrite->status != CLOSED){
+    while(getBufferDim(buffToWrite) == BUFF_SIZE && getBufferState(buffToWrite) != CLOSED){
         setProcessState(current, BLOCKED);
         int20h();
     }
-    if(buffToWrite->status == CLOSED){
+    if(getBufferState(buffToWrite) == CLOSED){
         return 0;
     }
 
     char *auxBuff = (char *) buff;
-    int bytesWritten = writeOnBuffer(buffToWrite, auxBuff, count);
-    if(bytesWritten == 0){
-        return 0;
-    }
-    if(buffToWrite->buffId == STDOUT){
-        for(int i=0; i<bytesWritten ;i++){
-            scrPrintChar(buffToWrite->buffer[i]);
-            buffToWrite->buffer[i] = '\0';
-            //buffToWrite->buffStart = (buffToWrite->buffStart+1)%PD_BUFF_SIZE;
-            buffToWrite->bufferDim--;
+    uint64_t bytesWritten = 0;
+
+    if(getBufferId(buffToWrite) == STDOUT){
+        char c = auxBuff[0];
+        for(int i=0; i < count && bytesWritten < count ;i++){
+            scrPrintChar(auxBuff[i]);
         }
-    } else if(buffToWrite->buffId == STDERR){
+    } else if(getBufferId(buffToWrite) == STDERR){
         Color red = { 0x0 , 0x0, 0xFF };
-        for(int i=0; i<bytesWritten ;i++){
-            scrPrintCharWithColor(buffToWrite->buffer[i], red);
-            buffToWrite->buffer[i] = '\0';
-            //buffToWrite->buffStart = (buffToWrite->buffStart+1)%PD_BUFF_SIZE;
-            buffToWrite->bufferDim--;
+        for(int i=0; i < count && bytesWritten < count ;i++){
+            scrPrintCharWithColor(auxBuff[i], red);
         }
-    } else if(buffToWrite->buffId == PIPE){
-        actualizeReadBuff(buffToWrite);
+    } else{
+        bytesWritten = writePipe(buffToWrite, auxBuff, count);
     }
     
     return bytesWritten;
-    /* OLD
-   
-    int bytesWritten = 0;
-    char c;
-    while( bytesWritten < count && buffToWrite->bufferDim < PD_BUFF_SIZE - 1){
-        c = auxBuff[bytesWritten++];
-        buffToWrite->buffer[buffToWrite->bufferDim++] = c;
-    }
-    if(buffToWrite->buffId == STDOUT){
-        for(int i=0; i<bytesWritten ;i++){
-            scrPrintChar(buffToWrite->buffer[i]);
-            buffToWrite->buffer[i] = '\0';
-            buffToWrite->bufferDim--;
-        }
-    }
-    else if(buffToWrite->buffId == STDERR){
-        Color red = { 0x0 , 0x0, 0xFF };
-        for(int i=0; i<bytesWritten ;i++){
-            scrPrintCharWithColor(buffToWrite->buffer[i], red);
-            buffToWrite->buffer[i] = '\0';
-            buffToWrite->bufferDim--;
-        }
-    }
-    
-    return bytesWritten;
-    */
 }
 
 static uint64_t arqSysSemOpen(uint64_t sem_id, uint64_t initialValue, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
@@ -445,4 +370,19 @@ static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t
 static uint64_t arqSysExit(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
     setProcessState(getCurrentProcessEntry(), EXITED);
     int20h();
+}
+
+static uint64_t arqSysPipe(uint64_t pipePds, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
+    ProcessControlBlockADT currentProcess = getCurrentProcessEntry();
+    return openPipe(currentProcess, (int *)pipePds);
+}
+
+static uint64_t arqSysClosePd(uint64_t pd, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6){
+    ProcessControlBlockADT currentProcess = getCurrentProcessEntry();
+    IPCBufferADT toClose = getPDEntry(currentProcess, pd);
+    if(toClose != NULL && getBufferId(toClose) == PIPE){
+        closePipe(toClose);
+        return 0;
+    }
+    return -1;
 }
