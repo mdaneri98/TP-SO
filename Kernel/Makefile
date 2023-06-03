@@ -4,15 +4,22 @@ TARGET:=all
 
 KERNEL=kernel.bin
 SOURCES=$(wildcard *.c)
+
+SOURCES+=$(wildcard ./memoryManagement/*.c)
+SOURCES+=$(wildcard ./bufferManagement/*.c)
+SOURCES+=$(wildcard ./ipcRelated/*.c)
+SOURCES+=$(wildcard ./interruptRelated/*.c)
+SOURCES+=$(wildcard ./drivers/*.c)
+
 SOURCES_ASM=$(wildcard asm/*.asm)
 OBJECTS=$(SOURCES:.c=.o)
 OBJECTS_ASM=$(SOURCES_ASM:.asm=.o)
 LOADERSRC=loader.asm
 
 ifeq ($(TARGET), all)
-	EXCLUDED := buddyMemoryManager.c buddyMemoryManager.o
+	EXCLUDED := ./memoryManagement/buddyMemoryManager.c ./memoryManagement/buddyMemoryManager.o
 else ifeq ($(TARGET), buddy)
-	EXCLUDED := freeListMemoryManager.c freeListMemoryManager.o
+	EXCLUDED := ./memoryManagement/freeListMemoryManager.c ./memoryManagement/freeListMemoryManager.o
 endif
 
 SOURCES:=$(filter-out $(EXCLUDED), $(SOURCES))
