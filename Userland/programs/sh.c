@@ -11,10 +11,13 @@
 #include <block.h>
 #include <phylo.h>
 #include <nice.h>
+#include <cat.h>
+#include <filter.h>
+#include <wc.h>
 
 
 #define BUFFER_MAX_LENGTH 250
-#define CMDS_COUNT 17
+#define CMDS_COUNT 20
 #define MAX_ARGS_COUNT 5
 #define MAX_LINES 50
 
@@ -307,6 +310,15 @@ static void loadCommands() {
     commandsName[16] = "phylo";
     commandsDesc[16] = "Starts the phylo process. You can add a filosopher with the a keyword and r to remove a filosopher.";
     commandsFunction[16] = phylo;
+    commandsName[17] = "cat";
+    commandsDesc[17] = "Copies input to output";
+    commandsFunction[17] = cat;
+    commandsName[18] = "filter";
+    commandsDesc[18] = "Filters vocals from input";
+    commandsFunction[18] = filter;
+    commandsName[19] = "wc";
+    commandsDesc[19] = "Counts input lines";
+    commandsFunction[19] = wc;
 }
 
 void clearLine(char *line){
