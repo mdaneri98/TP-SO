@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <lib.h>
 #include <phylo.h>
 #include <filosopher.h>

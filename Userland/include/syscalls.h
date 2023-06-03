@@ -49,6 +49,11 @@ void _idle();
 void _wait();
 int _getPid();
 
+void *_sysMalloc(uint64_t size);
+void _sysFree(void *ptr);
+void *_sysRealloc(void *ptr, uint64_t size);
+
+
 uint64_t _sysSemDown(sem_t* sem);
 uint64_t _sysSemUp(sem_t* sem);
 sem_t* _sysSemOpen(char* name, int initial);

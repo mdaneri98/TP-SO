@@ -10,7 +10,7 @@
 #include <ps.h>
 #include <pipe.h>
 
-#define DEFAULT_PROCESS_STACK_SIZE 0x2000
+#define DEFAULT_PROCESS_STACK_SIZE 0x5000
 #define QUANTUM_SIZE 55
 
 #define INIT_ID 1

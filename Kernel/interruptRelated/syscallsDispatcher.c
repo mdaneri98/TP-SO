@@ -11,10 +11,11 @@
 #include <interrupts.h>
 #include <pipe.h>
 #include <bufferManagement.h>
+#include <memoryManager.h>
 #include <ps.h>
 #include <sync.h>
 
-#define TOTAL_SYSCALLS 38
+#define TOTAL_SYSCALLS 36
 #define AUX_BUFF_DIM 512
 
 #define ERROR -1
@@ -53,6 +54,10 @@ static uint64_t arqSysSemOpen(uint64_t sem_id, uint64_t initialValue, uint64_t n
 static uint64_t arqSysSemPost(uint64_t sem_id, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
 static uint64_t arqSysSemWait(uint64_t sem_id, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
 static uint64_t arqSysSemClose(uint64_t sem_id, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
+
+static uint64_t arqSysMalloc(uint64_t size, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+static uint64_t arqSysFree(uint64_t ptr, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+static uint64_t arqSysRealloc(uint64_t ptr, uint64_t size, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 
 static uint64_t arqSysPipe(uint64_t pipePds, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
 static uint64_t arqSysClosePd(uint64_t pd, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
@@ -106,7 +111,11 @@ void setSyscalls(){
     syscalls[31] = (SyscallVec) arqSysClosePd;
 
     //corregir cuando agreguen mas syscalls
-    syscalls[37] = (SyscallVec) arqSysGetPid;
+    syscalls[35] = (SyscallVec) arqSysGetPid;
+    syscalls[32] = (SyscallVec) arqSysMalloc;
+    syscalls[33] = (SyscallVec) arqSysFree;
+    syscalls[34] = (SyscallVec) arqSysRealloc;
+
 }
 
 uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t rcx, uint64_t r8, uint64_t r9, uint64_t rsp) {    
@@ -186,6 +195,25 @@ static uint64_t arqSysWrite(uint64_t pd, uint64_t buff, uint64_t count, uint64_t
     }
     
     return bytesWritten;
+}
+
+static uint64_t arqSysMalloc(uint64_t size, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
+    void* ptr = allocMemory(size);
+    return ptr;
+}
+
+static uint64_t arqSysFree(uint64_t ptr, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
+    if (ptr == NULL) 
+        return -1;
+    freeMemory((void*) ptr);
+    return 0;
+}
+
+static uint64_t arqSysRealloc(uint64_t ptr, uint64_t size, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
+    if (ptr == NULL)
+        return -1;
+    void *new = reAllocMemory((void*) ptr, size);
+    return new;
 }
 
 static uint64_t arqSysSemOpen(uint64_t sem_id, uint64_t initialValue, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {

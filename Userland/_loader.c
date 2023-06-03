@@ -14,9 +14,9 @@ static void init();
 
 typedef int (*processFunc)(int, char **);
 
-void _start(processFunc process, int argc, char *argv[]) {
+void _start(processFunc process, int argc, char **argv[]) {
 	if(process != NULL && (int) process != 1){
-		int returnValue = process(argc, argv);
+		int returnValue = process(argc, *argv);
 	} else if(process == NULL){
 		init();
 	} else{

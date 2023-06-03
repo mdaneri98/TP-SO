@@ -34,7 +34,7 @@ static char lastCommand[BUFFER_MAX_LENGTH*2];
 static unsigned int bufferCount = 0;
 static char* secondCommand = NULL;  /* Apunta dos direcciones posteriores de donde se ubica el | en lastCommand, si así es el caso. */
 
-char lastArguments[MAX_ARGS_COUNT][100];  // Variable global para almacenar los argumentos
+char lastArguments[MAX_ARGS_COUNT][BUFFER_MAX_LENGTH];  // Variable global para almacenar los argumentos
 
 // Structure for maintaining commands history
 static char lines[MAX_LINES][BUFFER_MAX_LENGTH] = {{0}};
@@ -42,6 +42,8 @@ static unsigned int lineCount = 0;
 
 // Global variable for fontSize in this program
 static int fontSize = 1;
+
+int isBackground = FALSE;
 
 // Prototypes
 static void runProgram(int idx, int jdx);
@@ -183,6 +185,11 @@ static int getArguments(int idx, char *cadena) {
 }
 
 static void runProgram(int idx, int jdx) {    
+    /*
+    int goBackground = FALSE;
+    int commandLength = stringLength(lastCommand);
+    int background = lastCommand[commandLength-2] == '&';
+    */
     if (idx >= 0 && idx < CMDS_COUNT) {
         if (jdx >= 0 && jdx < CMDS_COUNT) { /* Caso si el input está pipeado. */
             int argsc1 = getArguments(idx, lastCommand);
@@ -193,7 +200,17 @@ static void runProgram(int idx, int jdx) {
         } else {
             if (_sysFork() == 0) {
                 int argsc = getArguments(idx, lastCommand);
-                _sysExecve(commandsFunction[idx], argsc, (char**) lastArguments);
+
+                char lastArgumentsAux[MAX_ARGS_COUNT][BUFFER_MAX_LENGTH];
+                // char** lastArgumentsAux = malloc(sizeof(char) * MAX_ARGS_COUNT * BUFFER_MAX_LENGTH);
+
+                for (int i = 0; i < MAX_ARGS_COUNT; i++) {
+                    for (int j = 0; j < BUFFER_MAX_LENGTH; j++) {
+                        lastArgumentsAux[i][j] = lastArguments[i][j];
+                    }
+                }
+
+                _sysExecve(commandsFunction[idx], argsc, (char**) lastArgumentsAux);
             }
         }
 

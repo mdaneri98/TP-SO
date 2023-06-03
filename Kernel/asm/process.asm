@@ -80,7 +80,7 @@ _setProcess:
     pop rdx
     pop rsi
     pop rdi
-    mov rax, 0  ; Success
+    mov rax, 0                      ; Success
     mov rsp, rbp
     pop rbp
     ret

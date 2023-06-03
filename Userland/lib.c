@@ -1,5 +1,21 @@
 
 
+#include <stdio.h>
+#include <syscalls.h>
+#include <stdlib.h>
+
+
+void *malloc(uint64_t size) {
+    _sysMalloc(size);
+}
+
+void free(void *ptr) {
+    _sysFree(ptr);
+}
+
+void *realloc(void *ptr, uint64_t size) {
+    _sysRealloc(ptr, size);
+}
 
 
 int stringToInt(const char *str) {

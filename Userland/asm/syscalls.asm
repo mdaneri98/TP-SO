@@ -28,7 +28,21 @@ GLOBAL _sysSemPost
 GLOBAL _sysSemWait
 GLOBAL _sysSemClose
 GLOBAL _getPid
+GLOBAL _sysMalloc
+GLOBAL _sysFree
+GLOBAL _sysRealloc
 
+_sysMalloc:
+    mov rax, 32
+    ret
+
+_sysFree:
+    mov rax, 33
+    ret
+
+_sysRealloc:
+    mov rax, 34
+    ret
 
 _sysExit:
     mov rax, 25
