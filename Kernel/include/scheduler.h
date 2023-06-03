@@ -28,6 +28,7 @@ ProcessControlBlockADT getEntry(uint32_t pid);
 PCBNodeADT getCurrentProcess();
 ProcessControlBlockADT getCurrentProcessEntry();
 IPCBufferADT getPDEntry(ProcessControlBlockADT entry, uint32_t pd);
+uint32_t getCurrentProcessPid();
 int setProcessState(ProcessControlBlockADT entry, ProcessState state);
 int changePriority(uint32_t pid, unsigned int newPriority);
 int changeState(uint32_t pid);

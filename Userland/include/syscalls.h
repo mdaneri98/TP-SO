@@ -47,7 +47,7 @@ void _sysPriority(uint32_t pid, unsigned int newPriority);
 void _sysChangeState(uint32_t pid);
 void _idle();
 void _wait();
-
+int _getPid();
 
 uint64_t _sysSemDown(sem_t* sem);
 uint64_t _sysSemUp(sem_t* sem);

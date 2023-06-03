@@ -662,6 +662,10 @@ ProcessControlBlockADT getCurrentProcessEntry(){
     return &current->pcbEntry;
 }
 
+uint32_t getCurrentProcessPid(){
+    return current->pcbEntry.id;
+}
+
 IPCBufferADT getPDEntry(ProcessControlBlockADT entry, uint32_t pd){
     return entry->pdTable[pd];
 }

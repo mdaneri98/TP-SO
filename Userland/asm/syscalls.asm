@@ -27,6 +27,7 @@ GLOBAL _sysSemOpen
 GLOBAL _sysSemPost
 GLOBAL _sysSemWait
 GLOBAL _sysSemClose
+GLOBAL _getPid
 
 
 _sysExit:
@@ -168,5 +169,10 @@ _getRegs:
     
 _idle:
     mov rax, 0x14
+    int 80h
+    ret
+
+_getPid:
+    mov rax, 0x25
     int 80h
     ret

@@ -1,7 +1,5 @@
 #include <stdio.h>
-#include <lib.h>
 #include <string.h>
-#include <syscalls.h>
 #include <cat.h> //actualizar include path
 
 #define COUNT_BUFF_SIZE 12
