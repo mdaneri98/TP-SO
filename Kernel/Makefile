@@ -2,16 +2,14 @@ include Makefile.inc
 
 TARGET:=all
 
-KERNEL=kernel.bin
-SOURCES=$(wildcard *.c)
+DIRECTORIES:= . ./memoryManagement ./interruptRelated ./ipcRelated ./drivers
 
-SOURCES+=$(wildcard ./memoryManagement/*.c)
-SOURCES+=$(wildcard ./bufferManagement/*.c)
-SOURCES+=$(wildcard ./ipcRelated/*.c)
-SOURCES+=$(wildcard ./interruptRelated/*.c)
-SOURCES+=$(wildcard ./drivers/*.c)
+KERNEL:=kernel.bin
+ELF:=kernel.elf
 
-SOURCES_ASM=$(wildcard asm/*.asm)
+SOURCES:=$(foreach dir,$(DIRECTORIES),$(wildcard $(dir)/[^_]*.c))
+
+SOURCES_ASM:=$(wildcard asm/*.asm)
 OBJECTS=$(SOURCES:.c=.o)
 OBJECTS_ASM=$(SOURCES_ASM:.asm=.o)
 LOADERSRC=loader.asm
@@ -34,7 +32,7 @@ buddy: $(KERNEL)
 
 $(KERNEL): $(LOADEROBJECT) $(OBJECTS) $(STATICLIBS) $(OBJECTS_ASM)
 	$(LD) $(LDFLAGS) -T kernel.ld -o $(KERNEL) $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM) $(STATICLIBS)
-	$(LD) $(LDFLAGS) -T kernel.ld --oformat=elf64-x86-64 -o kernel.elf $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM) $(STATICLIBS)
+	$(LD) $(LDFLAGS) -T kernel.ld --oformat=elf64-x86-64 -o $(ELF) $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM) $(STATICLIBS)
 
 %.o: %.c
 	$(GCC) $(GCCFLAGS) -I./include -c $< -o $@
@@ -46,6 +44,6 @@ $(LOADEROBJECT):
 	$(ASM) $(ASMFLAGS) $(LOADERSRC) -o $(LOADEROBJECT)
 
 clean:
-	rm -rf asm/*.o *.o *.bin *.elf
+	rm -rf asm/*.o *.o *.bin *.elf memoryManagement/*.o interruptRelated/*.o ipcRelated/*.o drivers/*.o
 
 .PHONY: all clean

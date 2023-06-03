@@ -3,7 +3,7 @@ include Makefile.inc
 DIRECTORIES= . ./programs
 
 MODULE=userland.bin
-SOURCES=$(foreach dir,$(DIRECTORIES),$(wildcard $(dir)/[^_]*.c))
+SOURCES:=$(foreach dir,$(DIRECTORIES),$(wildcard $(dir)/[^_]*.c))
 
 SOURCES_ASM=$(wildcard asm/*.asm)
 OBJECTS_ASM=$(SOURCES_ASM:asm/%.asm=asm/%.o)
