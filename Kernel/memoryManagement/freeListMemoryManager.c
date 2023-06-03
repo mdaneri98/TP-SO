@@ -2,6 +2,7 @@
 #include <lib.h>
 #include <scheduler.h>
 #include <sync.h>
+#include <timer.h>
 
 #define TRUE 1
 #define FALSE 0
@@ -22,6 +23,7 @@ typedef struct list{
 #define PCB_BLOCK sizeof(MMNode) + PCBNodeSize
 #define SEM_BLOCK sizeof(MMNode) + semNodeSize
 #define IPC_BLOCK sizeof(MMNode) + IPCBufferSize
+#define TIMER_BLOCK sizeof(MMNode) + timerSize
 
 typedef struct MemoryManager_t{
     queue_t freeList;
@@ -36,10 +38,20 @@ MemoryManager_t kernelMemoryManager;
 uint64_t PCBNodeSize;
 uint64_t semNodeSize;
 uint64_t IPCBufferSize;
+uint64_t timerSize;
 
 static void initMemory(MemoryManager_t *memoryForMemoryManager, void *const restrict init, uint64_t size);
 static void *genericAllocMemory(MemoryManager_t *memoryForMemoryManager, uint64_t blockSize, uint64_t memoryToAllocate);
 static void genericFreeMemory(MemoryManager_t *memoryForMemoryManager, void const *memoryToFree);
+
+void createMemoryManager(void *const restrict init, uint64_t size) {
+	initMemory(&userMemoryManager, init, size);
+    initMemory(&kernelMemoryManager, PCB_LOCATION, 0x140000);
+    PCBNodeSize = getPCBNodeSize();
+    semNodeSize = getSemNodeSize();
+    IPCBufferSize = getIPCBufferSize();
+    timerSize = getTimerSize();
+}
 
 static void initMemory(MemoryManager_t *memoryForMemoryManager, void *const restrict init, uint64_t size){
     memoryForMemoryManager->freeMemory =  size;
@@ -104,14 +116,6 @@ static void genericFreeMemory(MemoryManager_t *memoryForMemoryManager, void cons
     }
 }
 
-void createMemoryManager(void *const restrict init, uint64_t size) {
-	initMemory(&userMemoryManager, init, size);
-    initMemory(&kernelMemoryManager, PCB_LOCATION, 0x140000);
-    PCBNodeSize = getPCBNodeSize();
-    semNodeSize = getSemNodeSize();
-    IPCBufferSize = getIPCBufferSize();
-}
-
 void *allocMemory(const uint64_t memoryToAllocate){
     return genericAllocMemory(&userMemoryManager, BLOCK_SIZE, memoryToAllocate);
 }
@@ -128,7 +132,9 @@ void *allocBuffer(){
     return genericAllocMemory(&kernelMemoryManager, IPC_BLOCK, IPCBufferSize);
 }
 
-
+void *allocTimer(){
+    return genericAllocMemory(&kernelMemoryManager, TIMER_BLOCK, timerSize);
+}
 
 void *reAllocMemory(void const *memoryToRealloc, uint64_t newSize){
     MMNode *currentNode = (MMNode *)((uint64_t)memoryToRealloc - sizeof(MMNode));
@@ -161,6 +167,10 @@ void freeSemaphore(void const *semToFree){
 
 void freeBuffer(void const *bufferToFree){
     genericFreeMemory(&kernelMemoryManager, bufferToFree);
+}
+
+void freeTimer(void const *timerToFree){
+    genericFreeMemory(&kernelMemoryManager, timerToFree);
 }
 
 uint64_t getFreeMemoryAmount(){

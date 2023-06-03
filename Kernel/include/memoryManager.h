@@ -17,6 +17,8 @@ void *allocSemaphore();
 
 void *allocBuffer();
 
+void *allocTimer();
+
 void freeMemory(void const *memoryToFree);
 
 void freePCB(void const *blockToFree);
@@ -24,6 +26,8 @@ void freePCB(void const *blockToFree);
 void freeSemaphore(void const *semToFree);
 
 void freeBuffer(void const *bufferToFree);
+
+void freeTimer(void const *timerToFree);
 
 uint64_t getPowerOfTwo(uint64_t number);
 

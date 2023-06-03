@@ -66,6 +66,9 @@ static uint64_t arqSysIdle(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t
 static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 static uint64_t arqSysExit(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 
+static uint64_t arqSysSetToForeground(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+static uint64_t arqSysSetToBackground(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+
 typedef uint64_t (*SyscallVec)(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t r9, uint64_t rsp);
 
 // SYSCALLS ARRAY
@@ -116,6 +119,8 @@ void setSyscalls(){
     syscalls[33] = (SyscallVec) arqSysFree;
     syscalls[34] = (SyscallVec) arqSysRealloc;
 
+    syscalls[32] = (SyscallVec) arqSysSetToForeground;
+    syscalls[33] = (SyscallVec) arqSysSetToBackground;
 }
 
 uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t rcx, uint64_t r8, uint64_t r9, uint64_t rsp) {    
@@ -418,4 +423,16 @@ static uint64_t arqSysClosePd(uint64_t pd, uint64_t nil1, uint64_t nil2, uint64_
 
 static uint64_t arqSysGetPid(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
     return getCurrentProcessPid();
+}
+
+static uint64_t arqSysSetToForeground(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
+    ProcessControlBlockADT process = getCurrentProcessEntry();
+    setProcessToForeground(process);
+    return 0;
+}
+
+static uint64_t arqSysSetToBackground(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
+    ProcessControlBlockADT process = getCurrentProcessEntry();
+    setProcessToBackground(process);
+    return 0;
 }

@@ -185,11 +185,12 @@ _irq00Handler:
 
 	endHardwareInterrupt
 	popState
+	sti
 	iretq
 
 
 
-;Keyboard
+;Keyboard Interrupt Handler
 _irq01Handler:
 	pushState
 	mov rax, 0

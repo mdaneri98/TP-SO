@@ -64,8 +64,13 @@ uint64_t writeBuffer(IPCBufferADT buffer, char *dataToWrite, uint64_t count){
 uint64_t readBuffer(IPCBufferADT rEnd, char *buffToFill, uint64_t count){
     if(rEnd != NULL && buffToFill != NULL && count > 0 && rEnd->bufferDim > 0 && (rEnd->state == READ || rEnd->state == READ_WRITE)){
         uint64_t bytesRead = 0;
+        char c;
         while(rEnd->bufferDim > 0 && bytesRead < count){
-            buffToFill[bytesRead++] = rEnd->buffer[rEnd->cursor % BUFF_SIZE];
+            c = rEnd->buffer[rEnd->cursor % BUFF_SIZE];
+            if(c == '\0'){ // EOF
+                break;
+            }
+            buffToFill[bytesRead++] = c;
             rEnd->cursor++;
             rEnd->bufferDim--;
         }

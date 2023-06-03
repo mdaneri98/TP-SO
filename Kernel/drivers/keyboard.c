@@ -8,8 +8,15 @@
 #define CODES 56
 #define LETTERS 25
 #define PRINT 47
+
 #define R_SHIFT 0x36
 #define L_SHIFT 0x2A
+
+#define C_CODE 0x2E
+#define D_CODE 0x20
+
+#define L_CNTRL 0x1D
+
 #define BUFFER_DIM 512
 #define ERROR -1
 #define NULL (void *)0
@@ -23,8 +30,7 @@ static void capsLock();
 static int isArrow(int index);
 static int isCapslock(int index);
 static int isBuffEmpty();
-
-
+static void cntrl();
 
 static char kBuff[BUFFER_DIM] = {0};
 static char sBuff[BUFFER_DIM] = {0};
@@ -66,7 +72,8 @@ const unsigned char SCAN_CODES[CODES] = {   0x1E,0x30,0x2E,0x20,0x12,0x21,0x22,0
 
 static int lock = 0;
 static int shiftKey = 0;
-static char buffer[BUFFER_DIM] = "\0";
+static int leftCntrl = 0;
+// static int rightCntrl = 0;
 static int lineLength = 0;
 /*SCAN CODES
 0x01    esc             0x02    1           0x03    2       0x04    3               0x05    4           0x06    5             (implementada)
@@ -101,28 +108,46 @@ void addKey(uint8_t alKey) {
     if(key > 0x80){
         if((key == R_SHIFT + 0x80) || (key == L_SHIFT + 0x80)){
             shift();
+        } else if(key == L_CNTRL + 0x80){
+            cntrl();
         }
         return;
+
     } else if((key == R_SHIFT) || (key == L_SHIFT)){
         shift();
+        return;
+    } else if(key == L_CNTRL){
+        cntrl();
         return;
     }
     int idx = isMapped(key);
     if(idx == -1){
         return;
     }
+    if(leftCntrl && key == C_CODE){
+        ProcessControlBlockADT foregroundProcess = getForegroundProcess();
+        if(foregroundProcess != NULL & setProcessState(foregroundProcess, CLOSED)){
+            _int20h();
+        }
+        return;
+    } else if(leftCntrl && key == D_CODE){
+        toBuff('\0', key);  // EOF
+    }
     if(isCapslock(idx)){
         capsLock();
         return;
     }
-    if(shiftKey)
+    if(shiftKey){
         item = SHIFTED[idx][lock];
-    else
+    } else{
         item = KEYS[idx][lock];
-    if(item == '\t' && shift == 1)
+    }
+    if(item == '\t' && shift == 1){
         return;
-    if(isArrow(idx))
+    }
+    if(isArrow(idx)){
         item = 0xFF;        // DEFAULT NOT MAPPED KEY VALUE
+    }
     toBuff(item, key);
 }
 
@@ -131,9 +156,12 @@ static int isMapped(unsigned char key){
         if(SCAN_CODES[i] == key){
             return i;
         }
-        
     }
     return ERROR;
+}
+
+static void cntrl(){
+    leftCntrl = !leftCntrl;
 }
 
 static void tab(){

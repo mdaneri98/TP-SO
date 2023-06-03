@@ -9,9 +9,7 @@
 typedef enum ProcessState { READY, RUNNING, BLOCKED, EXITED } ProcessState;
 
 typedef struct ProcessControlBlockCDT *ProcessControlBlockADT;
-
 typedef struct PCBNodeCDT *PCBNodeADT;
-
 typedef struct IPCBufferCDT *IPCBufferADT;
 
 void *scheduler(void *stack);
@@ -22,10 +20,12 @@ int sysPs(ProcessData data[]);
 void createInit();
 
 uint64_t getPCBNodeSize();
+uint64_t getTSCFrequency();
 
 ProcessControlBlockADT getEntry(uint32_t pid);
-;
 PCBNodeADT getCurrentProcess();
+uint32_t getProcessId(ProcessControlBlockADT process);
+ProcessControlBlockADT getForegroundProcess();
 ProcessControlBlockADT getCurrentProcessEntry();
 IPCBufferADT getPDEntry(ProcessControlBlockADT entry, uint32_t pd);
 uint32_t getCurrentProcessPid();
@@ -34,5 +34,7 @@ int changePriority(uint32_t pid, unsigned int newPriority);
 int changeState(uint32_t pid);
 int hasOpenChilds(ProcessControlBlockADT entry);
 void removeFromPDs(ProcessControlBlockADT process, IPCBufferADT buffToRemove);
+void setProcessToForeground(ProcessControlBlockADT process);
+void setProcessToBackground(ProcessControlBlockADT process);
 
 #endif /* SCHEDULER_H */

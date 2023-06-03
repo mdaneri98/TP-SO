@@ -3,9 +3,8 @@
 
 #include <stdint.h>
 
-void timer_handler();
-int ticks_elapsed();
-int seconds_elapsed();
+uint64_t getTimerSize();
 void sleep(uint64_t millis);
+void updateTimers();
 
 #endif

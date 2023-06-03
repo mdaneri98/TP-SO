@@ -9,6 +9,7 @@
 #include <video.h>
 #include <ps.h>
 #include <pipe.h>
+#include <timer.h>
 
 #define DEFAULT_PROCESS_STACK_SIZE 0x5000
 #define QUANTUM_SIZE 55
@@ -19,9 +20,11 @@
 #define TRUE 1
 #define FALSE 0
 
+typedef struct PCBNodeCDT *PCBNodeADT;
+
 typedef struct ProcessControlBlockCDT {
     uint32_t id;
-    char foreground;
+    uint8_t foreground;
     ProcessState state;
     uint8_t priority;
 
@@ -44,9 +47,9 @@ typedef struct ProcessControlBlockCDT {
 } ProcessControlBlockCDT;
 
 /* Structures */
-typedef struct pcb_node {
-    struct pcb_node *next;
-    struct pcb_node *previous;
+typedef struct PCBNodeCDT {
+    PCBNodeADT next;
+    PCBNodeADT previous;
     ProcessControlBlockCDT pcbEntry;
 } PCBNodeCDT;
 
@@ -69,7 +72,8 @@ static void checkBlocked();
 static void checkExited();
 static void nextProcess();
 static int deleteProcess(PCBNodeCDT *toDelete);
-static PCBNodeCDT *removeFromQueue(uint32_t pid);
+static PCBNodeADT removeFromQueue(uint32_t pid);
+static void setForegroundProcess(ProcessControlBlockADT process);
 
 /* Global Variables */
 queue_t level0Queue = {NULL, 1};
@@ -80,8 +84,9 @@ queue_t level4Queue = {NULL, 16};
 queue_t level5Queue = {NULL, 32};
 queue_t blockedList = {NULL, 0};
 
-PCBNodeCDT *current = NULL;
-PCBNodeCDT *idle = NULL;
+PCBNodeADT current = NULL;
+PCBNodeADT idle = NULL;
+ProcessControlBlockADT foreground = NULL;
 
 queue_t *multipleQueues[] = {&level0Queue, &level1Queue, &level2Queue, 
                                 &level3Queue, &level4Queue, &level5Queue, &blockedList};
@@ -106,6 +111,7 @@ void *scheduler(void *rsp) {
     uint64_t newInterval = (counterFinish - current->pcbEntry.counterInit)/TSCFrequency;
     current->pcbEntry.agingInterval += newInterval;
 
+    updateTimers();
     checkBlocked();
     checkExited();
 
@@ -217,6 +223,8 @@ void createInit() {
     initNode->pcbEntry.priority = 0;
     level0Queue.head = initNode;
 
+    foreground = initNode;
+
     idleNode->pcbEntry.stackSize = DEFAULT_PROCESS_STACK_SIZE;
     idleNode->pcbEntry.baseStack = idleStack;
     idleNode->pcbEntry.stack = _createIdleStack(idleStack);
@@ -271,6 +279,10 @@ static void nextProcess(){
         current->pcbEntry.quantums = 1;
         current->pcbEntry.state = RUNNING;
         return;
+    }
+
+    if(current->pcbEntry.foreground == TRUE){
+        foreground = &current->pcbEntry;
     }
 
     current->next = NULL;
@@ -620,7 +632,7 @@ static void removeReferences(IPCBufferADT pdBuffer, uint32_t pid){
 
 /* Alterna entre los estados READY y BLOCKED para el proceso dado. */
 int changeState(uint32_t pid) {
-    if (!exists(pid)) {
+    if (!exists(pid)){
         return -1;
     }
 
@@ -671,15 +683,36 @@ IPCBufferADT getPDEntry(ProcessControlBlockADT entry, uint32_t pd){
 }
 
 int setProcessState(ProcessControlBlockADT process, ProcessState state){
-    if(!exists(process->id) || (process->id < 3 && state == EXITED)){
-        return 0;
+    if(!exists(process->id) || (process->id <= IDLE_ID && state == EXITED)){
+        return FALSE;
     }
     process->state = state;
-    return 1;
+    return TRUE;
 }
 
 uint64_t getPCBNodeSize(){
     return sizeof(PCBNodeCDT);
+}
+
+static void setForegroundProcess(ProcessControlBlockADT process){
+    if(process->foreground == TRUE){
+        foreground = process;
+    }
+}
+
+void setProcessToForeground(ProcessControlBlockADT process){
+    process->foreground = TRUE;
+}
+
+void setProcessToBackground(ProcessControlBlockADT process){
+    process->foreground = FALSE;
+    if(foreground->id == process->id){
+        foreground == NULL;
+    }
+}
+
+ProcessControlBlockADT getForegroundProcess(){
+    return foreground;
 }
 
 void removeFromPDs(ProcessControlBlockADT process, IPCBufferADT buffToRemove){
@@ -688,4 +721,12 @@ void removeFromPDs(ProcessControlBlockADT process, IPCBufferADT buffToRemove){
             process->pdTable[i] = NULL;
         }
     }
+}
+
+uint32_t getProcessId(ProcessControlBlockADT process){
+    return process->id;
+}
+
+uint64_t getTSCFrequency(){
+    return TSCFrequency;
 }
