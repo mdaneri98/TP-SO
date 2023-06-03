@@ -1,6 +1,10 @@
 include Makefile.inc
 
-TARGET:=all
+ifeq ($(MAKECMDGOALS), buddy)
+    EXCLUDED := ./memoryManagement/freeListMemoryManager.c ./memoryManagement/freeListMemoryManager.o
+else
+    EXCLUDED := ./memoryManagement/buddyMemoryManager.c ./memoryManagement/buddyMemoryManager.o
+endif
 
 DIRECTORIES:= . ./memoryManagement ./interruptRelated ./ipcRelated ./drivers
 
@@ -14,12 +18,6 @@ OBJECTS=$(SOURCES:.c=.o)
 OBJECTS_ASM=$(SOURCES_ASM:.asm=.o)
 LOADERSRC=loader.asm
 
-ifeq ($(TARGET), all)
-	EXCLUDED := ./memoryManagement/buddyMemoryManager.c ./memoryManagement/buddyMemoryManager.o
-else ifeq ($(TARGET), buddy)
-	EXCLUDED := ./memoryManagement/freeListMemoryManager.c ./memoryManagement/freeListMemoryManager.o
-endif
-
 SOURCES:=$(filter-out $(EXCLUDED), $(SOURCES))
 OBJECTS:=$(filter-out $(EXCLUDED), $(OBJECTS))
 
@@ -29,6 +27,7 @@ STATICLIBS=
 all: $(KERNEL)
 
 buddy: $(KERNEL)
+
 
 $(KERNEL): $(LOADEROBJECT) $(OBJECTS) $(STATICLIBS) $(OBJECTS_ASM)
 	$(LD) $(LDFLAGS) -T kernel.ld -o $(KERNEL) $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM) $(STATICLIBS)
