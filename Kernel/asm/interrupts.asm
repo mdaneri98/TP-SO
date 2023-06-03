@@ -1,24 +1,18 @@
 
 GLOBAL _cli
 GLOBAL _sti
-GLOBAL picMasterMask
-GLOBAL picSlaveMask
-GLOBAL haltcpu
 GLOBAL _hlt
-
 GLOBAL _irq00Handler
 GLOBAL _irq01Handler
-
-GLOBAL hasRegDump
-GLOBAL inforeg
-
+GLOBAL _hasRegDump
+GLOBAL _inforeg
 GLOBAL _exception0Handler
 GLOBAL _exception5Handler
 GLOBAL _exception6Handler
 GLOBAL _exception14Handler
-
-GLOBAL int20h
+GLOBAL _int20h
 GLOBAL _syscallsHandler
+GLOBAL _startSystem
 
 EXTERN irqDispatcher
 EXTERN exceptionDispatcher
@@ -181,22 +175,6 @@ _sti:
 	sti
 	ret
 
-picMasterMask:
-	push rbp
-    mov rbp, rsp
-    mov ax, di
-    out	21h,al
-    pop rbp
-    retn
-
-picSlaveMask:
-	push    rbp
-    mov     rbp, rsp
-    mov     ax, di  ; ax = mascara de 16 bits
-    out		0A1h,al
-    pop     rbp
-    retn
-
 ;8254 Timer (Timer Tick)
 _irq00Handler:
 	pushState
@@ -225,29 +203,29 @@ _irq01Handler:
 
 	mov rax, [rsp+8*14]			; RAX Location
 
-	mov [inforeg + 8*1], rax
-	mov [inforeg + 8*2], rbx
-	mov [inforeg + 8*3], rcx
-	mov [inforeg + 8*4], rdx
-	mov [inforeg + 8*5], rdi
-	mov [inforeg + 8*6], rsi
-	mov [inforeg + 8*7], rbp
+	mov [_inforeg + 8*1], rax
+	mov [_inforeg + 8*2], rbx
+	mov [_inforeg + 8*3], rcx
+	mov [_inforeg + 8*4], rdx
+	mov [_inforeg + 8*5], rdi
+	mov [_inforeg + 8*6], rsi
+	mov [_inforeg + 8*7], rbp
 	mov rax, rsp 
 	add rax, 8*15+8+8+8			; pushState + rip + cs + rflags = RSP value in stack
-	mov [inforeg + 8*8], rax	; RSP value
-	mov [inforeg + 8*9], r8
-	mov [inforeg + 8*10], r9
-	mov [inforeg + 8*11], r10
-	mov [inforeg + 8*12], r11
-	mov [inforeg + 8*13], r12
-	mov [inforeg + 8*14], r13
-	mov [inforeg + 8*15], r14
-	mov [inforeg + 8*16], r15
+	mov [_inforeg + 8*8], rax	; RSP value
+	mov [_inforeg + 8*9], r8
+	mov [_inforeg + 8*10], r9
+	mov [_inforeg + 8*11], r10
+	mov [_inforeg + 8*12], r11
+	mov [_inforeg + 8*13], r12
+	mov [_inforeg + 8*14], r13
+	mov [_inforeg + 8*15], r14
+	mov [_inforeg + 8*16], r15
 
 	mov rax, [rsp + 8*15]		; RIP location
-	mov [inforeg], rax
+	mov [_inforeg], rax
 
-	mov BYTE [hasRegDump], 1	; Flag para el inforeg
+	mov BYTE [_hasRegDump], 1	; Flag para el inforeg
 
 	jmp .end
 
@@ -279,12 +257,7 @@ _exception6Handler:
 _exception14Handler:
 	exceptionHandler 14
 
-haltcpu:
-	cli
-	hlt
-	ret
-
-int20h:
+_int20h:
 	push rbp
 	mov rbp, rsp
 
@@ -294,12 +267,16 @@ int20h:
 	pop rbp
 	ret
 
+_startSystem:
+	int 20h
+    ret
+
 
 section .rodata
 	userSpace dq 0x400000
 
 SECTION .bss
 	aux resq 1
-	inforeg resq 17
+	_inforeg resq 17
 	regdump resq 18
-	hasRegDump resb 1
+	_hasRegDump resb 1

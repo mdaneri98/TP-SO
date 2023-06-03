@@ -92,7 +92,7 @@ void exceptionDispatcher(int exception, uint64_t regdump[REGDUMP_SIZE], uint64_t
 	syscallsDispatcher(0, STDIN, &c, 1, (uint64_t) NULL, (uint64_t) NULL, (uint64_t) NULL,(uint64_t) NULL);
 	scrClear();
 	setProcessState(getCurrentProcessEntry(), EXITED);
-    int20h();
+    _int20h();
 }
 
 static void zero_division() {

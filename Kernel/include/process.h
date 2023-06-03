@@ -11,10 +11,9 @@
 
 typedef int (*processFunc)(int, char **);
 
-void setNewStack(uint64_t *targetStack);
-int setProcess(processFunc process, int argc, char **argv, void *stack);
-void *createInitStack(void *initStack);
-void *createIdleStack(void *waiterStack);
-void startSystem();
+void _setNewStack(uint64_t *targetStack);
+int _setProcess(processFunc process, int argc, char **argv, void *stack);
+void *_createInitStack(void *initStack);
+void *_createIdleStack(void *waiterStack);
 
 #endif /* PROCESS_H */

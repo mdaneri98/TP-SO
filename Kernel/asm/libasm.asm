@@ -1,8 +1,4 @@
 GLOBAL cpuVendor
-GLOBAL getCPUCristalSpeed
-GLOBAL getTSCNumerator
-GLOBAL getTSCDenominator
-GLOBAL readTimeStampCounter
 GLOBAL _hours
 GLOBAL _seconds
 GLOBAL _minutes
@@ -10,6 +6,12 @@ GLOBAL _setPIT
 GLOBAL _setFrequency
 GLOBAL _getSound
 GLOBAL _playSound
+GLOBAL _picMasterMask
+GLOBAL _picSlaveMask
+GLOBAL _getCPUCristalSpeed
+GLOBAL _getTSCNumerator
+GLOBAL _getTSCDenominator
+GLOBAL _readTimeStampCounter
 section .text
 cpuVendor:
 	push rbp
@@ -34,25 +36,25 @@ cpuVendor:
 	ret
 
 _seconds:
-	mov al, 0		; seconds.
+	mov al, 0		; Seconds.
 	jmp RTC
 
 _minutes:
 	mov rax, 0
-	mov al, 2		; minutes.
+	mov al, 2		; Minutes.
 	jmp RTC
 
 _hours:
 	mov rax, 0
-	mov al, 4		; hours.
+	mov al, 4		; Hours.
 	jmp RTC
 
 RTC:
-	out 70h, al		; 70h entrada para la informacion que quiero en 71h.
-	in al, 71h		; en ax se deposita lo pedido por 70h, presente en 71h.
+	out 70h, al		; 70h port to indicate to the RTC what info I'm looking for
+	in al, 71h		; In the 71h port we find the result requested in the 70h port
 	ret
 
-_setPIT:			;PIT data found at https://wiki.osdev.org/Programmable_Interval_Timer
+_setPIT:			; PIT data found at https://wiki.osdev.org/Programmable_Interval_Timer
 	push rbp
 	mov rbp, rsp
 	mov rax, 0
@@ -100,12 +102,28 @@ _playSound:
 	pop rbp
 	ret
 
+_picMasterMask:
+	push rbp
+    mov rbp, rsp
+    mov ax, di
+    out	21h,al
+    pop rbp
+    retn
+
+_picSlaveMask:
+	push    rbp
+    mov     rbp, rsp
+    mov     ax, di  ; ax = mascara de 16 bits
+    out		0A1h,al
+    pop     rbp
+    retn
+
 ;-------------------------------------------------------------------------------------------------------------------|
-; getCPUCristalSpeed: Uses the cpuid instruction to get the CPU Cristal Clock Speed, needed to calculate the TSC	|
+; _getCPUCristalSpeed: Uses the cpuid instruction to get the CPU Cristal Clock Speed, needed to calculate the TSC	|
 ;					frequency. First it enables the 0x15 level of cpuid, just in case it's not allowed by the system|
 ; returns: CPU Cristal Speed (uint64_t)																				|
 ;-------------------------------------------------------------------------------------------------------------------|
-getCPUCristalSpeed:
+_getCPUCristalSpeed:
 	push rbp
 	mov rbp, rsp
 	push rbx
@@ -143,10 +161,10 @@ getCPUCristalSpeed:
 	ret
 
 ;-------------------------------------------------------------------------------------------------------------------|
-; getTSCNumerator: Uses the cpuid instruction to get the TSC numerator, needed to calculate the TSC frequency		|
+; _getTSCNumerator: Uses the cpuid instruction to get the TSC numerator, needed to calculate the TSC frequency		|
 ; returns: Time Stamp Counter Numerator (uint64_t)																	|
 ;-------------------------------------------------------------------------------------------------------------------|
-getTSCNumerator:
+_getTSCNumerator:
 	push rbp
 	mov rbp, rsp
 	push rbx
@@ -172,10 +190,10 @@ getTSCNumerator:
 	ret
 
 ;-------------------------------------------------------------------------------------------------------------------|
-; getTSCDenominator: Uses the cpuid instruction to get the TSC denominator, needed to calculate the TSC frequency	|
+; _getTSCDenominator: Uses the cpuid instruction to get the TSC denominator, needed to calculate the TSC frequency	|
 ; returns: Time Stamp Counter Denominator (uint64_t)																|
 ;-------------------------------------------------------------------------------------------------------------------|
-getTSCDenominator:
+_getTSCDenominator:
 	push rbp
 	mov rbp, rsp
 	push rbx
@@ -197,7 +215,7 @@ getTSCDenominator:
 	pop rbp
 	ret
 
-readTimeStampCounter:
+_readTimeStampCounter:
 	push rbp
 	mov rbp, rsp
 	push rdx

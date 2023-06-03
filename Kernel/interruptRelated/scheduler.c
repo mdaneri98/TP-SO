@@ -67,7 +67,7 @@ static void setParentReady(ProcessControlBlockADT pcbEntry);
 static void removeReferences(IPCBufferADT pdBuff, uint32_t pid);
 static void checkBlocked();
 static void checkExited();
-static void next();
+static void nextProcess();
 static int deleteProcess(PCBNodeCDT *toDelete);
 static PCBNodeCDT *removeFromQueue(uint32_t pid);
 
@@ -99,7 +99,7 @@ void *scheduler(void *rsp) {
 
     // Backup of the caller stack
     current->pcbEntry.stack = rsp;
-    uint64_t counterFinish = readTimeStampCounter();
+    uint64_t counterFinish = _readTimeStampCounter();
     current->pcbEntry.agingInterval /= 2;
 
     // We check if it reached the value overflow
@@ -111,13 +111,13 @@ void *scheduler(void *rsp) {
 
     /* 
         If the process was BLOCKED or RUNNING, and scheduler function started, we do the same thing. 
-        Get the next process with a READY state and run it.
+        Get the nextProcess process with a READY state and run it.
     */
     current->pcbEntry.quantums--;
     if(current->pcbEntry.quantums < 1 || current->pcbEntry.state == BLOCKED){
-        next();
+        nextProcess();
     }
-    current->pcbEntry.counterInit = readTimeStampCounter();
+    current->pcbEntry.counterInit = _readTimeStampCounter();
 
     return current->pcbEntry.stack;
 }
@@ -164,7 +164,7 @@ static void checkExited(){
     if(current->pcbEntry.state == EXITED){
         deleteProcess(current);
         checkBlocked();
-        next();
+        nextProcess();
     }
 }
 
@@ -206,7 +206,7 @@ void createInit() {
     }
     initNode->pcbEntry.stackSize = DEFAULT_PROCESS_STACK_SIZE;
     initNode->pcbEntry.baseStack = initStack;
-    initNode->pcbEntry.stack = createInitStack(initStack);
+    initNode->pcbEntry.stack = _createInitStack(initStack);
     initNode->pcbEntry.memoryFromMM = memoryForInit;
     initNode->pcbEntry.id = INIT_ID;
     initNode->pcbEntry.foreground = 1;
@@ -219,7 +219,7 @@ void createInit() {
 
     idleNode->pcbEntry.stackSize = DEFAULT_PROCESS_STACK_SIZE;
     idleNode->pcbEntry.baseStack = idleStack;
-    idleNode->pcbEntry.stack = createIdleStack(idleStack);
+    idleNode->pcbEntry.stack = _createIdleStack(idleStack);
     idleNode->pcbEntry.memoryFromMM = memoryForIdle;
     idleNode->pcbEntry.id=IDLE_ID;
     idleNode->pcbEntry.foreground = 1;
@@ -231,9 +231,9 @@ void createInit() {
     
     current = NULL;
 
-    uint64_t CPUCristalClockSpeed = getCPUCristalSpeed();
-    uint64_t CPUTSCNumerator = getTSCNumerator();
-    uint64_t CPUTSCDenominator = getTSCDenominator();
+    uint64_t CPUCristalClockSpeed = _getCPUCristalSpeed();
+    uint64_t CPUTSCNumerator = _getTSCNumerator();
+    uint64_t CPUTSCDenominator = _getTSCDenominator();
 
     // Check this 0x15 CPUID documentation https://sandpile.org/x86/cpuid.htm for more info about this calculation
     TSCFrequency = (CPUCristalClockSpeed*CPUTSCNumerator)/CPUTSCDenominator;
@@ -244,7 +244,7 @@ void createInit() {
         1. The first process that is on READY state
         2. The idle process that halts until any other process is on READY state
 */
-static void next(){
+static void nextProcess(){
     if(current->pcbEntry.id == idle->pcbEntry.id){
             current->pcbEntry.state = READY;
             current = NULL;
@@ -414,7 +414,7 @@ int sysFork(void *currentProcessStack){
     newNode->pcbEntry.memoryFromMM = memoryForFork;
     
     copyBlocks(newNode->pcbEntry.memoryFromMM, currentNode->pcbEntry.memoryFromMM);
-    setNewStack(newStack);
+    _setNewStack(newStack);
 
     newNode->pcbEntry.foreground = currentNode->pcbEntry.foreground;
     newNode->pcbEntry.state = currentNode->pcbEntry.state;
@@ -457,7 +457,7 @@ int sysExecve(processFunc process, int argc, char **argv, void *rsp){
     ProcessControlBlockCDT *currentProcess = &current->pcbEntry;
 
     // This routine will work only if its called from a syscall, because it manipulates the syscall stack frame
-    if(setProcess(process, argc, argv, rsp) == -1){
+    if(_setProcess(process, argc, argv, rsp) == -1){
         return -1;
     }
     currentProcess->counterInit = 0;

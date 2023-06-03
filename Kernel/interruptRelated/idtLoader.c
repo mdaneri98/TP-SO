@@ -2,6 +2,7 @@
 #include <idtLoader.h>
 #include <defs.h>
 #include <interrupts.h>
+#include <libasm.h>
 
 #define NULL (void *) 0
 
@@ -34,8 +35,8 @@ void loadIDT(){
   setupIDTEntry (0x80, (uint64_t)&_syscallsHandler);      // Syscalls - Software
 
 	//Solo interrupcion timer tick y keyboard habilitadas
-	picMasterMask(0xFC); 
-	picSlaveMask(0xFF);
+	_picMasterMask(0xFC); 
+	_picSlaveMask(0xFF);
         
 	_sti();
 }

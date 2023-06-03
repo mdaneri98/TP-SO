@@ -5,7 +5,7 @@
 #include <string.h>
 
 
-void semLock(uint64_t* semValue, uint64_t * mutex);
-void semUnlock(uint64_t * semValue, uint64_t * mutex);
+void _semLock(uint64_t* semValue, uint64_t * mutex);
+void _semUnlock(uint64_t * semValue, uint64_t * mutex);
 
 #endif /* SEMAPHORE_H */

@@ -9,15 +9,15 @@ typedef struct {
     uint64_t mutex;
 }semaphore_t;
 
-typedef struct node_t {
+typedef struct semNode {
     semaphore_t semaphore;
-    struct node_t * nextNode;
-} node_t;
+    struct semNode * nextNode;
+} semNode;
 
 
 typedef struct{
-    node_t*head;
-    node_t*tail;
+    semNode *head;
+    semNode *tail;
 }queue;
 
 
@@ -32,7 +32,7 @@ uint64_t* semOpen(char* semId, uint64_t currentValue){
     sem.currentValue = currentValue;
 
     if(semaphoreQueue.head == NULL){
-        node_t* newNode = allocSemaphore(sizeof(node_t)); 
+        semNode* newNode = allocSemaphore(); 
         semaphoreQueue.head = newNode;
         semaphoreQueue.tail = newNode;
         newNode->semaphore.name = semId;
@@ -42,7 +42,7 @@ uint64_t* semOpen(char* semId, uint64_t currentValue){
 
         return &newNode->semaphore.currentValue;
     } else {
-        node_t* auxNode = semaphoreQueue.head;
+        semNode* auxNode = semaphoreQueue.head;
 
         while (auxNode->nextNode != NULL) {
             /* Chequeamos que ninguno de los semáforos tenga el mismo nombre, o en caso que coincidan, devolvemos el currentValue del semáforo. */
@@ -53,7 +53,7 @@ uint64_t* semOpen(char* semId, uint64_t currentValue){
         }
 
         /* Si no había un semáforo con el nombre dado, lo creamos. */
-        node_t* newNode = allocSemaphore(sizeof(node_t));
+        semNode* newNode = allocSemaphore();
         semaphoreQueue.tail->nextNode = newNode;
         newNode->semaphore.name = semId;
         newNode->semaphore.currentValue = currentValue;
@@ -71,7 +71,7 @@ uint64_t semWait(char*semId) {
     if(sem == NULL){
         return -1;
     }
-    semLock(&sem->currentValue, &sem->mutex);
+    _semLock(&sem->currentValue, &sem->mutex);
     return 0;
 }
 
@@ -80,12 +80,12 @@ uint64_t semPost(char*semId){
     if(sem == NULL){
         return -1;      /* El semáforo con semId no se encontraba en la lista. */
     }
-    semUnlock(&sem->currentValue, &sem->mutex);
+    _semUnlock(&sem->currentValue, &sem->mutex);
     return 0;
 }
 
 uint64_t semClose(char*semId){
-    node_t* auxNode = semaphoreQueue.head;
+    semNode* auxNode = semaphoreQueue.head;
     while (auxNode->nextNode != NULL && !stringCompare(auxNode->nextNode->semaphore.name, semId)) {
         auxNode = auxNode->nextNode;
     } 
@@ -98,7 +98,7 @@ uint64_t semClose(char*semId){
 }
 
 semaphore_t * getSemById(char * semId){
-    node_t* auxNode = semaphoreQueue.head;
+    semNode* auxNode = semaphoreQueue.head;
     while(auxNode->nextNode != NULL && !stringCompare(auxNode->semaphore.name, semId)){
         auxNode = auxNode->nextNode;
     }
@@ -110,5 +110,5 @@ semaphore_t * getSemById(char * semId){
 }
 
 uint64_t getSemNodeSize(){
-    return sizeof(node_t);
+    return sizeof(semNode);
 }

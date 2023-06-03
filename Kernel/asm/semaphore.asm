@@ -1,5 +1,5 @@
-GLOBAL semLock
-GLOBAL semUnlock
+GLOBAL _semLock
+GLOBAL _semUnlock
 
 
 section .text
@@ -13,7 +13,7 @@ section .text
 ;   return: void                                                                                    |
 ;---------------------------------------------------------------------------------------------------|
 
-semLock:
+_semLock:
 
     MOV rax, 1
     XCHG rax, [rdx]
@@ -45,7 +45,7 @@ semLock:
 ;       -rdx: mutex to modify sem                                                                   |                                                                        
 ;   return: void                                                                                    |
 ;---------------------------------------------------------------------------------------------------|
-semUnlock:
+_semUnlock:
 
     MOV rax, 1
     XCHG rax, [rdx]

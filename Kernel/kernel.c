@@ -68,7 +68,7 @@ int main(){
 
 	loadIDT();
 
-	startSystem();
+	_startSystem();
 
 	return 0;
 }

@@ -1,8 +1,7 @@
-GLOBAL setNewStack
-GLOBAL setProcess
-GLOBAL createInitStack
-GLOBAL startSystem
-GLOBAL createIdleStack
+GLOBAL _setNewStack
+GLOBAL _setProcess
+GLOBAL _createInitStack
+GLOBAL _createIdleStack
 
 section .text
 
@@ -15,7 +14,7 @@ section .text
 ;       -rdi: Pointer of the Target stack                                                            |
 ;   return: void                                                                                     |
 ;----------------------------------------------------------------------------------------------------|
-setNewStack:
+_setNewStack:
     push rbp
     mov rbp, rsp
     push rax
@@ -62,7 +61,7 @@ setNewStack:
 ;       -rcx: rsp                                                                                   |
 ;   return: 0 if success, -1 if error (idk how we can have an error yet)                            |
 ;---------------------------------------------------------------------------------------------------|
-setProcess:
+_setProcess:
     push rbp
     mov rbp, rsp
     push rdi                        ; int (*processFunc)(int, char **)
@@ -93,7 +92,7 @@ setProcess:
 ;       -rdi: Location of the stack                                                                 |
 ;   return: New rsp value                                                                           |
 ;---------------------------------------------------------------------------------------------------|
-createInitStack:
+_createInitStack:
     push rbp
     mov rbp, rsp
 
@@ -117,7 +116,7 @@ createInitStack:
     pop rbp
     ret
 
-createIdleStack:
+_createIdleStack:
     push rbp
     mov rbp, rsp
 
@@ -139,10 +138,6 @@ createIdleStack:
     mov rax, rdi
     mov rsp, rbp
     pop rbp
-    ret
-
-startSystem:
-	int 20h
     ret
 
 section .rodata

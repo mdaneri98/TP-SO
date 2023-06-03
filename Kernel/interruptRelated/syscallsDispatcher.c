@@ -135,7 +135,7 @@ static uint64_t arqSysRead(uint64_t pd, uint64_t buff, uint64_t count, uint64_t 
     }
     while(getBufferDim(buffToRead) == 0 && getBufferState(buffToRead) != CLOSED){
         setProcessState(current, BLOCKED);
-        int20h();
+        _int20h();
     }
     if(getBufferState(buffToRead) == CLOSED){
         return 0;
@@ -161,7 +161,7 @@ static uint64_t arqSysWrite(uint64_t pd, uint64_t buff, uint64_t count, uint64_t
     }
     while(getBufferDim(buffToWrite) == BUFF_SIZE && getBufferState(buffToWrite) != CLOSED){
         setProcessState(current, BLOCKED);
-        int20h();
+        _int20h();
     }
     if(getBufferState(buffToWrite) == CLOSED){
         return 0;
@@ -209,7 +209,7 @@ static uint64_t arqSysBlock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t
         return -1;
     }
     setProcessState(current, BLOCKED);
-    int20h();
+    _int20h();
     return 0;
 }
 
@@ -219,7 +219,7 @@ static uint64_t arqSysUnblock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64
         return -1;
     }
     setProcessState(current, READY);
-    int20h();
+    _int20h();
     return 0;
 }
 
@@ -242,7 +242,7 @@ static uint64_t arqSysKill(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t 
     }
     ProcessControlBlockADT toKill = getEntry(pid);
     if(setProcessState(toKill, EXITED)){
-        int20h();
+        _int20h();
         return 1;
     }
     return -1;
@@ -362,14 +362,14 @@ static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t
     ProcessControlBlockADT current = getCurrentProcessEntry();
     while(hasOpenChilds(current)){
         setProcessState(current, BLOCKED);
-        int20h();
+        _int20h();
     }
     return 0;
 }
 
 static uint64_t arqSysExit(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
     setProcessState(getCurrentProcessEntry(), EXITED);
-    int20h();
+    _int20h();
 }
 
 static uint64_t arqSysPipe(uint64_t pipePds, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
