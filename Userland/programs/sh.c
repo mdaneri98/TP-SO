@@ -201,14 +201,16 @@ static void runProgram(int idx, int jdx) {
             if (_sysFork() == 0) {
                 int argsc = getArguments(idx, lastCommand);
 
-                char lastArgumentsAux[MAX_ARGS_COUNT][BUFFER_MAX_LENGTH];
-                // char** lastArgumentsAux = malloc(sizeof(char) * MAX_ARGS_COUNT * BUFFER_MAX_LENGTH);
-
-                for (int i = 0; i < MAX_ARGS_COUNT; i++) {
+                char** lastArgumentsAux = malloc(sizeof(char*) * MAX_ARGS_COUNT);
+                for (int i = 0; i < argsc; i++) {
+                    lastArgumentsAux[i] = malloc(sizeof(char) * BUFFER_MAX_LENGTH);
                     for (int j = 0; j < BUFFER_MAX_LENGTH; j++) {
                         lastArgumentsAux[i][j] = lastArguments[i][j];
                     }
                 }
+                
+                // printf("Habemus");
+
 
                 _sysExecve(commandsFunction[idx], argsc, (char**) lastArgumentsAux);
             }

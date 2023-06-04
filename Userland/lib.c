@@ -6,7 +6,7 @@
 
 
 void *malloc(uint64_t size) {
-    _sysMalloc(size);
+    return _sysMalloc(size);
 }
 
 void free(void *ptr) {
@@ -14,7 +14,7 @@ void free(void *ptr) {
 }
 
 void *realloc(void *ptr, uint64_t size) {
-    _sysRealloc(ptr, size);
+    return _sysRealloc(ptr, size);
 }
 
 

@@ -34,14 +34,17 @@ GLOBAL _sysRealloc
 
 _sysMalloc:
     mov rax, 32
+    int 80h
     ret
 
 _sysFree:
     mov rax, 33
+    int 80h
     ret
 
 _sysRealloc:
     mov rax, 34
+    int 80h
     ret
 
 _sysExit:
@@ -51,18 +54,22 @@ _sysExit:
 
 _sysSemOpen:
     mov rax, 26
+    int 80h
     ret
 
 _sysSemPost:
     mov rax, 27
+    int 80h
     ret
 
 _sysSemWait:
     mov rax, 28
+    int 80h
     ret
 
 _sysSemClose:
     mov rax, 29
+    int 80h
     ret
 
 _sysChangeState:
