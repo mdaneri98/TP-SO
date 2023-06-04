@@ -36,5 +36,8 @@ int hasOpenChilds(ProcessControlBlockADT entry);
 void removeFromPDs(ProcessControlBlockADT process, IPCBufferADT buffToRemove);
 void setProcessToForeground(ProcessControlBlockADT process);
 void setProcessToBackground(ProcessControlBlockADT process);
+void *sysMalloc(ProcessControlBlockADT process, uint64_t size);
+void *sysRealloc(ProcessControlBlockADT process, void *toRealloc, uint64_t size);
+void sysFree(ProcessControlBlockADT process, void *toFree);
 
 #endif /* SCHEDULER_H */

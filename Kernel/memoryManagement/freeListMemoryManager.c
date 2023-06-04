@@ -6,7 +6,7 @@
 
 #define TRUE 1
 #define FALSE 0
-#define BLOCK_SIZE 0x5000
+#define BLOCK_SIZE 0x1000
 #define PCB_LOCATION 0x50000
 
 typedef struct node{

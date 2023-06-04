@@ -11,8 +11,9 @@
 #include <pipe.h>
 #include <timer.h>
 
-#define DEFAULT_PROCESS_STACK_SIZE 0x5000
+#define DEFAULT_PROCESS_STACK_SIZE 0x4000
 #define QUANTUM_SIZE 55
+#define MEMORY_ALIGN 8
 
 #define INIT_ID 1
 #define IDLE_ID 2
@@ -22,6 +23,7 @@
 
 typedef struct PCBNodeCDT *PCBNodeADT;
 
+/* Structures */
 typedef struct ProcessControlBlockCDT {
     uint32_t id;
     uint8_t foreground;
@@ -41,12 +43,18 @@ typedef struct ProcessControlBlockCDT {
     void *stack;
     void *baseStack;
     uint64_t stackSize;
+    
     void *memoryFromMM;
+    struct ProcessAllocations *firstAlloc;
 
     IPCBufferADT pdTable[PD_SIZE];
 } ProcessControlBlockCDT;
 
-/* Structures */
+typedef struct ProcessAllocations{
+    void *allocation;
+    struct ProcessAllocation *next;
+} ProcessAllocations;
+
 typedef struct PCBNodeCDT {
     PCBNodeADT next;
     PCBNodeADT previous;
@@ -74,6 +82,7 @@ static void nextProcess();
 static int deleteProcess(PCBNodeCDT *toDelete);
 static PCBNodeADT removeFromQueue(uint32_t pid);
 static void setForegroundProcess(ProcessControlBlockADT process);
+static void freeAllocations(ProcessControlBlockADT process);
 
 /* Global Variables */
 queue_t level0Queue = {NULL, 1};
@@ -177,10 +186,15 @@ static void checkExited(){
 void createInit() {
     void *memoryForInit = allocMemory(DEFAULT_PROCESS_STACK_SIZE);
     void *initStack = (void *)((uint64_t) memoryForInit + DEFAULT_PROCESS_STACK_SIZE);
+    initStack = (void *)((uint64_t)initStack - (uint64_t)initStack % MEMORY_ALIGN);
     PCBNodeCDT *initNode = allocPCB();
     void *memoryForIdle = allocMemory(DEFAULT_PROCESS_STACK_SIZE);
     void *idleStack = (void *)((uint64_t) memoryForIdle + DEFAULT_PROCESS_STACK_SIZE);
+    idleStack = (void *)((uint64_t)idleStack - (uint64_t)idleStack % MEMORY_ALIGN);
     PCBNodeCDT *idleNode = allocPCB();
+
+    initNode->pcbEntry.firstAlloc = NULL;
+    idleNode->pcbEntry.firstAlloc = NULL;
     
     initNode->previous = NULL;
     initNode->next = NULL;
@@ -210,7 +224,7 @@ void createInit() {
         initNode->pcbEntry.pdTable[i] = NULL;
         initNode->pcbEntry.childsIds[i] = 0;
     }
-    initNode->pcbEntry.stackSize = DEFAULT_PROCESS_STACK_SIZE;
+    initNode->pcbEntry.stackSize = initStack - memoryForInit;
     initNode->pcbEntry.baseStack = initStack;
     initNode->pcbEntry.stack = _createInitStack(initStack);
     initNode->pcbEntry.memoryFromMM = memoryForInit;
@@ -225,7 +239,7 @@ void createInit() {
 
     foreground = initNode;
 
-    idleNode->pcbEntry.stackSize = DEFAULT_PROCESS_STACK_SIZE;
+    idleNode->pcbEntry.stackSize = idleStack - memoryForIdle;
     idleNode->pcbEntry.baseStack = idleStack;
     idleNode->pcbEntry.stack = _createIdleStack(idleStack);
     idleNode->pcbEntry.memoryFromMM = memoryForIdle;
@@ -336,6 +350,7 @@ static void insertInBlockedQueue(PCBNodeCDT *node){
 }
 
 static int deleteProcess(PCBNodeCDT *toDelete){
+    freeAllocations(&toDelete->pcbEntry);
     closePDs(toDelete->pcbEntry.id);
     checkChilds(&toDelete->pcbEntry);
     setParentReady(&toDelete->pcbEntry);
@@ -435,7 +450,7 @@ int sysFork(void *currentProcessStack){
     newNode->pcbEntry.quantums = currentNode->pcbEntry.quantums;
     newNode->pcbEntry.agingInterval = currentNode->pcbEntry.agingInterval;
     newNode->pcbEntry.counterInit = currentNode->pcbEntry.counterInit;
-
+    newNode->pcbEntry.firstAlloc = currentNode->pcbEntry.firstAlloc;
     for(int i=0; i<PD_SIZE ;i++){
         IPCBufferADT iBuffer = currentNode->pcbEntry.pdTable[i];
         if(iBuffer != NULL){
@@ -630,42 +645,6 @@ static void removeReferences(IPCBufferADT pdBuffer, uint32_t pid){
     }
 }
 
-/* Alterna entre los estados READY y BLOCKED para el proceso dado. */
-int changeState(uint32_t pid) {
-    if (!exists(pid)){
-        return -1;
-    }
-
-    PCBNodeCDT* entry = getEntry(pid);
-    int priority = entry->pcbEntry.priority;
-    deleteProcess(entry);  // Lo eliminamos de la lista actual, para luego, agregarlo a la lista requerida.
-    
-    if (entry->pcbEntry.state == BLOCKED) {
-        PCBNodeCDT* current = multipleQueues[priority]->head;
-        if (current == NULL) {
-            multipleQueues[priority]->head = entry;
-        } else {   
-            while (current->next != NULL) {
-                current = current->next;
-            }
-            entry->pcbEntry.state = READY;
-            current->next = entry;
-        }    
-    } else {
-        PCBNodeCDT* current = multipleQueues[6]->head;
-        if (current == NULL) {
-            multipleQueues[6]->head = entry;
-        } else {   
-            while (current->next != NULL) {
-                current = current->next;
-            }
-            entry->pcbEntry.state = BLOCKED;
-            current->next = entry;
-        }    
-    }
-    return 1;
-}
-
 PCBNodeADT getCurrentProcess(){
     return current;
 }
@@ -720,6 +699,80 @@ void removeFromPDs(ProcessControlBlockADT process, IPCBufferADT buffToRemove){
         if(process->pdTable[i] == buffToRemove){
             process->pdTable[i] = NULL;
         }
+    }
+}
+
+void *sysMalloc(ProcessControlBlockADT process, uint64_t size){
+    void *allocation = allocMemory(size + sizeof(ProcessAllocations));
+    if(allocation == NULL){
+        return NULL;
+    }
+    void *toReturn = (void *)((uint64_t)allocation + sizeof(ProcessAllocations));
+    ProcessAllocations *pAllocation = (ProcessAllocations *) allocation;
+    pAllocation->allocation = toReturn;
+    pAllocation->next = NULL;
+    ProcessAllocations *current = process->firstAlloc;
+    if(current != NULL){
+        while(current->next != NULL){
+            current = current->next;
+        }
+        current->next = pAllocation;
+    } else{
+        process->firstAlloc = pAllocation;
+    }
+    return toReturn;
+}
+
+void *sysRealloc(ProcessControlBlockADT process, void *toRealloc, uint64_t size){
+    ProcessAllocations *current = process->firstAlloc;
+    ProcessAllocations *previous = NULL;
+    while(current != NULL && current->allocation != toRealloc){
+        previous = current;
+        current = current->next;
+    }
+    if(current != NULL){    // Error
+        return NULL;
+    }
+    ProcessAllocations *next = current->next;
+    current = (ProcessAllocations *) reAllocMemory((void *) current, size + sizeof(ProcessAllocations));
+    if(current == NULL){
+        previous->next = next;
+        return NULL;
+    }
+    current->next = next;
+    if(previous != NULL){
+        previous->next = current;
+    }
+    current->allocation = (void *)((uint64_t)current + sizeof(ProcessAllocations));
+    return current->allocation;
+}
+void sysFree(ProcessControlBlockADT process, void *toFree){
+    ProcessAllocations *current = process->firstAlloc;
+    ProcessAllocations *previous = NULL;
+    while(current != NULL && current->allocation != toFree){
+        previous = current;
+        current = current->next;
+    }
+    if(current == NULL){    // Error
+        return;
+    }
+    if(previous != NULL){
+        previous->next = current->next;
+    }
+    freeMemory((void *) current);
+    return;
+}
+
+static void freeAllocations(ProcessControlBlockADT process){
+    ProcessAllocations *current = process->firstAlloc;
+    if(current == NULL){
+        return;
+    }
+    ProcessAllocations *previous = NULL;
+    while(current != NULL){
+        previous = current;
+        current = current->next;
+        freeMemory(previous);
     }
 }
 

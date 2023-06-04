@@ -203,22 +203,19 @@ static uint64_t arqSysWrite(uint64_t pd, uint64_t buff, uint64_t count, uint64_t
 }
 
 static uint64_t arqSysMalloc(uint64_t size, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
-    void* ptr = allocMemory(size);
-    return ptr;
+    ProcessControlBlockADT currentProcess = getCurrentProcessEntry();
+    return sysMalloc(currentProcess, size);
 }
 
 static uint64_t arqSysFree(uint64_t ptr, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
-    if (ptr == NULL) 
-        return -1;
-    freeMemory((void*) ptr);
+    ProcessControlBlockADT currentProcess = getCurrentProcessEntry();
+    sysFree(currentProcess, (void*) ptr);
     return 0;
 }
 
 static uint64_t arqSysRealloc(uint64_t ptr, uint64_t size, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
-    if (ptr == NULL)
-        return -1;
-    void *new = reAllocMemory((void*) ptr, size);
-    return new;
+    ProcessControlBlockADT currentProcess = getCurrentProcessEntry();
+    return sysRealloc(currentProcess, (void*) ptr, size);
 }
 
 static uint64_t arqSysSemOpen(uint64_t sem_id, uint64_t initialValue, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
@@ -266,7 +263,8 @@ static uint64_t arqSysPriority(uint64_t pid, uint64_t newPriority, uint64_t nil3
 }
 
 static uint64_t arqSysChangeState(uint64_t pid, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
-    return changeState(pid);
+    // return changeState(pid);
+    return 0;
 }
 
 // Lo modifiqué por que no debería matar el proceso actual, si no el proceso con el pid dado.
