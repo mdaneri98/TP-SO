@@ -109,7 +109,7 @@ char *firstOcurrence(char *str, char c){
     char *tmp = str;
     for(int i=0; tmp[i] != '\0' ;i++)
         if(tmp[i] == c)
-            return tmp;
+            return tmp + i;
     return NULL;
 }
 

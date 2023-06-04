@@ -133,7 +133,7 @@ static void awaitCommand(int* idx, int* jdx) {
     *idx = checkCommand(lastCommand);
     
     /* Vemos el caso si el input fue pipeado */
-    // secondCommand = firstOccurence(lastCommand, '|');
+    secondCommand = firstOcurrence(lastCommand, '$');
     if (secondCommand == NULL) {
         *jdx = -1;
     } else {
