@@ -33,7 +33,6 @@ int filosopher(int argsc, char* argsv[]) {
         redraw(i, n, state, mutexSem);
         put_forks(i, n, state, mutexSem, s);
         redraw(i, n, state, mutexSem);
-        printf("Funcionando!");
     }
 
     return 0;
