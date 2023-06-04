@@ -191,19 +191,42 @@ static void runProgram(int idx, int jdx) {
     int background = lastCommand[commandLength-2] == '&';
     */
 
-
-
-    int pipefd[2];
-    _pipe(pipefd);
-
-
     if (idx >= 0 && idx < CMDS_COUNT) {
         if (jdx >= 0 && jdx < CMDS_COUNT) { /* Caso si el input está pipeado. */
+            int pipefd[2];
+            _pipe(pipefd);
+
             int argsc1 = getArguments(idx, lastCommand);
+            if (_sysFork() == 0) {
+                char** argumentsAux = malloc(sizeof(char*) * MAX_ARGS_COUNT);
+                for (int i = 0; i < argsc1; i++) {
+                    argumentsAux[i] = malloc(sizeof(char) * BUFFER_MAX_LENGTH);
+                    for (int j = 0; j < BUFFER_MAX_LENGTH; j++) {
+                        argumentsAux[i][j] = lastArguments[i][j];
+                    }
+                }
+
+                _close(1);
+                _dup2(1, pipefd[1]);
+
+                _sysExecve(commandsFunction[idx], argsc1, (char**) argumentsAux);
+            }
+            
             int argsc2 = getArguments(jdx, secondCommand);
+            if (_sysFork() == 0) {
+                char** argumentsAux = malloc(sizeof(char*) * MAX_ARGS_COUNT);
+                for (int i = 0; i < argsc2; i++) {
+                    argumentsAux[i] = malloc(sizeof(char) * BUFFER_MAX_LENGTH);
+                    for (int j = 0; j < BUFFER_MAX_LENGTH; j++) {
+                        argumentsAux[i][j] = lastArguments[i][j];
+                    }
+                }
 
-            //FIXME: Habría que forkear, y redirigir los pipes.
-
+                _close(0);
+                _dup2(0, pipefd[0]);
+                
+                _sysExecve(commandsFunction[idx], argsc2, (char**) argumentsAux);
+            }
         } else {
             if (_sysFork() == 0) {
                 int argsc = getArguments(idx, lastCommand);
@@ -215,9 +238,6 @@ static void runProgram(int idx, int jdx) {
                         lastArgumentsAux[i][j] = lastArguments[i][j];
                     }
                 }
-                
-                _close(1);
-                _dup2(1, pipefd[0]);
                 
                 _sysExecve(commandsFunction[idx], argsc, (char**) lastArgumentsAux);
             }
