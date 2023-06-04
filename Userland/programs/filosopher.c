@@ -4,6 +4,7 @@
 #include <filosopher.h>
 #include <syscalls.h>
 #include <string.h>
+#include <shared_variables.h>
 
 #define MAX_LENGTH 255
 
@@ -21,34 +22,18 @@ static void test(int i, int n, phylState* state, sem_t* s);
 /* --------------------- */
 
 
-char ansiArt[5] = { '.' };
 
 int filosopher(int argsc, char* argsv[]) {
     int i = stringToInt(argsv[1]);
     int n = stringToInt(argsv[2]);
-
-    char semName[] = "mutex";
-    sem_t* mutexSem = _sysSemOpen(semName, 0);
-
-    // Crear una matriz para almacenar los nombres de los semáforos
-    char semNames[n][MAX_LENGTH];
-    sem_t* s[n];
-
-    phylState state[n];
-    for (int i = 0; i < n; i++) {
-        state[i] = HUNGRY;
-        
-        // Crear el string utilizando el valor de 'i'
-        stringFormat(semNames[i], MAX_LENGTH, "filoSem_%d", i);
-        s[i] = _sysSemOpen(semNames[i], 1);
-    }
-
+    
     /* ¿Donde está el arte? */
     while (TRUE) {
         take_forks(i, n, state, mutexSem, s);
         redraw(i, n, state, mutexSem);
         put_forks(i, n, state, mutexSem, s);
         redraw(i, n, state, mutexSem);
+        printf("Funcionando!");
     }
 
     return 0;

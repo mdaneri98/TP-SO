@@ -209,9 +209,6 @@ static void runProgram(int idx, int jdx) {
                     }
                 }
                 
-                // printf("Habemus");
-
-
                 _sysExecve(commandsFunction[idx], argsc, (char**) lastArgumentsAux);
             }
         }

@@ -35,7 +35,7 @@ uint64_t* semOpen(char* semId, uint64_t currentValue){
         semNode* newNode = allocSemaphore(); 
         semaphoreQueue.head = newNode;
         semaphoreQueue.tail = newNode;
-        newNode->semaphore.name = semId;
+        stringCopy(newNode->semaphore.name, 255, semId);
         newNode->semaphore.currentValue = currentValue;
         newNode->semaphore.mutex = 0;
         newNode->nextNode = NULL;
@@ -55,7 +55,7 @@ uint64_t* semOpen(char* semId, uint64_t currentValue){
         /* Si no había un semáforo con el nombre dado, lo creamos. */
         semNode* newNode = allocSemaphore();
         semaphoreQueue.tail->nextNode = newNode;
-        newNode->semaphore.name = semId;
+        stringCopy(newNode->semaphore.name, 255, semId);
         newNode->semaphore.currentValue = currentValue;
         newNode->semaphore.mutex = 0;
         newNode->nextNode = NULL;

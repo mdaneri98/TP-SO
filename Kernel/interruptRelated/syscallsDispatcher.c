@@ -15,7 +15,7 @@
 #include <ps.h>
 #include <sync.h>
 
-#define TOTAL_SYSCALLS 36
+#define TOTAL_SYSCALLS 37
 #define AUX_BUFF_DIM 512
 
 #define ERROR -1
@@ -119,8 +119,8 @@ void setSyscalls(){
     syscalls[33] = (SyscallVec) arqSysFree;
     syscalls[34] = (SyscallVec) arqSysRealloc;
 
-    syscalls[32] = (SyscallVec) arqSysSetToForeground;
-    syscalls[33] = (SyscallVec) arqSysSetToBackground;
+    syscalls[35] = (SyscallVec) arqSysSetToForeground;
+    syscalls[36] = (SyscallVec) arqSysSetToBackground;
 }
 
 uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t rcx, uint64_t r8, uint64_t r9, uint64_t rsp) {    
