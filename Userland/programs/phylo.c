@@ -24,6 +24,7 @@ int phylo(int argsc, char* argsv[]) {
 
     for (int i = 0; i < n; i++) {
         state[i] = HUNGRY;
+        ansiArt[i] = '.';
         
         // Crear el string utilizando el valor de 'i'
         stringFormat(semNames[i], BUFFER_MAX_LENGTH, "filoSem_%d", i);
@@ -33,11 +34,14 @@ int phylo(int argsc, char* argsv[]) {
     char semName[] = "mutex";
     mutexSem = _sysSemOpen(semName, 0);
 
-    for (int i = 0; i < n; i++) {
+    int i;
+    int a,b,c,d,e,f;
+    for (i = 0; i < n; i++) {
         if (_sysFork() == 0) {
+
             char** newArgsv = malloc(sizeof(char*) * 3);
-            for (int i = 0; i < 3; i++) {
-                newArgsv[i] = malloc(sizeof(char) * BUFFER_MAX_LENGTH);
+            for (int j = 0; j < 3; j++) {
+                newArgsv[j] = malloc(sizeof(char) * BUFFER_MAX_LENGTH);
             }
             stringCopy(newArgsv[0], BUFFER_MAX_LENGTH, "philosopher");
             stringCopy(newArgsv[2], BUFFER_MAX_LENGTH, argsv[1]);        
@@ -46,11 +50,11 @@ int phylo(int argsc, char* argsv[]) {
             stringFormat(aux, BUFFER_MAX_LENGTH, "%d", i);
             stringCopy(newArgsv[1], BUFFER_MAX_LENGTH, aux);
 
-
-     
             _sysExecve(filosopher, argsc, newArgsv);
         } 
     }
+
+    printf("Salio");
     
     _wait();
 

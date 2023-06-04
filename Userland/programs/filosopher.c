@@ -8,8 +8,8 @@
 
 #define MAX_LENGTH 255
 
-#define LEFT (i+n-1) % n
-#define RIGHT (i+1) % n
+#define LEFT (index+n-1) % n
+#define RIGHT (index+1) % n
 
 /* Prototypes */
 
@@ -24,55 +24,55 @@ static void test(int i, int n, phylState* state, sem_t* s);
 
 
 int filosopher(int argsc, char* argsv[]) {
-    int i = stringToInt(argsv[1]);
+    int index = stringToInt(argsv[1]);
     int n = stringToInt(argsv[2]);
     
     /* ¿Donde está el arte? */
     while (TRUE) {
-        take_forks(i, n, state, mutexSem, s);
-        redraw(i, n, state, mutexSem);
-        put_forks(i, n, state, mutexSem, s);
-        redraw(i, n, state, mutexSem);
+        take_forks(index, n, state, mutexSem, s);
+        redraw(index, n, state, mutexSem);
+        put_forks(index, n, state, mutexSem, s);
+        redraw(index, n, state, mutexSem);
     }
 
     return 0;
 }
 
-static void redraw(int i, int n, phylState* state, sem_t* mutexSem) {
+static void redraw(int index, int n, phylState* state, sem_t* mutexSem) {
     _sysSemWait(mutexSem);
-    if (state[i] == EATING)
-        ansiArt[i] = 'E' ;
+    if (state[index] == EATING)
+        ansiArt[index] = 'E' ;
     else 
-        ansiArt[i] = '.';
+        ansiArt[index] = '.';
 
     
-    for (int i = 0; i < n; i++) {
-        printf("%c ", ansiArt[i]);
-        printf("\n");
+    for (int j = 0; j < n; j++) {
+        putChar(ansiArt[j]);
     }
+    printf("\n");
     _sysSemPost(mutexSem);
 }
 
-static void take_forks(int i, int n, phylState* state, sem_t* mutexSem, sem_t s[]) {
+static void take_forks(int index, int n, phylState* state, sem_t* mutexSem, sem_t s[]) {
     _sysSemWait(mutexSem);
-    state[i] = HUNGRY;
-    test(i, n, state, s);
+    state[index] = HUNGRY;
+    test(index, n, state, s);
     _sysSemPost(mutexSem);
-    _sysSemWait(s[i]);
+    _sysSemWait(s[index]);
 }
 
-static void put_forks(int i, int n, phylState* state, sem_t* mutexSem, sem_t s[]) {
+static void put_forks(int index, int n, phylState* state, sem_t* mutexSem, sem_t s[]) {
     _sysSemWait(mutexSem);
-    state[i] = THINKING;
+    state[index] = THINKING;
     test(LEFT, n, state, s);
     test(RIGHT, n, state, s);
     _sysSemPost(mutexSem);
 }
 
-static void test(int i, int n, phylState* state, sem_t s[]) {
-    if (state[i] == HUNGRY && state[LEFT] != EATING && state[RIGHT] != EATING) {
-        state[i] = EATING;
-        _sysSemPost(s[i]);
+static void test(int index, int n, phylState* state, sem_t s[]) {
+    if (state[index] == HUNGRY && state[LEFT] != EATING && state[RIGHT] != EATING) {
+        state[index] = EATING;
+        _sysSemPost(s[index]);
     }
 }
 

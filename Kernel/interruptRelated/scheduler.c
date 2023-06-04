@@ -472,7 +472,7 @@ int sysFork(void *currentProcessStack){
     newNode->pcbEntry.parentId = parentId;
     int i=0;
     while(currentNode->pcbEntry.childsIds[i++] != 0);
-    currentNode->pcbEntry.childsIds[i] = newNode->pcbEntry.id;
+    currentNode->pcbEntry.childsIds[i-1] = newNode->pcbEntry.id;
 
     insertInQueue(newNode);
 
