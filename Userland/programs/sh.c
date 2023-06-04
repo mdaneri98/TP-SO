@@ -190,6 +190,13 @@ static void runProgram(int idx, int jdx) {
     int commandLength = stringLength(lastCommand);
     int background = lastCommand[commandLength-2] == '&';
     */
+
+
+
+    int pipefd[2];
+    _pipe(pipefd);
+
+
     if (idx >= 0 && idx < CMDS_COUNT) {
         if (jdx >= 0 && jdx < CMDS_COUNT) { /* Caso si el input está pipeado. */
             int argsc1 = getArguments(idx, lastCommand);
@@ -208,6 +215,9 @@ static void runProgram(int idx, int jdx) {
                         lastArgumentsAux[i][j] = lastArguments[i][j];
                     }
                 }
+                
+                _close(1);
+                _dup2(1, pipefd[0]);
                 
                 _sysExecve(commandsFunction[idx], argsc, (char**) lastArgumentsAux);
             }

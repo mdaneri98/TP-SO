@@ -31,6 +31,24 @@ GLOBAL _getPid
 GLOBAL _sysMalloc
 GLOBAL _sysFree
 GLOBAL _sysRealloc
+GLOBAL _pipe
+GLOBAL _dup2
+GLOBAL _close
+
+_pipe:
+    mov rax, 30
+    int 80h
+    ret
+
+_dup2:
+    mov rax, 37
+    int 80h
+    ret
+
+_close
+    mov rax, 31
+    int 80h
+    ret
 
 _sysMalloc:
     mov rax, 32

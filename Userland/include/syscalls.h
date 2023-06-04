@@ -53,6 +53,9 @@ void *_sysMalloc(uint64_t size);
 void _sysFree(void *ptr);
 void *_sysRealloc(void *ptr, uint64_t size);
 
+int _pipe(int* pipefd);
+int _dup2(int oldfd, int newfd);
+int _close(int fd);
 
 uint64_t _sysSemDown(sem_t* sem);
 uint64_t _sysSemUp(sem_t* sem);

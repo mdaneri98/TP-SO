@@ -35,7 +35,6 @@ int phylo(int argsc, char* argsv[]) {
     mutexSem = _sysSemOpen(semName, 0);
 
     int i;
-    int a,b,c,d,e,f;
     for (i = 0; i < n; i++) {
         if (_sysFork() == 0) {
 
@@ -53,8 +52,6 @@ int phylo(int argsc, char* argsv[]) {
             _sysExecve(filosopher, argsc, newArgsv);
         } 
     }
-
-    printf("Salio");
     
     _wait();
 
