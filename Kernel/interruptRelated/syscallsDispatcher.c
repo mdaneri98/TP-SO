@@ -15,7 +15,7 @@
 #include <ps.h>
 #include <sync.h>
 
-#define TOTAL_SYSCALLS 37
+#define TOTAL_SYSCALLS 38
 #define AUX_BUFF_DIM 512
 
 #define ERROR -1
@@ -69,6 +69,8 @@ static uint64_t arqSysExit(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t
 static uint64_t arqSysSetToForeground(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 static uint64_t arqSysSetToBackground(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 
+static uint64_t arqSysDup(uint64_t oldPd, uint64_t newPd, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5);
+
 typedef uint64_t (*SyscallVec)(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t r9, uint64_t rsp);
 
 // SYSCALLS ARRAY
@@ -121,6 +123,7 @@ void setSyscalls(){
 
     syscalls[35] = (SyscallVec) arqSysSetToForeground;
     syscalls[36] = (SyscallVec) arqSysSetToBackground;
+    syscalls[37] = (SyscallVec) arqSysDup;
 }
 
 uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t rcx, uint64_t r8, uint64_t r9, uint64_t rsp) {    
@@ -433,4 +436,9 @@ static uint64_t arqSysSetToBackground(uint64_t nil1, uint64_t nil2, uint64_t nil
     ProcessControlBlockADT process = getCurrentProcessEntry();
     setProcessToBackground(process);
     return 0;
+}
+
+static uint64_t arqSysDup(uint64_t oldPd, uint64_t newPd, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5){
+    ProcessControlBlockADT currentProcess = getCurrentProcessEntry();
+    return dupPd(currentProcess, oldPd, newPd);
 }

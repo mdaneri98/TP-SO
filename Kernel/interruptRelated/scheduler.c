@@ -783,3 +783,12 @@ uint32_t getProcessId(ProcessControlBlockADT process){
 uint64_t getTSCFrequency(){
     return TSCFrequency;
 }
+
+int dupPd(ProcessControlBlockADT process, uint64_t oldPd, uint64_t newPd){
+    if(oldPd >= PD_SIZE || newPd >= PD_SIZE || process->pdTable[oldPd] != NULL){
+        return -1;
+    }
+    process->pdTable[oldPd] = process->pdTable[newPd];
+    process->pdTable[newPd] = NULL;
+    return 0;
+}

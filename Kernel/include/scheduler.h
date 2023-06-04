@@ -39,5 +39,6 @@ void setProcessToBackground(ProcessControlBlockADT process);
 void *sysMalloc(ProcessControlBlockADT process, uint64_t size);
 void *sysRealloc(ProcessControlBlockADT process, void *toRealloc, uint64_t size);
 void sysFree(ProcessControlBlockADT process, void *toFree);
+int dupPd(ProcessControlBlockADT process, uint64_t oldPd, uint64_t newPd);
 
 #endif /* SCHEDULER_H */
