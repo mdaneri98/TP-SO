@@ -23,6 +23,7 @@ int openPipe(ProcessControlBlockADT process, int pipeFds[2]){
                 setBufferState(pipe[dim], WRITE);
             }
             pipeFds[dim] = i;
+            setProcessPd(process, pipe[dim], i);
             dim++;
         }
     }

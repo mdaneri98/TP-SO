@@ -801,3 +801,10 @@ void sysClosePd(ProcessControlBlockADT process, IPCBufferADT toClose, uint32_t p
         return 0;
     }
 }
+
+void setProcessPd(ProcessControlBlockADT process, IPCBufferADT buffer, uint64_t index){
+    if(process == NULL || buffer != NULL || index >= PD_SIZE){
+        return;
+    }
+    process->pdTable[index] = index;
+}

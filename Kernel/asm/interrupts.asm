@@ -185,7 +185,6 @@ _irq00Handler:
 
 	endHardwareInterrupt
 	popState
-	sti
 	iretq
 
 
