@@ -13,6 +13,13 @@ char semNames[MAX_PHILOSOPHERS][BUFFER_MAX_LENGTH];
 char ansiArt[MAX_PHILOSOPHERS];
 sem_t* mutexSem;
 
+/* Por limitación de rbp, _fork usa las mismas variables locales luego de realizarse, por ende, i debe ser global.
+ */
+int filosopherNumber;
+int argNumber;
+char aux[BUFFER_MAX_LENGTH] = { '0' };
+char** newArgsv;
+
 /* FIXME: Puede haber un error al crear el nuevo argsv. */
 int phylo(int argsc, char* argsv[]) {
     if (argsc <= 1) {
@@ -34,23 +41,21 @@ int phylo(int argsc, char* argsv[]) {
     char semName[] = "mutex";
     mutexSem = _sysSemOpen(semName, 0);
 
-    int i;
-    for (i = 0; i < n; i++) {
+    for (filosopherNumber = 0; filosopherNumber < n; filosopherNumber++) {
         if (_sysFork() == 0) {
-
-            char** newArgsv = malloc(sizeof(char*) * 3);
-            for (int j = 0; j < 3; j++) {
-                newArgsv[j] = malloc(sizeof(char) * BUFFER_MAX_LENGTH);
+            newArgsv = malloc(sizeof(char*) * 3);
+            for (argNumber = 0; argNumber < 3; argNumber++) {
+                newArgsv[argNumber] = malloc(sizeof(char) * BUFFER_MAX_LENGTH);
             }
             stringCopy(newArgsv[0], BUFFER_MAX_LENGTH, "philosopher");
             stringCopy(newArgsv[2], BUFFER_MAX_LENGTH, argsv[1]);        
             
-            char aux[BUFFER_MAX_LENGTH] = { '0' };
-            stringFormat(aux, BUFFER_MAX_LENGTH, "%d", i);
+            stringFormat(aux, BUFFER_MAX_LENGTH, "%d", filosopherNumber);
             stringCopy(newArgsv[1], BUFFER_MAX_LENGTH, aux);
 
             _sysExecve(filosopher, argsc, newArgsv);
         } 
+
     }
     
     _wait();

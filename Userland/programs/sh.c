@@ -53,7 +53,6 @@ static void sleep();
 
 static void clear();
 static void beep(int argsc, char* argsv[]);
-static void help(int argsc, char* argsv[]);
 static void clock(int argsc, char* argsv[]);
 static void loadCommands();
 static void printRegisters(int argsc, char* argsv[]);

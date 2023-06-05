@@ -1,7 +1,8 @@
+
 #include <sh.h>
+#include <help.h>
 
-
-static void help() {
+int help(int argsc, char* argsv[]) {
     char *helpStr = "Predefined terminal programs:";
     printf("%s\n", helpStr);
     char **lines = getShLines();
