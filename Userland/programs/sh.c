@@ -16,6 +16,8 @@
 #include <filter.h>
 #include <wc.h>
 #include <clock.h>
+#include <invalid_op_code.h>
+#include <div_zero.h>
 
 
 #define BUFFER_MAX_LENGTH 250
@@ -60,8 +62,6 @@ static void printRegisters(int argsc, char* argsv[]);
 static void increment(int argsc, char* argsv[]);
 static void decrement(int argsc, char* argsv[]);
 static void playTron(int argsc, char* argsv[]);
-static void divZero(int argsc, char* argsv[]);
-static void invalidOpCode(int argsc, char* argsv[]);
 static void memoryDump(int argsc, char* argsv[]);
 static void refresh();
 static void clearLines();
@@ -447,60 +447,6 @@ static void playTron(int argsc, char* argsv[]){
     refresh();
 }
 
-static void divZero(int argsc, char* argsv[]){
-    runDivzero();
-}
-
-static void invalidOpCode(int argsc, char* argsv[]){
-    printf("About to cause an exception...\n");
-    _sleep(1500);
-    runInvalidOpcode();
-}
-
-static void memoryDump(int argsc, char* argsv[]){
-    uint8_t dump[32];
-    unsigned long direction = 0;
-    /*
-    if(*argument == 0 || !isHex(argument)){
-        char *argErr = "You need to specify a memory direction in hex format.";
-        stringCopy(lines[lineCount++ % BUFFER_MAX_LENGTH], BUFFER_MAX_LENGTH, argErr);
-        printString(argErr);
-        putChar('\n');
-        return;
-    }
-    else if(*argument == '0' && *(argument + 1) == 0)
-        direction = 0;
-    else{
-        direction = stringHexToNum(argument);
-    }
-*/
-
-    _memoryDump((uint64_t *)direction, dump);
-    clearLine(lines[lineCount % MAX_LINES]);
-    
-    printf("%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\n", 
-    dump[0], dump[1], dump[2], dump[3], dump[4], dump[5], dump[6], dump[7],
-    dump[8], dump[9], dump[10], dump[11], dump[12], dump[13], dump[14], dump[15]);
-
-    stringFormat(lines[lineCount % MAX_LINES], BUFFER_MAX_LENGTH, 
-    "%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x",
-    dump[0], dump[1], dump[2], dump[3], dump[4], dump[5], dump[6], dump[7],
-    dump[8], dump[9], dump[10], dump[11], dump[12], dump[13], dump[14], dump[15]);
-
-    clearLine(lines[++lineCount % MAX_LINES]);
-    
-    printf("%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\n", 
-    dump[16], dump[17], dump[18], dump[19], dump[20], dump[21], dump[22], dump[23],
-    dump[24], dump[25], dump[26], dump[27], dump[28], dump[29], dump[30], dump[31]);
-    
-    stringFormat(lines[lineCount % MAX_LINES], BUFFER_MAX_LENGTH, 
-    "%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x\t%x",
-    dump[16], dump[17], dump[18], dump[19], dump[20], dump[21], dump[22], dump[23],
-    dump[24], dump[25], dump[26], dump[27], dump[28], dump[29], dump[30], dump[31]);
-
-
-    lineCount++;
-}
 
 static void pageFault(){
     printf("About to cause an exception...");
