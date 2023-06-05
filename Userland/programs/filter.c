@@ -17,16 +17,20 @@ int filter(int argsc, char* argsv[]) {
     //recibe por stdin o por un buffer
     if (argsc <= 1) {
         int i = 0;
-        while(((t = getChar()) != -1) && i < BUFFER_MAX_LENGTH){
-            if(isVocal(t)){
+        while(((t = getChar()) != -1)){
+            if(!isVocal(t)){
                 putChar(t);
             }
         }
     } else {
-        stringFilterCopy(argsv[1]);
-        printString(filterBuff);
-        cleanBuffer(filterBuff);
+        for(int i=1; i<argsc ;i++){
+            stringFilterCopy(argsv[i]);
+            printString(filterBuff);
+            cleanBuffer(filterBuff);
+            putChar(' ');
+        }
     }
+    putChar('\n');
     return 0;
 }
 

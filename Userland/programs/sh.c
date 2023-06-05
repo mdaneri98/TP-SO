@@ -210,7 +210,7 @@ static void runProgram(int idx, int jdx) {
 
                 _sysExecve(commandsFunction[idx], argsc1, (char**) argumentsAux);
             }
-            
+            _yield();
             int argsc2 = getArguments(jdx, secondCommand);
             if (_sysFork() == 0) {
                 char** argumentsAux = malloc(sizeof(char*) * MAX_ARGS_COUNT);
@@ -224,8 +224,11 @@ static void runProgram(int idx, int jdx) {
                 _close(0);
                 _dup2(0, pipefd[0]);
                 
-                _sysExecve(commandsFunction[idx], argsc2, (char**) argumentsAux);
+                _sysExecve(commandsFunction[jdx], argsc2, (char**) argumentsAux);
             }
+            _yield();
+            _close(pipefd[0]);
+            _close(pipefd[1]);
         } else {
             if (_sysFork() == 0) {
                 int argsc = getArguments(idx, lastCommand);

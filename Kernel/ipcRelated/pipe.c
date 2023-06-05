@@ -42,7 +42,7 @@ int openPipe(ProcessControlBlockADT process, int pipeFds[2]){
 
     dim = 0;
     ProcessControlBlockADT aux;
-    for(int i=0; i < PD_SIZE && i < 2 ;i++){
+    for(int i=0; i < PD_SIZE && dim < 2 ;i++){
         aux = getReferenceByIndex(pipe[dim], i);
         if(aux == NULL){
             setReferenceByIndex(pipe[dim], process, i);
@@ -57,18 +57,18 @@ int openPipe(ProcessControlBlockADT process, int pipeFds[2]){
     return 0;
 }
 
-//copies al the buffered data from the wEnd pipe to the rEnd pipe, depending the space available in the rEnd
-static void updateOppositeEnd(IPCBufferADT bufferEnd){
-    if(bufferEnd == NULL){
+// Copies al the buffered data from the wEnd pipe to the rEnd pipe, depending the space available in the rEnd
+static void updateOppositeEnd(IPCBufferADT wEnd){
+    if(wEnd == NULL){
         return;
     }
     uint64_t bytesWritten;
-    char *auxBuff[BUFF_SIZE] = { 0 };
-    bytesWritten = copyFromBuffer(auxBuff, bufferEnd, BUFF_SIZE);
+    char auxBuff[BUFF_SIZE] = { 0 };
+    bytesWritten = copyFromBuffer(auxBuff, wEnd, BUFF_SIZE);
     if(bytesWritten != 0){
-        IPCBufferADT otherEnd = getBufferOppositeEnd(bufferEnd);
-        copyToBuffer(otherEnd, auxBuff, bytesWritten);
-        setBufferReferencesReady(otherEnd);
+        IPCBufferADT rEnd = getBufferOppositeEnd(wEnd);
+        copyToBuffer(rEnd, auxBuff, bytesWritten);
+        setBufferReferencesReady(rEnd);
     }
     return;
 }
@@ -76,11 +76,20 @@ static void updateOppositeEnd(IPCBufferADT bufferEnd){
 //copies the count given from the rEnd to the writeBuff
 uint64_t readPipe(IPCBufferADT rEnd, char *buffToFill, uint64_t count){
     BufferState buffState = getBufferState(rEnd);
-    if(rEnd != NULL && buffToFill != NULL && count > 0 && getBufferDim(rEnd) > 0 && (buffState == READ || buffState == READ_WRITE)){
-        uint64_t bytesWritten = readBuffer(rEnd, buffToFill, count);
+    if(rEnd != NULL && buffToFill != NULL && count > 0 && (buffState == READ || buffState == READ_WRITE)){
+        if(getBufferDim(rEnd) > 0){
+            uint64_t bytesWritten = readBuffer(rEnd, buffToFill, count);
 
-        updateOppositeEnd(getBufferOppositeEnd(rEnd));
-        return bytesWritten;
+            updateOppositeEnd(getBufferOppositeEnd(rEnd));
+            return bytesWritten;
+        } else{
+            IPCBufferADT wEnd = getBufferOppositeEnd(rEnd);
+            if(getBufferState(wEnd) == CLOSED){
+                char c = '\0';
+                copyToBuffer(rEnd, &c, 1);
+                readBuffer(rEnd, buffToFill, 1);
+            }
+        }
     }
     return 0;
 }
@@ -89,7 +98,7 @@ uint64_t writePipe(IPCBufferADT wEnd, char *dataToRead, uint64_t count){
     BufferState buffState = getBufferState(wEnd);
     if(wEnd != NULL && dataToRead != NULL && count > 0 && getBufferDim(wEnd) < BUFF_SIZE - 1  && (buffState == WRITE || buffState == READ_WRITE)){
         uint64_t bytesWritten = writeBuffer(wEnd, dataToRead, count);
-        updateOppositeEnd(getBufferOppositeEnd(wEnd));
+        updateOppositeEnd(wEnd);
         return bytesWritten;
     }
     return 0;
