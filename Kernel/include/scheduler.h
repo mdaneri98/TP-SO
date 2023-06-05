@@ -42,5 +42,6 @@ void sysFree(ProcessControlBlockADT process, void *toFree);
 int dupPd(ProcessControlBlockADT process, uint64_t oldPd, uint64_t newPd);
 void sysClosePd(ProcessControlBlockADT process, IPCBufferADT toClose, uint32_t pd);
 void setProcessPd(ProcessControlBlockADT process, IPCBufferADT buffer, uint64_t index);
+int isInForeground(ProcessControlBlockADT process);
 
 #endif /* SCHEDULER_H */

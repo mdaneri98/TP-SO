@@ -8,16 +8,17 @@ char c;
 int cat(int argsc, char* argsv[]) {
     
     if (argsc <= 1) {
-        int i;
-        //while hasta que presionen ctrl+c
-        while(1){
-            i = 0;
-            while(((c = getChar()) != -1) && i < BUFFER_MAX_LENGTH){
-                putChar(c);
-            }
+        char c;
+        //while hasta que presionen ctrl+d (EOF)
+        while(((c = getChar()) != -1)){
+            putChar(c);
         }
     } else {
-        printString(argsv[1]);
+        for(int i=1; i<argsc ;i++){
+            printString(argsv[i]);
+            putChar(' ');
+        }
+        putChar('\n');
     }
     return 0;
 }

@@ -395,10 +395,12 @@ static uint64_t arqSysIdle(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t
 
 static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
     ProcessControlBlockADT current = getCurrentProcessEntry();
+    setProcessToBackground(current);
     while(hasOpenChilds(current)){
         setProcessState(current, BLOCKED);
         _int20h();
     }
+    setProcessToForeground(current);
     return 0;
 }
 

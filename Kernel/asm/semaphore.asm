@@ -15,6 +15,7 @@ section .text
 
 _semLock:
 
+.init:
     MOV rax, 1
     XCHG rax, [rdx]
     CMP rax, 0
@@ -28,13 +29,11 @@ _semLock:
 
 .interrupt: 
     int 0x20
+    jmp .init
 
 .interruptAndSetReg:
     MOV QWORD [rdx], 0                ; Liberamos el mutex.
-    int 0x20
-
-.scheduler: 
-    int 0x20
+    ret
 
 
 ;---------------------------------------------------------------------------------------------------|
@@ -47,13 +46,15 @@ _semLock:
 ;---------------------------------------------------------------------------------------------------|
 _semUnlock:
 
+.init:
     MOV rax, 1
     XCHG rax, [rdx]
     CMP rax, 0
     JNE .interrupt
-    ADD QWORD [rdi], 1              ; Incrementamos el semaforo.
+    ADD QWORD [rdi], 1                    ; Incrementamos el semaforo.
     MOV QWORD [rdx], 0                    ; Liberamos el mutex.    
     RET
 
 .interrupt: 
     int 0x20
+    jmp .init

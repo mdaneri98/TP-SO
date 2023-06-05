@@ -235,6 +235,7 @@ void createInit() {
     initNode->pcbEntry.agingInterval = 0;
     initNode->pcbEntry.quantums = 1;
     initNode->pcbEntry.priority = 0;
+    initNode->pcbEntry.foreground = TRUE;
     level0Queue.head = initNode;
 
     foreground = initNode;
@@ -350,6 +351,9 @@ static void insertInBlockedQueue(PCBNodeCDT *node){
 }
 
 static int deleteProcess(PCBNodeCDT *toDelete){
+    if(foreground == &toDelete->pcbEntry){
+        foreground = NULL;
+    }
     freeAllocations(&toDelete->pcbEntry);
     closePDs(toDelete->pcbEntry.id);
     checkChilds(&toDelete->pcbEntry);
@@ -451,6 +455,7 @@ int sysFork(void *currentProcessStack){
     newNode->pcbEntry.agingInterval = currentNode->pcbEntry.agingInterval;
     newNode->pcbEntry.counterInit = currentNode->pcbEntry.counterInit;
     newNode->pcbEntry.firstAlloc = currentNode->pcbEntry.firstAlloc;
+    newNode->pcbEntry.foreground = currentNode->pcbEntry.foreground;
     for(int i=0; i<PD_SIZE ;i++){
         IPCBufferADT iBuffer = currentNode->pcbEntry.pdTable[i];
         if(iBuffer != NULL){
@@ -621,6 +626,9 @@ static void setParentReady(ProcessControlBlockADT pcbEntry){
         parent->childsIds[i] = parent->childsIds[i] == pcbEntry->id ? 0 : parent->childsIds[i];
     }
     setProcessState(parent, READY);
+    if(pcbEntry->foreground){
+        setProcessToForeground(parent);
+    }
     return;
 }
 
@@ -681,6 +689,9 @@ static void setForegroundProcess(ProcessControlBlockADT process){
 
 void setProcessToForeground(ProcessControlBlockADT process){
     process->foreground = TRUE;
+    if(foreground == NULL){
+        foreground = process;
+    }
 }
 
 void setProcessToBackground(ProcessControlBlockADT process){
@@ -807,4 +818,8 @@ void setProcessPd(ProcessControlBlockADT process, IPCBufferADT buffer, uint64_t 
         return;
     }
     process->pdTable[index] = index;
+}
+
+int isInForeground(ProcessControlBlockADT process){
+    return process->foreground;
 }

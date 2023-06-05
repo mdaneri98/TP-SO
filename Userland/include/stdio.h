@@ -5,11 +5,11 @@
 
 #define NULL (void *) 0
 
-void printf(const char *str, ...);
+int printf(const char *str, ...);
 
 void scanf(const char *str, ...);
 
-void printString(char* buffer);
+int printString(char* buffer);
 
 char getChar();
 

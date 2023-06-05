@@ -17,12 +17,15 @@ printf implementation. Source:
 https://www.equestionanswers.com/c/c-printf-scanf-working-principle.php#:~:text=printf%20or%20print%20function%20in,arguments%20function%20or%20vararg%20function.
 Accepts integers, pointers, chars, strings, and hex numbers, not supported with floating point numbers.
 */
-void printf(const char *str, ...){
+int printf(const char *str, ...){
     char *lengthErr = "Exceded length of the buffer.\n";
     int length = stringLength(str);
     if(length > BUFFER_MAX_LENGTH){
-        _write(STDERR, lengthErr, stringLength(lengthErr));
-        return;
+        unsigned int count = _write(STDERR, lengthErr, stringLength(lengthErr));
+        if(count == 0){
+            return -1;  // EOF
+        }
+        return count;
     }    
     va_list vl;
     char buff[BUFFER_MAX_LENGTH] = {0};
@@ -80,13 +83,20 @@ void printf(const char *str, ...){
     
     if(j > BUFFER_MAX_LENGTH){
         char *buffOverflow = "Reached a buffer Overflow.\n";
-        _write(STDERR, buffOverflow, stringLength(buffOverflow));
-        return;
+        unsigned int count = _write(STDERR, buffOverflow, stringLength(buffOverflow));
+        if(count == 0){
+            return -1;
+        }
+        return count;
     }
 
-    _write(STDOUT, buff, j);
+    unsigned int count = _write(STDOUT, buff, j);
     for(int i=0; i<BUFFER_MAX_LENGTH ;buff[i++] = 0);
     for(int i=0; i<TMP_LENGTH ; tmp[i++] = 0);
+    if(count == 0){
+        return -1;
+    }
+    return count;
 }
 
 void scanf(const char* str, ...){
@@ -245,18 +255,25 @@ void stringFormat(char *dest, unsigned int destSize, const char *str, ...){
     for(int i=0; i<TMP_LENGTH ;tmp[i++] = 0);
 }
 
-void printString(char* buffer) {
-    _write(STDOUT, buffer, stringLength(buffer));
+int printString(char* buffer) {
+    unsigned int count = _write(STDOUT, buffer, stringLength(buffer));
+    if(count == 0){
+        return -1;
+    }
+    return count;
 }
 
 char getChar() {
     char c = 0;
     int count = _read(STDIN, &c, 1);
-    if(count < 0)
+    if(count < 1)
         return -1;
     return c;
 }
 
 int putChar(char c){
-    return _write(STDOUT, &c, 1);
+    if(_write(STDOUT, &c, 1) == 0){
+        return -1;
+    }
+    return 1;
 }

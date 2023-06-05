@@ -132,6 +132,7 @@ void addKey(uint8_t alKey) {
         return;
     } else if(leftCntrl && key == D_CODE){
         toBuff('\0', key);  // EOF
+        return;
     }
     if(isCapslock(idx)){
         capsLock();

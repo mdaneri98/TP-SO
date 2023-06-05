@@ -68,6 +68,8 @@ uint64_t readBuffer(IPCBufferADT rEnd, char *buffToFill, uint64_t count){
         while(rEnd->bufferDim > 0 && bytesRead < count){
             c = rEnd->buffer[rEnd->cursor % BUFF_SIZE];
             if(c == '\0'){ // EOF
+                rEnd->cursor++;
+                rEnd->bufferDim--;
                 break;
             }
             buffToFill[bytesRead++] = c;
@@ -204,9 +206,17 @@ void destroyBuffer(IPCBufferADT buffToDestroy){
 }
 
 void setBufferReferencesReady(IPCBufferADT buffer){
-    for(int i=0; i<PD_SIZE ;i++){
-        if(buffer->references[i] != NULL){
-            setProcessState(buffer->references[i], READY);
+    if(buffer->buffId == PIPE){
+        for(int i=0; i<PD_SIZE ;i++){
+            if(buffer->references[i] != NULL){
+                setProcessState(buffer->references[i], READY);
+            }
+        }
+    } else {
+        for(int i=0; i<PD_SIZE ;i++){
+            if(buffer->references[i] != NULL && isInForeground(buffer->references[i])){
+                setProcessState(buffer->references[i], READY);
+            }
         }
     }
 }
