@@ -11,17 +11,16 @@ char countString[COUNT_BUFF_SIZE];
 int wc(int argsc, char* argsv[]) {
     //recibe por stdin o por un buffer
     if (argsc <= 1) {
-        count = 0;
+        count = 1;  /* Empieza por una línea. */
         while((i = getChar()) != -1){
             if(i == '\n'){
                 count++;
             }
+            putChar(i);
         }
         numToString(count, countString, COUNT_BUFF_SIZE);
-        printString(countString);
-    } 
-    /*else {
-        
-    }*/
+        printf(countString);
+    }
+    
     return 0;
 }

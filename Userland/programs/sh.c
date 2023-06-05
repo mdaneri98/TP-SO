@@ -133,7 +133,7 @@ static void awaitCommand(int* idx, int* jdx) {
     *idx = checkCommand(lastCommand);
     
     /* Vemos el caso si el input fue pipeado */
-    secondCommand = firstOcurrence(lastCommand, '$');
+    secondCommand = firstOcurrence(lastCommand, '|');
     if (secondCommand == NULL) {
         *jdx = -1;
     } else {
@@ -186,9 +186,8 @@ static int getArguments(int idx, char *cadena) {
 
 static void runProgram(int idx, int jdx) {    
     
-    int goBackground = FALSE;
     int commandLength = stringLength(lastCommand);
-    int background = lastCommand[commandLength-2] == '&';
+    int background = lastCommand[commandLength-1] == '&';
 
     if (idx >= 0 && idx < CMDS_COUNT) {
         if (jdx >= 0 && jdx < CMDS_COUNT) { /* Caso si el input está pipeado. */
@@ -242,7 +241,10 @@ static void runProgram(int idx, int jdx) {
                         lastArgumentsAux[i][j] = lastArguments[i][j];
                     }
                 }
-                _setToBackground();
+                
+                if (background != 0)
+                    _setToBackground();
+                
                 _sysExecve(commandsFunction[idx], argsc, (char**) lastArgumentsAux);
             }
         }
