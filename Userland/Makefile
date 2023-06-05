@@ -7,8 +7,9 @@ SOURCES:=$(foreach dir,$(DIRECTORIES),$(wildcard $(dir)/[^_]*.c))
 
 SOURCES_ASM=$(wildcard asm/*.asm)
 OBJECTS_ASM=$(SOURCES_ASM:asm/%.asm=asm/%.o)
+OBJECTS=$(SOURCES:%.c=%.o)
 
-all: $(MODULE)
+all: $(MODULE) $(OBJECTS)
 
 $(MODULE): $(SOURCES) $(OBJECTS_ASM)
 	$(GCC) $(GCCFLAGS) -I./include -T userland.ld _loader.c $(OBJECTS_ASM) $(SOURCES) -o $(MODULE)
@@ -16,6 +17,9 @@ $(MODULE): $(SOURCES) $(OBJECTS_ASM)
 
 asm/%.o : asm/%.asm
 	$(ASM) $(ASMFLAGS) $< -o $@
+
+%.o:%.c
+	$(GCC) $(GCCFLAGS) -I./include -c $< -o $@
 
 clean:
 	rm -rf *.o *.bin *.elf obj/*.asm.o programs/*.o

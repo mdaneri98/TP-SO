@@ -35,7 +35,7 @@ void setBufferOppositeEnd(IPCBufferADT buffer, IPCBufferADT buffEnd);
 IPCBufferADT getBufferOppositeEnd(IPCBufferADT buffer);
 uint16_t getBufferDim(IPCBufferADT buffer);
 
-void setReferenceByIndex(IPCBufferADT pdBuffer, ProcessControlBlockADT toSet, uint32_t index);
+int setReferenceByIndex(IPCBufferADT pdBuffer, ProcessControlBlockADT toSet, uint32_t index);
 void setBufferState(IPCBufferADT buffer, BufferState state);
 void setBufferId(IPCBufferADT buffer, BufferId id);
 IPCBufferADT getSTDIN();

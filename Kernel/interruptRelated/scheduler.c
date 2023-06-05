@@ -350,12 +350,12 @@ static void insertInBlockedQueue(PCBNodeCDT *node){
     }
 }
 
-static int deleteProcess(PCBNodeCDT *toDelete){
+static int deleteProcess(PCBNodeADT toDelete){
     if(foreground == &toDelete->pcbEntry){
         foreground = NULL;
     }
     freeAllocations(&toDelete->pcbEntry);
-    closePDs(toDelete->pcbEntry.id);
+    closePDs(&toDelete->pcbEntry);
     checkChilds(&toDelete->pcbEntry);
     setParentReady(&toDelete->pcbEntry);
     freeMemory(toDelete->pcbEntry.memoryFromMM);
@@ -364,25 +364,14 @@ static int deleteProcess(PCBNodeCDT *toDelete){
     return toDelete->pcbEntry.id;
 }
 
-static void closePDs(uint32_t pid){
-    if(pid == 0){
-        // pid 0 belongs to standart input/output, can't close
-        return;
-    }
-    PCBNodeCDT *node = level0Queue.head;
-    while(node != NULL){
-        if(node->pcbEntry.id == pid){
-            continue;
+static void closePDs(ProcessControlBlockADT process){
+    IPCBufferADT aux;
+    for(int i=0; i<PD_SIZE ;i++){
+        aux = process->pdTable[i];
+        if(aux != NULL){
+            process->pdTable[i] = NULL;
+            removeReferences(aux, process->id);
         }
-        IPCBufferADT aux;
-        for(int i=0; i<PD_SIZE ;i++){
-            aux = node->pcbEntry.pdTable[i];
-            if(aux != NULL){
-                node->pcbEntry.pdTable[i] = NULL;
-                removeReferences(node, pid);
-            }
-        }
-        node = node->next;
     }
 }
 
@@ -648,7 +637,9 @@ static void removeReferences(IPCBufferADT pdBuffer, uint32_t pid){
     for(int i=0; i<PD_SIZE ;i++){
         current = getReferenceByIndex(pdBuffer, i);
         if(current != NULL && current->id == pid){
-            setReferenceByIndex(pdBuffer, NULL, i);
+            if(setReferenceByIndex(pdBuffer, NULL, i) == TRUE && getBufferId(pdBuffer) == PIPE){
+                closePipe(pdBuffer);
+            }
         }
     }
 }
@@ -805,10 +796,11 @@ int dupPd(ProcessControlBlockADT process, uint64_t oldPd, uint64_t newPd){
 }
 
 void sysClosePd(ProcessControlBlockADT process, IPCBufferADT toClose, uint32_t pd){
-    if(getBufferId(toClose) == PIPE){
-        return closePipe(toClose);
-    } else{
+    if(pd < PD_SIZE && process != NULL){
         process->pdTable[pd] = NULL;
+        if(getBufferId(toClose) == PIPE){
+            removeReferences(toClose, process->id);
+        }
         return 0;
     }
 }

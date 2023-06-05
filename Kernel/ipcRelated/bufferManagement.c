@@ -65,11 +65,14 @@ uint64_t readBuffer(IPCBufferADT rEnd, char *buffToFill, uint64_t count){
     if(rEnd != NULL && buffToFill != NULL && count > 0 && rEnd->bufferDim > 0 && (rEnd->state == READ || rEnd->state == READ_WRITE)){
         uint64_t bytesRead = 0;
         char c;
+        uint64_t bufferDim = rEnd->bufferDim;
         while(rEnd->bufferDim > 0 && bytesRead < count){
             c = rEnd->buffer[rEnd->cursor % BUFF_SIZE];
             if(c == '\0'){ // EOF
-                rEnd->cursor++;
-                rEnd->bufferDim--;
+                if(bufferDim == 1){
+                    rEnd->cursor++;
+                    rEnd->bufferDim--;
+                }
                 break;
             }
             buffToFill[bytesRead++] = c;
@@ -113,11 +116,11 @@ ProcessControlBlockADT getReferenceByIndex(IPCBufferADT buffer, uint32_t index){
     return NULL;
 }
 
-void setReferenceByIndex(IPCBufferADT buffer, ProcessControlBlockADT toSet, uint32_t index){
+int setReferenceByIndex(IPCBufferADT buffer, ProcessControlBlockADT toSet, uint32_t index){
     if(index < PD_SIZE){
         buffer->references[index] = toSet;
     }
-    checkReferences(buffer);
+    return checkReferences(buffer);
 }
 
 static int checkReferences(IPCBufferADT buffer){
@@ -127,7 +130,6 @@ static int checkReferences(IPCBufferADT buffer){
                 return FALSE;
             }
         }
-        setBufferState(buffer, CLOSED);
         return TRUE;
     }
 }

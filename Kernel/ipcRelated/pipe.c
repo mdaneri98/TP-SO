@@ -82,13 +82,6 @@ uint64_t readPipe(IPCBufferADT rEnd, char *buffToFill, uint64_t count){
 
             updateOppositeEnd(getBufferOppositeEnd(rEnd));
             return bytesWritten;
-        } else{
-            IPCBufferADT wEnd = getBufferOppositeEnd(rEnd);
-            if(getBufferState(wEnd) == CLOSED){
-                char c = '\0';
-                copyToBuffer(rEnd, &c, 1);
-                readBuffer(rEnd, buffToFill, 1);
-            }
         }
     }
     return 0;
@@ -109,6 +102,11 @@ void closePipe(IPCBufferADT bufferEnd){
         setReferenceByIndex(bufferEnd, NULL, i);
     }
     IPCBufferADT otherEnd = getBufferOppositeEnd(bufferEnd);
+    if(getBufferState(bufferEnd) == WRITE || getBufferState(bufferEnd) == READ_WRITE){
+        char c = '\0';
+        copyToBuffer(otherEnd, &c, 1);
+    }
+    setBufferState(bufferEnd, CLOSED);
     if(getBufferState(otherEnd) == CLOSED){
         destroyBuffer(bufferEnd);
         destroyBuffer(otherEnd);
