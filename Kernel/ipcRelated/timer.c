@@ -65,10 +65,9 @@ void updateTimers(){
 	uint64_t TSCFreq = getTSCFrequency();
 	uint64_t currentTSC = _readTimeStampCounter();
 	TimerPtr current = list.head;
-	while(current != NULL){
-		if((currentTSC - current->startInterval)/TSCFreq < current->sleepAmount){
-			setProcessState(current->sleepingProcess, READY);
-		}
+	
+	if((currentTSC - current->startInterval)/TSCFreq < current->sleepAmount){
+		setProcessState(current->sleepingProcess, READY);
 		current = current->next;
 	}
 	return;
@@ -85,10 +84,8 @@ void sleep(uint64_t millis){
 	timer->next = NULL;
 	insertInList(timer);
 	uint64_t endInterval = timer->startInterval;
-	while((endInterval - timer->startInterval)/TSCFreq < timer->sleepAmount){
-		setProcessState(currentProcess, BLOCKED);
-		_int20h();
-	}
+	setProcessState(currentProcess, BLOCKED);
+	_int20h();
 	removeFromList(timer);
 	freeTimer(timer);
 	return;
