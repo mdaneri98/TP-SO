@@ -60,5 +60,6 @@ int _close(int fd);
 uint64_t _sysSemDown(sem_t* sem);
 uint64_t _sysSemUp(sem_t* sem);
 sem_t* _sysSemOpen(char* name, int initial);
+void _yield();
 
 #endif

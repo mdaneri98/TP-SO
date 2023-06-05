@@ -823,3 +823,10 @@ void setProcessPd(ProcessControlBlockADT process, IPCBufferADT buffer, uint64_t 
 int isInForeground(ProcessControlBlockADT process){
     return process->foreground;
 }
+
+void yieldProcess(ProcessControlBlockADT process){
+    process->quantums = 1;
+    process->priority = 5;
+    process->agingInterval = QUANTUM_SIZE*32;
+    return;
+}

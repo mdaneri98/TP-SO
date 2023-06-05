@@ -34,7 +34,13 @@ GLOBAL _sysRealloc
 GLOBAL _pipe
 GLOBAL _dup2
 GLOBAL _close
+GLOBAL _yield
 
+_yield:
+    mov rax, 38
+    int 80h
+    ret
+    
 _pipe:
     mov rax, 30
     int 80h
