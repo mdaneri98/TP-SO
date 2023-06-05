@@ -814,7 +814,10 @@ void sysClosePd(ProcessControlBlockADT process, IPCBufferADT toClose, uint32_t p
 }
 
 void setProcessPd(ProcessControlBlockADT process, IPCBufferADT buffer, uint64_t index){
-    process->pdTable[index] = index;
+    if(process == NULL || index >= PD_SIZE){
+        return;
+    }
+    process->pdTable[index] = buffer;
 }
 
 int isInForeground(ProcessControlBlockADT process){
