@@ -830,3 +830,11 @@ void yieldProcess(ProcessControlBlockADT process){
     process->agingInterval = QUANTUM_SIZE*32;
     return;
 }
+
+int isBlocked(ProcessControlBlockADT process) {
+    return process->state == BLOCKED;
+}
+
+int isReady(ProcessControlBlockADT process) {
+    return process->state == READY;
+}

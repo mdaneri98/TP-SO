@@ -268,7 +268,16 @@ static uint64_t arqSysPriority(uint64_t pid, uint64_t newPriority, uint64_t nil3
 }
 
 static uint64_t arqSysChangeState(uint64_t pid, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
-    // return changeState(pid);
+    ProcessControlBlockADT current = getEntry(pid);
+    if(current == NULL){
+        return -1;
+    }
+    if (isBlocked(current)) {
+        setProcessState(current, READY);
+    } else if (isReady(current)) {
+        setProcessState(current, BLOCKED);
+    }
+    _int20h;
     return 0;
 }
 

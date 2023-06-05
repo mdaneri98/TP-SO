@@ -45,4 +45,7 @@ void setProcessPd(ProcessControlBlockADT process, IPCBufferADT buffer, uint64_t 
 int isInForeground(ProcessControlBlockADT process);
 void yieldProcess(ProcessControlBlockADT process);
 
+int isBlocked(ProcessControlBlockADT process);
+int isReady(ProcessControlBlockADT process);
+
 #endif /* SCHEDULER_H */
