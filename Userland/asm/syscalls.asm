@@ -35,6 +35,12 @@ GLOBAL _pipe
 GLOBAL _dup2
 GLOBAL _close
 GLOBAL _yield
+GLOBAL _setToBackground
+
+_setToBackground:
+    mov rax, 36
+    int 80h
+    ret
 
 _yield:
     mov rax, 38
@@ -218,6 +224,6 @@ _idle:
     ret
 
 _getPid:
-    mov rax, 0x25
+    mov rax, 35
     int 80h
     ret

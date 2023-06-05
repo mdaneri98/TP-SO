@@ -10,6 +10,7 @@
 #include <kill.h>
 #include <block.h>
 #include <phylo.h>
+#include <loop.h>
 #include <nice.h>
 #include <cat.h>
 #include <filter.h>
@@ -17,7 +18,7 @@
 
 
 #define BUFFER_MAX_LENGTH 250
-#define CMDS_COUNT 20
+#define CMDS_COUNT 21
 #define MAX_ARGS_COUNT 5
 #define MAX_LINES 50
 
@@ -184,11 +185,10 @@ static int getArguments(int idx, char *cadena) {
 }
 
 static void runProgram(int idx, int jdx) {    
-    /*
+    
     int goBackground = FALSE;
     int commandLength = stringLength(lastCommand);
     int background = lastCommand[commandLength-2] == '&';
-    */
 
     if (idx >= 0 && idx < CMDS_COUNT) {
         if (jdx >= 0 && jdx < CMDS_COUNT) { /* Caso si el input está pipeado. */
@@ -230,6 +230,8 @@ static void runProgram(int idx, int jdx) {
             _close(pipefd[0]);
             _close(pipefd[1]);
         } else {
+            // El background solo funcionará para comandos sin pipe.
+    
             if (_sysFork() == 0) {
                 int argsc = getArguments(idx, lastCommand);
 
@@ -240,13 +242,15 @@ static void runProgram(int idx, int jdx) {
                         lastArgumentsAux[i][j] = lastArguments[i][j];
                     }
                 }
-                
+                _setToBackground();
                 _sysExecve(commandsFunction[idx], argsc, (char**) lastArgumentsAux);
             }
         }
 
-        //El proceso padre sigue ejecutando normalmente.
-        _wait();
+        //El proceso padre sigue ejecutando normalmente
+        if (!background)    
+            _wait();
+    
     }
 }
 
@@ -367,6 +371,9 @@ static void loadCommands() {
     commandsName[19] = "wc";
     commandsDesc[19] = "Counts input lines";
     commandsFunction[19] = wc;
+    commandsName[20] = "loop";
+    commandsDesc[20] = "Prints a message every constant time with the process id";
+    commandsFunction[20] = loop;
 }
 
 void clearLine(char *line){

@@ -14,7 +14,7 @@
 int loop(int argsc, char* argsv[]) {
     //hasta que se presione ctrl+c
     while(1){
-        _sleep(LOOP_TIME);
         printf("Process %d running\n", _getPid());
+        _sleep(LOOP_TIME);
     }
 }
