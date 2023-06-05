@@ -1,5 +1,5 @@
-#ifndef FILTER_H
-#define FILTER_H
+#ifndef HELP_H
+#define HELP_H
 
 int help(int argsc, char* argsv[]);
 

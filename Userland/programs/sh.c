@@ -20,11 +20,12 @@
 #include <div_zero.h>
 #include <sleep.h>
 #include <page_fault.h>
+#include <help.h>
 
 
 #define BUFFER_MAX_LENGTH 250
 #define CMDS_COUNT 21
-#define MAX_ARGS_COUNT 5
+#define MAX_ARGS_COUNT 25
 #define MAX_LINES 50
 
 #define TRUE 1
@@ -68,7 +69,6 @@ static void refresh();
 static void clearLines();
 void clearLine(char *line);
 static int getArguments(int idx, char* lastCommand);
-static void pageFault();
 
 
 // Source code begins here
@@ -263,17 +263,6 @@ static void runProgram(int idx, int jdx) {
 
 
 /* Old functions */
-
-static void help(int argsc, char* argsv[]) {
-    char *helpStr = "Predefined terminal programs:";
-    printf("%s\n", helpStr);
-    stringFormat(lines[lineCount++ % MAX_LINES], BUFFER_MAX_LENGTH, "%s", helpStr);
-    for (int i = 0; i < CMDS_COUNT; i++) {
-        clearLine(lines[lineCount % MAX_LINES]);
-        stringFormat(lines[lineCount++ % MAX_LINES], BUFFER_MAX_LENGTH, "%d.%s: %s", i+1 , commandsName[i], commandsDesc[i]);
-        printf("%d.%s: %s\n", i+1 , commandsName[i], commandsDesc[i]);
-    }    
-}
 
 static void clear(){
     clearLines();
