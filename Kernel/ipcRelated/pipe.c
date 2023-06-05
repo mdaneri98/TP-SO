@@ -107,6 +107,7 @@ void closePipe(IPCBufferADT bufferEnd){
         copyToBuffer(otherEnd, &c, 1);
     }
     setBufferState(bufferEnd, CLOSED);
+    setBufferReferencesReady(otherEnd);
     if(getBufferState(otherEnd) == CLOSED){
         destroyBuffer(bufferEnd);
         destroyBuffer(otherEnd);

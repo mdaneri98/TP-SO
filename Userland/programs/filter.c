@@ -29,8 +29,8 @@ int filter(int argsc, char* argsv[]) {
             cleanBuffer(filterBuff);
             putChar(' ');
         }
+        putChar('\n');
     }
-    putChar('\n');
     return 0;
 }
 

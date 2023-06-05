@@ -615,7 +615,7 @@ static void setParentReady(ProcessControlBlockADT pcbEntry){
         parent->childsIds[i] = parent->childsIds[i] == pcbEntry->id ? 0 : parent->childsIds[i];
     }
     setProcessState(parent, READY);
-    if(pcbEntry->foreground){
+    if(pcbEntry->foreground == FALSE){
         setProcessToForeground(parent);
     }
     return;
