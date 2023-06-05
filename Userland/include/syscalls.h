@@ -53,6 +53,8 @@ void *_sysMalloc(uint64_t size);
 void _sysFree(void *ptr);
 void *_sysRealloc(void *ptr, uint64_t size);
 
+void _setToBackground();
+
 int _pipe(int* pipefd);
 int _dup2(int oldfd, int newfd);
 int _close(int fd);
