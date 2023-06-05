@@ -184,11 +184,13 @@ uint64_t getUsedMemoryAmount(){
 void copyBlocks(void const *target, void const *source){
     MMNode *targetHeader = (MMNode *) ((uint64_t)target - sizeof(MMNode));
     MMNode *sourceHeader = (MMNode *) ((uint64_t)source - sizeof(MMNode));
-    int limit = targetHeader->memSize > sourceHeader->memSize ? sourceHeader->memSize : targetHeader->memSize;
+    uint64_t limit = targetHeader->memSize > sourceHeader->memSize ? sourceHeader->memSize : targetHeader->memSize;
     uint8_t *s = (uint8_t *)source;
     uint8_t *t = (uint8_t *)target;
+    uint8_t aux;
     for(int i=0; i<limit ;i++){
-        t[i] = s[i];
+        aux = s[i];
+        t[i] = aux;
     }
 }
 

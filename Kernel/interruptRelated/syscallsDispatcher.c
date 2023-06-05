@@ -415,8 +415,8 @@ static uint64_t arqSysPipe(uint64_t pipePds, uint64_t nil2, uint64_t nil3, uint6
 static uint64_t arqSysClosePd(uint64_t pd, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6){
     ProcessControlBlockADT currentProcess = getCurrentProcessEntry();
     IPCBufferADT toClose = getPDEntry(currentProcess, pd);
-    if(toClose != NULL && getBufferId(toClose) == PIPE){
-        closePipe(toClose);
+    if(toClose != NULL){
+        sysClosePd(currentProcess, toClose, pd);
         return 0;
     }
     return -1;

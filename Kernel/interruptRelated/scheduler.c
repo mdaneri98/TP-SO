@@ -792,3 +792,12 @@ int dupPd(ProcessControlBlockADT process, uint64_t oldPd, uint64_t newPd){
     process->pdTable[newPd] = NULL;
     return 0;
 }
+
+void sysClosePd(ProcessControlBlockADT process, IPCBufferADT toClose, uint32_t pd){
+    if(getBufferId(toClose) == PIPE){
+        return closePipe(toClose);
+    } else{
+        process->pdTable[pd] = NULL;
+        return 0;
+    }
+}
