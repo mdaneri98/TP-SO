@@ -18,6 +18,8 @@
 #include <clock.h>
 #include <invalid_op_code.h>
 #include <div_zero.h>
+#include <sleep.h>
+#include <page_fault.h>
 
 
 #define BUFFER_MAX_LENGTH 250
@@ -53,7 +55,6 @@ int isBackground = FALSE;
 static void runProgram(int idx, int jdx);
 static void awaitCommand(int* idx, int* jdx);
 static int checkCommand(char* lastCommand);
-static void sleep();
 
 static void clear();
 static void beep(int argsc, char* argsv[]);
@@ -445,32 +446,6 @@ static void playTron(int argsc, char* argsv[]){
     tron();
     _changeFont(fontSize);
     refresh();
-}
-
-
-static void pageFault(){
-    printf("About to cause an exception...");
-    _sleep(1500);
-    runPageFault();
-}
-
-static void sleep(int argsc, char* argsv[]) {
-    unsigned long millis = 0;
-    if(*lastArguments == 0)
-        millis = 2000;
-    else if(*lastArguments == '0' && *(lastArguments + 1) == 0)
-        millis = 0;
-    else{
-        millis = stringToNum(*lastArguments);
-        if(millis == 0){
-            char *argErr = "You can enter only one number.";
-            stringCopy(lines[lineCount++ % BUFFER_MAX_LENGTH], BUFFER_MAX_LENGTH, argErr);
-            printString(argErr);
-            putChar('\n');
-            return;
-        }
-    }
-    _sleep(millis);
 }
 
 char **getShLines(){

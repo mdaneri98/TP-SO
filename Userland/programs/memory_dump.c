@@ -1,5 +1,7 @@
+
 #include <syscalls.h>
 #include <string.h>
+#include <stdio.h>
 
 int memoryDump(int argsc, char* argsv[]) {
     uint8_t dump[32];
