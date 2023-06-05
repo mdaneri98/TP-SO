@@ -15,6 +15,7 @@
 #include <cat.h>
 #include <filter.h>
 #include <wc.h>
+#include <clock.h>
 
 
 #define BUFFER_MAX_LENGTH 250
@@ -54,7 +55,6 @@ static void sleep();
 
 static void clear();
 static void beep(int argsc, char* argsv[]);
-static void clock(int argsc, char* argsv[]);
 static void loadCommands();
 static void printRegisters(int argsc, char* argsv[]);
 static void increment(int argsc, char* argsv[]);
@@ -210,7 +210,7 @@ static void runProgram(int idx, int jdx) {
 
                 _sysExecve(commandsFunction[idx], argsc1, (char**) argumentsAux);
             }
-            _yield();
+            // _yield();
             int argsc2 = getArguments(jdx, secondCommand);
             if (_sysFork() == 0) {
                 char** argumentsAux = malloc(sizeof(char*) * MAX_ARGS_COUNT);
@@ -226,7 +226,7 @@ static void runProgram(int idx, int jdx) {
                 
                 _sysExecve(commandsFunction[jdx], argsc2, (char**) argumentsAux);
             }
-            _yield();
+            // _yield();
             _close(pipefd[0]);
             _close(pipefd[1]);
         } else {
@@ -287,21 +287,6 @@ static int getFormat(int num) {
 	dec = dec >> 4;
 	int units = num & 15;
 	return dec * 10 + units;
-}
-
-static void clock(int argsc, char* argsv[]) {
-    int hours;
-    int minutes;
-    int seconds;
-    _clock(&hours, &minutes, &seconds);
-    hours = getFormat(hours);
-    minutes = getFormat(minutes);
-    seconds = getFormat(seconds);
-
-    printf("The system hour is %d:%d:%d\n", hours, minutes, seconds);
-
-    clearLine(lines[lineCount % MAX_LINES]);
-    stringFormat(lines[lineCount++ % MAX_LINES], BUFFER_MAX_LENGTH, "The system hour is %d:%d:%d", hours, minutes, seconds);
 }
 
 static void loadCommands() {
