@@ -11,7 +11,7 @@
 #define LEFT (index+n-1) % n
 #define RIGHT (index+1) % n
 
-/* Prototypes */
+/* Prototypes 
 
 static void redraw(int i, int n, phylState* state, sem_t* mutexSem);
 static void take_forks(int i, int n, phylState* state, sem_t* mutexSem, sem_t* s[]);
@@ -24,10 +24,13 @@ static void test(int i, int n, phylState* state, sem_t* s[]);
 
 
 int filosopher(int argsc, char* argsv[]) {
+    return 0;
+}
+    /*
     int index = stringToInt(argsv[1]);
     int n = stringToInt(argsv[2]);
     
-    /* ¿Donde está el arte? */
+    /* ¿Donde está el arte? 
     while (TRUE) {
         take_forks(index, n, state, mutexSem, s);
         redraw(index, n, state, mutexSem);
@@ -76,3 +79,5 @@ static void test(int index, int n, phylState* state, sem_t* s[]) {
     }
 }
 
+
+*/

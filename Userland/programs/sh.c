@@ -356,7 +356,7 @@ static void loadCommands() {
     commandsFunction[20] = loop;
     commandsName[21] = "test_sync";
     commandsDesc[21] = "Execute test of sync";
-    commandsFunction[21] = NULL;
+    commandsFunction[21] = test_sync;
     commandsName[22] = "test_prio";
     commandsDesc[22] = "Execute test of priority";
     commandsFunction[22] = test_prio;
@@ -366,10 +366,7 @@ static void loadCommands() {
     commandsName[24] = "test_processes";
     commandsDesc[24] = "Execute test of processes";
     commandsFunction[24] = test_processes;
-    commandsName[25] = "test_sync";
-    commandsDesc[25] = "Execute test of sync";
-    commandsFunction[25] = test_sync;
-
+    
 }
 
 void clearLine(char *line){
