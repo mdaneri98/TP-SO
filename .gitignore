@@ -21,3 +21,4 @@ mi-Bootloader
 core
 
 .gdb_history
+.config

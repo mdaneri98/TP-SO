@@ -1,3 +1,5 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 #include <memoryManager.h>
 #include <process.h>
 #include <scheduler.h>
@@ -752,7 +754,7 @@ void *sysRealloc(ProcessControlBlockADT process, void *toRealloc, uint64_t size)
         previous = auxCurrent;
         auxCurrent = auxCurrent->next;
     }
-    if(auxCurrent != NULL){    // Error
+    if(auxCurrent == NULL){    // Error
         return NULL;
     }
     ProcessAllocations *next = auxCurrent->next;
