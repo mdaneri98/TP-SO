@@ -12,11 +12,11 @@ int wc(int argsc, char* argsv[]) {
     //recibe por stdin o por un buffer
     if (argsc <= 1) {
         count = 1;  /* Empieza por una línea. */
-        while((i = getChar()) != -1){
+        while((i = getChar()) != '&'){
             if(i == '\n'){
                 count++;
             }
-            putChar(i);
+            //putChar(i);
         }
         numToString(count, countString, COUNT_BUFF_SIZE);
         printf(countString);
