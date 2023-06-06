@@ -44,14 +44,14 @@ void _sysExit();
 void _sysExecve(void* function, int argc, char* argv[]);
 int _sysFork();
 int _sysPs(ProcessData (*data)[]);
-void _sysKill(uint32_t pid);
+int _sysKill(uint32_t pid);
 void _sysPriority(uint32_t pid, unsigned int newPriority);
 void _sysChangeState(uint32_t pid);
 void _idle();
 void _wait();
 int64_t _getPid();
-void _sysBlock(uint64_t pid);
-void _sysUnblock(uint64_t pid);
+int _sysBlock(uint64_t pid);
+int _sysUnblock(uint64_t pid);
 
 void *_sysMalloc(uint64_t size);
 void _sysFree(void *ptr);
@@ -65,6 +65,7 @@ int _close(int fd);
 
 uint64_t _sysSemDown(sem_t* sem);
 uint64_t _sysSemUp(sem_t* sem);
+uint64_t _sysSemClose(char* name);
 sem_t* _sysSemOpen(char* name, int initial);
 void _yield();
 

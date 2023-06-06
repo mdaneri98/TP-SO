@@ -27,9 +27,8 @@ int test_prio(int argsc, char* argsv[]) {
     
     if(j == 0){
         _sysExecve(endless_loop_print, 0, argv);
-    } 
-    // _yield();   /* We use yield because we need the parent process to continue the loop (i variable) continious. */
     }
+  }
 
   bussy_wait(WAIT);
   printf("\nCHANGING PRIORITIES...\n");

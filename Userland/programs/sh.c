@@ -26,6 +26,8 @@
 
 #include <test_mm.h>
 #include <test_prio.h>
+#include <test_processes.h>
+#include <test_sync.h>
 
 
 // Structures for help command
@@ -361,6 +363,12 @@ static void loadCommands() {
     commandsName[23] = "test_mm";
     commandsDesc[23] = "Execute test of memory manager";
     commandsFunction[23] = test_mm;
+    commandsName[24] = "test_processes";
+    commandsDesc[24] = "Execute test of processes";
+    commandsFunction[24] = test_processes;
+    commandsName[25] = "test_sync";
+    commandsDesc[25] = "Execute test of sync";
+    commandsFunction[25] = test_sync;
 
 }
 
