@@ -174,6 +174,9 @@ static int getArguments(int idx, char *cadena) {
 
     // Guardamos los argumentos en la variable global
     while (token && cantidad_argumentos < MAX_ARGS_COUNT) {
+        if (*token == '|') {
+            return cantidad_argumentos;
+        }
         stringCopy(lastArguments[cantidad_argumentos], BUFFER_MAX_LENGTH, token);
         cantidad_argumentos++;
         token = strtok(NULL, " ");

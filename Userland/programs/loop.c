@@ -9,7 +9,7 @@
 
 #include <loop.h> //actualizar include path
 
-#define LOOP_TIME 5
+#define LOOP_TIME 5000
 
 int loop(int argsc, char* argsv[]) {
     //hasta que se presione ctrl+c
