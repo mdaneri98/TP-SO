@@ -200,12 +200,12 @@ static uint64_t arqSysWrite(uint64_t pd, uint64_t buff, uint64_t count, uint64_t
     uint64_t bytesWritten = 0;
 
     if(getBufferId(buffToWrite) == STDOUT){
-        for(int i=0; i < count && bytesWritten < count ;i++){
+        for(int i=0; i < count && bytesWritten < count ; i++, bytesWritten++){
             scrPrintChar(auxBuff[i]);
         }
     } else if(getBufferId(buffToWrite) == STDERR){
         Color red = { 0x0 , 0x0, 0xFF };
-        for(int i=0; i < count && bytesWritten < count ;i++){
+        for(int i=0; i < count && bytesWritten < count ; i++ , bytesWritten++){
             scrPrintCharWithColor(auxBuff[i], red);
         }
     } else{
@@ -390,14 +390,14 @@ static uint64_t arqSysDrawLine(uint64_t fromX, uint16_t fromY, uint16_t toX, uin
 }
 
 static uint64_t arqSysGetPenX(uint64_t x, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6){
-    uint16_t *xAux = (uint16_t *) xAux;
+    uint16_t *xAux = (uint16_t *) x;
     *xAux = scrGetPenX();
     return 0;
 }
 
 
 static uint64_t arqSysGetPenY(uint64_t y, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6){
-    uint16_t *yAux = (uint16_t *) yAux;
+    uint16_t *yAux = (uint16_t *) y;
     *yAux = scrGetPenY();
     return 0;
 }

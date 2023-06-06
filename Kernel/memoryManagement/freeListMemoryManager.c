@@ -5,10 +5,6 @@
 #include <timer.h>
 #include <constants.h>
 
-#define BLOCK_SIZE 0x1000
-#define KERNEL_MEMORY_LOCATION 0x50000
-#define KERNEL_MEMORY_SIZE 0x140000
-
 typedef struct node{
     struct node *next;
     struct node *prev;
@@ -20,10 +16,10 @@ typedef struct list{
     MMNode *head;
 } queue_t;
 
-#define PCB_BLOCK sizeof(MMNode) + PCBNodeSize
-#define SEM_BLOCK sizeof(MMNode) + semNodeSize
-#define IPC_BLOCK sizeof(MMNode) + IPCBufferSize
-#define TIMER_BLOCK sizeof(MMNode) + timerSize
+#define PCB_BLOCK (sizeof(MMNode) + PCBNodeSize)
+#define SEM_BLOCK (sizeof(MMNode) + semNodeSize)
+#define IPC_BLOCK (sizeof(MMNode) + IPCBufferSize)
+#define TIMER_BLOCK (sizeof(MMNode) + timerSize)
 
 typedef struct MemoryManager_t{
     queue_t freeList;
@@ -39,6 +35,10 @@ uint64_t PCBNodeSize;
 uint64_t semNodeSize;
 uint64_t IPCBufferSize;
 uint64_t timerSize;
+
+const uint64_t BLOCK_SIZE = 0x1000;
+const uint64_t KERNEL_MEMORY_LOCATION = 0x50000;
+const uint64_t KERNEL_MEMORY_SIZE = 0x140000;
 
 static void initMemory(MemoryManager_t *memoryForMemoryManager, void *const restrict init, uint64_t size);
 static void *genericAllocMemory(MemoryManager_t *memoryForMemoryManager, uint64_t blockSize, uint64_t memoryToAllocate);
