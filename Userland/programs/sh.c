@@ -23,6 +23,7 @@
 #include <memory_dump.h>
 #include <page_fault.h>
 #include <help.h>
+#include <mem.h>
 
 #include <test_mm.h>
 #include <test_prio.h>
@@ -366,6 +367,9 @@ static void loadCommands() {
     commandsName[24] = "test_processes";
     commandsDesc[24] = "Execute test of processes";
     commandsFunction[24] = test_processes;
+    commandsName[25] = "mem";
+    commandsDesc[25] = "Prints the state of the memory";
+    commandsFunction[25] = mem;
     
 }
 

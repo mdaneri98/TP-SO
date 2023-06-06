@@ -18,7 +18,7 @@
 #include <ps.h>
 #include <sync.h>
 
-#define TOTAL_SYSCALLS 41
+#define TOTAL_SYSCALLS 43
 #define AUX_BUFF_DIM 512
 
 #define DEFAULT_FREQUENCY 1500
@@ -59,6 +59,8 @@ static uint64_t arqSysSemClose(uint64_t sem_id, uint64_t nil1, uint64_t nil2, ui
 static uint64_t arqSysMalloc(uint64_t size, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 static uint64_t arqSysFree(uint64_t ptr, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 static uint64_t arqSysRealloc(uint64_t ptr, uint64_t size, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+static uint64_t arqSysGetFreeMemory(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
+static uint64_t arqSysGetUsedMemory(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7);
 
 static uint64_t arqSysPipe(uint64_t pipePds, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
 static uint64_t arqSysClosePd(uint64_t pd, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
@@ -129,6 +131,9 @@ void setSyscalls(){
 
     syscalls[39] = (SyscallVec) arqSysUnblock;
     syscalls[40] = (SyscallVec) arqSysGetPid;
+
+    syscalls[41] = (SyscallVec) arqSysGetFreeMemory;
+    syscalls[42] = (SyscallVec) arqSysGetUsedMemory;
 }
 
 uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t rcx, uint64_t r8, uint64_t r9, uint64_t rsp) {    
@@ -465,4 +470,12 @@ static uint64_t arqSysYield(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_
     yieldProcess(currentProcess);
     _int20h();
     return 0;
+}
+
+static uint64_t arqSysGetFreeMemory(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
+    return getFreeMemoryAmount();
+}
+
+static uint64_t arqSysGetUsedMemory(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
+    return getUsedMemoryAmount();
 }

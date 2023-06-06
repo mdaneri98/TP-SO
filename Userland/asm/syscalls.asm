@@ -39,6 +39,8 @@ GLOBAL _setToBackground
 GLOBAL _sysExit
 GLOBAL _sysBlock
 GLOBAL _sysUnblock
+GLOBAL _getFreeMemory
+GLOBAL _getUsedMemory
 
 _sysUnblock:
     mov rax, 39
@@ -238,5 +240,15 @@ _idle:
 
 _getPid:
     mov rax, 40
+    int 80h
+    ret
+
+_getFreeMemory:
+    mov rax, 41
+    int 80h
+    ret
+
+_getUsedMemory:
+    mov rax, 42.
     int 80h
     ret
