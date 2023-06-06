@@ -249,6 +249,6 @@ _getFreeMemory:
     ret
 
 _getUsedMemory:
-    mov rax, 42.
+    mov rax, 42
     int 80h
     ret
