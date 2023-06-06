@@ -276,6 +276,7 @@ static void nextProcess(){
         case BLOCKED: insertInBlockedQueue(current); break;
         case RUNNING: current->pcbEntry.state = READY; insertInQueue(current); break;
         case YIELDED: current->pcbEntry.state = READY; insertLast(current); break;
+        default: break;
     }
 
     PCBNodeADT next;
