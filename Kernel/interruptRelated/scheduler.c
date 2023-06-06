@@ -29,7 +29,7 @@ typedef struct ProcessControlBlockCDT {
     uint8_t priority;
 
     // Variables neccesary for computing priority scheduling
-    uint8_t quantums;
+    int8_t quantums;
     uint64_t agingInterval;
     uint64_t counterInit;
 
@@ -319,11 +319,11 @@ static void insertInQueue(PCBNodeCDT *node){
     } else {
         i = 5;
     }
-    PCBNodeADT current = multipleQueues[i]->head;
+    PCBNodeADT auxCurrent = multipleQueues[i]->head;
     PCBNodeADT previous = NULL;
-    while(current != NULL){
-        previous = current;
-        current = current->next;
+    while(auxCurrent != NULL){
+        previous = auxCurrent;
+        auxCurrent = auxCurrent->next;
     }
     if(previous == NULL){
         multipleQueues[i]->head = node;
@@ -336,11 +336,11 @@ static void insertInQueue(PCBNodeCDT *node){
 }
 
 static void insertLast(PCBNodeADT process){
-    PCBNodeADT current = multipleQueues[5]->head;
+    PCBNodeADT auxCurrent = multipleQueues[5]->head;
     PCBNodeADT previous;
-    while(current != NULL){
-        previous = current;
-        current = current->next;
+    while(auxCurrent != NULL){
+        previous = auxCurrent;
+        auxCurrent = auxCurrent->next;
     }
     if(previous == NULL){
         multipleQueues[5]->head = process;
@@ -351,13 +351,13 @@ static void insertLast(PCBNodeADT process){
 }
 
 static void insertInBlockedQueue(PCBNodeCDT *node){
-    PCBNodeADT current = multipleQueues[6]->head;
+    PCBNodeADT auxCurrent = multipleQueues[6]->head;
     PCBNodeADT previous = NULL;
 
     node->next = NULL;
-    while(current != NULL){
-        previous = current;
-        current = current->next;
+    while(auxCurrent != NULL){
+        previous = auxCurrent;
+        auxCurrent = auxCurrent->next;
     }
 
     if(previous == NULL){
@@ -429,11 +429,11 @@ char exists(uint32_t pid) {
 }
 
 int sysFork(void *currentProcessStack){
-    PCBNodeCDT *newNode = allocPCB();
+    PCBNodeADT newNode = allocPCB();
     if(newNode == NULL){
         return -1;
     }
-    PCBNodeCDT *currentNode = current;
+    PCBNodeADT currentNode = current;
     void *memoryForFork = allocMemory(currentNode->pcbEntry.stackSize);
     if(memoryForFork == NULL){
         freePCB(newNode);
@@ -594,7 +594,7 @@ int changePriority(uint32_t pid, unsigned int newPriority) {
 int hasOpenChilds(ProcessControlBlockADT entry){
     for(int i=0; i<PD_SIZE ;i++){
         if(entry->childsIds[i] != 0){
-            ProcessControlBlockCDT* child = getEntry(entry->childsIds[i]);
+            ProcessControlBlockADT child = getEntry(entry->childsIds[i]);
             if(child->state != EXITED){
                 return TRUE;
             }
@@ -603,7 +603,7 @@ int hasOpenChilds(ProcessControlBlockADT entry){
     return FALSE;
 }
 
-static PCBNodeCDT *removeFromQueue(uint32_t pid){
+static PCBNodeADT removeFromQueue(uint32_t pid){
     PCBNodeADT toRemove;
     PCBNodeADT previous;
     for(int i=0; i<7 ;i++){
@@ -630,11 +630,12 @@ static PCBNodeCDT *removeFromQueue(uint32_t pid){
 static void setParentReady(ProcessControlBlockADT pcbEntry){
     ProcessControlBlockADT parent = getEntry(pcbEntry->parentId);
     for(int i=0; i<PD_SIZE ;i++){
-        parent->childsIds[i] = parent->childsIds[i] == pcbEntry->id ? 0 : parent->childsIds[i];
+        if(parent->childsIds[i] == pcbEntry->id){
+            parent->childsIds[i] = 0;
+        }
     }
     
     setProcessState(parent, READY);
-    setProcessToForeground(parent);
     return;
 }
 
@@ -745,54 +746,54 @@ void *sysMalloc(ProcessControlBlockADT process, uint64_t size){
 }
 
 void *sysRealloc(ProcessControlBlockADT process, void *toRealloc, uint64_t size){
-    ProcessAllocations *current = process->firstAlloc;
+    ProcessAllocations *auxCurrent = process->firstAlloc;
     ProcessAllocations *previous = NULL;
-    while(current != NULL && current->allocation != toRealloc){
-        previous = current;
-        current = current->next;
+    while(auxCurrent != NULL && auxCurrent->allocation != toRealloc){
+        previous = auxCurrent;
+        auxCurrent = auxCurrent->next;
     }
-    if(current != NULL){    // Error
+    if(auxCurrent != NULL){    // Error
         return NULL;
     }
-    ProcessAllocations *next = current->next;
-    current = (ProcessAllocations *) reAllocMemory((void *) current, size + sizeof(ProcessAllocations));
-    if(current == NULL){
+    ProcessAllocations *next = auxCurrent->next;
+    auxCurrent = (ProcessAllocations *) reAllocMemory((void *) auxCurrent, size + sizeof(ProcessAllocations));
+    if(auxCurrent == NULL){
         previous->next = next;
         return NULL;
     }
-    current->next = next;
+    auxCurrent->next = next;
     if(previous != NULL){
-        previous->next = current;
+        previous->next = auxCurrent;
     }
-    current->allocation = (void *)((uint64_t)current + sizeof(ProcessAllocations));
-    return current->allocation;
+    auxCurrent->allocation = (void *)((uint64_t)auxCurrent + sizeof(ProcessAllocations));
+    return auxCurrent->allocation;
 }
 void sysFree(ProcessControlBlockADT process, void *toFree){
-    ProcessAllocations *current = process->firstAlloc;
+    ProcessAllocations *auxCurrent = process->firstAlloc;
     ProcessAllocations *previous = NULL;
-    while(current != NULL && current->allocation != toFree){
-        previous = current;
-        current = current->next;
+    while(auxCurrent != NULL && auxCurrent->allocation != toFree){
+        previous = auxCurrent;
+        auxCurrent = auxCurrent->next;
     }
-    if(current == NULL){    // Error
+    if(auxCurrent == NULL){    // Error
         return;
     }
     if(previous != NULL){
-        previous->next = current->next;
+        previous->next = auxCurrent->next;
     }
-    freeMemory((void *) current);
+    freeMemory((void *) auxCurrent);
     return;
 }
 
 static void freeAllocations(ProcessControlBlockADT process){
-    ProcessAllocations *current = process->firstAlloc;
-    if(current == NULL){
+    ProcessAllocations *auxCurrent = process->firstAlloc;
+    if(auxCurrent == NULL){
         return;
     }
     ProcessAllocations *previous = NULL;
-    while(current != NULL){
-        previous = current;
-        current = current->next;
+    while(auxCurrent != NULL){
+        previous = auxCurrent;
+        auxCurrent = auxCurrent->next;
         freeMemory(previous);
     }
 }

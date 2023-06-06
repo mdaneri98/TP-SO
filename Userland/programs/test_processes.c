@@ -27,11 +27,13 @@ int test_processes(int argc, char *argv[]) {
   p_rq p_rqs[max_processes];
 
   while (1) {
+    
     // Create max_processes processes
     for (rq = 0; rq < max_processes; rq++) {
         int i = _sysFork();
         if (i != 0) {
             p_rqs[rq].pid = i;
+            _yield();
         }
         
         if (i == 0) {
@@ -46,7 +48,7 @@ int test_processes(int argc, char *argv[]) {
         alive++;
       }
     }
-
+    _setToBackground();
     // Randomly kills, blocks or unblocks processes until every one has been killed
     while (alive > 0) {
 
@@ -86,6 +88,7 @@ int test_processes(int argc, char *argv[]) {
           }
           p_rqs[rq].state = RUNNING;
         }
+        _setToForeground();
     }
 
   }

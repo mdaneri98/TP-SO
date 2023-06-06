@@ -58,6 +58,7 @@ uint64_t _getFreeMemory();
 uint64_t _getUsedMemory();
 
 void _setToBackground();
+void _setToForeground();
 
 int _pipe(int* pipefd);
 int _dup2(int oldfd, int newfd);

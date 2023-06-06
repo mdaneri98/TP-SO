@@ -41,7 +41,13 @@ GLOBAL _sysBlock
 GLOBAL _sysUnblock
 GLOBAL _getFreeMemory
 GLOBAL _getUsedMemory
+GLOBAL _setToForeground
 
+
+_setToForeground:
+    mov rax, 35
+    int 80h
+    ret
 _sysUnblock:
     mov rax, 39
     int 80h
