@@ -34,13 +34,16 @@ int phylo(int argsc, char* argsv[]) {
         ansiArt[i] = '.';
         
         // Create the string using the value of 'i'.
+        s[i] = malloc(BUFFER_MAX_LENGTH);
+        for (int i = 0; i < BUFFER_MAX_LENGTH; i++)
+            s[i] = 0x0;
+
         stringFormat(semNames[i], BUFFER_MAX_LENGTH, "filoSem_%d", i);
         stringCopy(s[i], BUFFER_MAX_LENGTH, semNames[i]);
         _sysSemOpen(s[i], 1);
     }
 
-    char semName[] = "mutex";
-    mutexSem = _sysSemOpen(semName, 0);
+    _sysSemOpen(FILO_MUTEX, 0);
 
     for (filosopherNumber = 0; filosopherNumber < n; filosopherNumber++) {
         if (_sysFork() == 0) {

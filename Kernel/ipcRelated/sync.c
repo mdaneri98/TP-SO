@@ -48,7 +48,7 @@ uint64_t semOpen(char* semId, uint64_t currentValue){
 
         while (auxNode->nextNode != NULL) {
             /* Chequeamos que ninguno de los semáforos tenga el mismo nombre, o en caso que coincidan, devolvemos el currentValue del semáforo. */
-            if(stringCompare(auxNode->semaphore.name, semId)){
+            if(stringCompare(auxNode->semaphore.name, semId) == 0){
                 return 0;
                 //return &auxNode->semaphore.currentValue;
             }
@@ -90,7 +90,7 @@ uint64_t semPost(char*semId){
 
 uint64_t semClose(char*semId){
     semNode* auxNode = semaphoreQueue.head;
-    while (auxNode->nextNode != NULL && !stringCompare(auxNode->nextNode->semaphore.name, semId)) {
+    while (auxNode->nextNode != NULL && stringCompare(auxNode->nextNode->semaphore.name, semId) != 0) {
         auxNode = auxNode->nextNode;
     } 
     if(auxNode->nextNode == NULL){

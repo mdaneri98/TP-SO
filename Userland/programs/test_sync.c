@@ -57,8 +57,7 @@ int my_process_inc(int argc, char *argv[]) {
 
 
 int test_sync(int argc, char *argv[]) { //{n, use_sem, 0}
-  uint64_t pids[2 * TOTAL_PAIR_PROCESSES];
-
+  
   if (argc != 3)
     return -1;
 
@@ -73,32 +72,17 @@ int test_sync(int argc, char *argv[]) { //{n, use_sem, 0}
         if (indx == 0) {
             _sysExecve(my_process_inc, 3, argvDec);
         }
-
-        if (indx != 0) {
-            pids[i] = indx;
-        }
-    
     
         int jndx = _sysFork();
-        if (jndx != 0) {
-            pids[j] = jndx;
-        }
-
+        
         if (jndx == 0) {
             _sysExecve(my_process_inc, 3, argvInc);
         }
     
-        //pids[i + TOTAL_PAIR_PROCESSES] = my_create_process(my_process_inc, 3, argvInc);
     }
 
 
    _wait();
-/*
-  for (i = 0; i < TOTAL_PAIR_PROCESSES; i++) {
-    my_wait(pids[i]);
-    my_wait(pids[i + TOTAL_PAIR_PROCESSES]);
-  }
-*/
 
   printf("Final value: %d\n", global);
 
