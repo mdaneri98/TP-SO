@@ -3,11 +3,10 @@
 
 #include <filosopher.h>
 
-typedef int sem_t;
 
-extern sem_t* s[]; 
+extern char* s[]; 
 extern phylState state[]; 
 extern char ansiArt[]; 
-extern sem_t* mutexSem;
+extern char* mutexSem;
 
 #endif

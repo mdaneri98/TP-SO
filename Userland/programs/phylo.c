@@ -8,11 +8,11 @@
 #define BUFFER_MAX_LENGTH 250
 #define MAX_PHILOSOPHERS 12
 
-sem_t* s[MAX_PHILOSOPHERS];
+char* s[MAX_PHILOSOPHERS];
 phylState state[MAX_PHILOSOPHERS];
 char semNames[MAX_PHILOSOPHERS][BUFFER_MAX_LENGTH];
 char ansiArt[MAX_PHILOSOPHERS];
-sem_t* mutexSem;
+char* mutexSem;
 
 /* Por limitación de rbp, _fork usa las mismas variables locales luego de realizarse, por ende, i debe ser global.
  */
@@ -36,7 +36,8 @@ int phylo(int argsc, char* argsv[]) {
         
         // Crear el string utilizando el valor de 'i'
         stringFormat(semNames[i], BUFFER_MAX_LENGTH, "filoSem_%d", i);
-        s[i] = _sysSemOpen(semNames[i], 1);
+        stringCopy(s[i], BUFFER_MAX_LENGTH, semNames[i]);
+        _sysSemOpen(s[i], 1);
     }
 
     char semName[] = "mutex";

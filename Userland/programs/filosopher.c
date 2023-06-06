@@ -4,6 +4,7 @@
 #include <filosopher.h>
 #include <syscalls.h>
 #include <string.h>
+#include <constants.h>
 #include <shared_variables.h>
 
 #define MAX_LENGTH 255
@@ -11,37 +12,38 @@
 #define LEFT (index+n-1) % n
 #define RIGHT (index+1) % n
 
-/* Prototypes 
 
-static void redraw(int i, int n, phylState* state, sem_t* mutexSem);
-static void take_forks(int i, int n, phylState* state, sem_t* mutexSem, sem_t* s[]);
-static void put_forks(int i, int n, phylState* state, sem_t* mutexSem, sem_t* s[]);
-static void test(int i, int n, phylState* state, sem_t* s[]);
+/* Prototypes */
+
+static void redraw(int i, int n, phylState* state, char* mutex);
+static void take_forks(int i, int n, phylState* state, char* mutex, char* s[]);
+static void put_forks(int i, int n, phylState* state, char* mutex, char* s[]);
+static void test(int i, int n, phylState* state, char* s[]);
 
 
 /* --------------------- */
 
-
-
 int filosopher(int argsc, char* argsv[]) {
-    return 0;
-}
-    /*
+    
     int index = stringToInt(argsv[1]);
     int n = stringToInt(argsv[2]);
     
-    /* ¿Donde está el arte? 
+    char semName[BUFFER_MAX_LENGTH];
+    stringCopy(semName, BUFFER_MAX_LENGTH, s[index]);
+    // stringFormat(semName, BUFFER_MAX_LENGTH, "filoSem_%d", index);
+
+    /* ¿Donde está el arte? */
     while (TRUE) {
-        take_forks(index, n, state, mutexSem, s);
-        redraw(index, n, state, mutexSem);
-        put_forks(index, n, state, mutexSem, s);
-        redraw(index, n, state, mutexSem);
+        take_forks(index, n, state, FILO_MUTEX, s);
+        redraw(index, n, state, FILO_MUTEX);
+        put_forks(index, n, state, FILO_MUTEX, s);
+        redraw(index, n, state, FILO_MUTEX);
     }
 
     return 0;
 }
 
-static void redraw(int index, int n, phylState* state, sem_t* mutexSem) {
+static void redraw(int index, int n, phylState* state, char* mutexSem) {
     _sysSemDown(mutexSem);
     if (state[index] == EATING)
         ansiArt[index] = 'E' ;
@@ -56,7 +58,7 @@ static void redraw(int index, int n, phylState* state, sem_t* mutexSem) {
     _sysSemUp(mutexSem);
 }
 
-static void take_forks(int index, int n, phylState* state, sem_t* mutexSem, sem_t* s[]) {
+static void take_forks(int index, int n, phylState* state, char* mutexSem, char* s[]) {
     _sysSemDown(mutexSem);
     state[index] = HUNGRY;
     test(index, n, state, s);
@@ -64,7 +66,7 @@ static void take_forks(int index, int n, phylState* state, sem_t* mutexSem, sem_
     _sysSemDown(s[index]);
 }
 
-static void put_forks(int index, int n, phylState* state, sem_t* mutexSem, sem_t* s[]) {
+static void put_forks(int index, int n, phylState* state, char* mutexSem, char* s[]) {
     _sysSemDown(mutexSem);
     state[index] = THINKING;
     test(LEFT, n, state, s);
@@ -72,7 +74,7 @@ static void put_forks(int index, int n, phylState* state, sem_t* mutexSem, sem_t
     _sysSemUp(mutexSem);
 }
 
-static void test(int index, int n, phylState* state, sem_t* s[]) {
+static void test(int index, int n, phylState* state, char* s[]) {
     if (state[index] == HUNGRY && state[LEFT] != EATING && state[RIGHT] != EATING) {
         state[index] = EATING;
         _sysSemUp(s[index]);
@@ -80,4 +82,3 @@ static void test(int index, int n, phylState* state, sem_t* s[]) {
 }
 
 
-*/

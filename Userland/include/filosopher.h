@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 
+#define FILO_MUTEX "mutex"
 
 typedef enum State {
     THINKING, HUNGRY, EATING
