@@ -2,8 +2,6 @@
 #define _TERMINAL_H_
 
 #include <stdio.h>
-// #include <string.h>
-// #include <drawings.h>
 
 
 #define MINUTES 2

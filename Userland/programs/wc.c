@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include <cat.h> //actualizar include path
+
 
 #define COUNT_BUFF_SIZE 12
 char i;
@@ -9,14 +9,13 @@ char countString[COUNT_BUFF_SIZE];
 
 
 int wc(int argsc, char* argsv[]) {
-    //recibe por stdin o por un buffer
+    //Recives from stdin or buffer
     if (argsc <= 1) {
-        count = 1;  /* Empieza por una línea. */
+        count = 1;  /* Starts in 1 line. */
         while((i = getChar()) != '&'){
             if(i == '\n'){
                 count++;
             }
-            //putChar(i);
         }
         numToString(count, countString, COUNT_BUFF_SIZE);
         printf(countString);

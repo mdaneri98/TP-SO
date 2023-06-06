@@ -14,14 +14,13 @@ char semNames[MAX_PHILOSOPHERS][BUFFER_MAX_LENGTH];
 char ansiArt[MAX_PHILOSOPHERS];
 char* mutexSem;
 
-/* Por limitación de rbp, _fork usa las mismas variables locales luego de realizarse, por ende, i debe ser global.
- */
+/* Due to rbp's limitation, _fork uses the same local variables after execution, therefore, i must be global. */
 int filosopherNumber;
 int argNumber;
 char aux[BUFFER_MAX_LENGTH] = { '0' };
 char** newArgsv;
 
-/* FIXME: Puede haber un error al crear el nuevo argsv. */
+
 int phylo(int argsc, char* argsv[]) {
     if (argsc <= 1) {
         printf("Hay menos de un argv\n");
@@ -34,7 +33,7 @@ int phylo(int argsc, char* argsv[]) {
         state[i] = HUNGRY;
         ansiArt[i] = '.';
         
-        // Crear el string utilizando el valor de 'i'
+        // Create the string using the value of 'i'.
         stringFormat(semNames[i], BUFFER_MAX_LENGTH, "filoSem_%d", i);
         stringCopy(s[i], BUFFER_MAX_LENGTH, semNames[i]);
         _sysSemOpen(s[i], 1);

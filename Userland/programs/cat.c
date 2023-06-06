@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include <cat.h> //actualizar include path
+#include <cat.h>
 
 #define BUFFER_MAX_LENGTH 1024
 char c;
@@ -9,7 +9,6 @@ int cat(int argsc, char* argsv[]) {
     
     if (argsc <= 1) {
         char c;
-        //while hasta que presionen ctrl+d (EOF)
         while(((c = getChar()) != -1)){
             putChar(c);
         }

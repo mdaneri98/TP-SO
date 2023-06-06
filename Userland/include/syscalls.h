@@ -54,8 +54,8 @@ int _sysUnblock(uint64_t pid);
 void *_sysMalloc(uint64_t size);
 void _sysFree(void *ptr);
 void *_sysRealloc(void *ptr, uint64_t size);
-int _getFreeMemory();
-int _getUsedMemory();
+uint64_t _getFreeMemory();
+uint64_t _getUsedMemory();
 
 void _setToBackground();
 

@@ -3,4 +3,4 @@
 
 int help(int argsc, char* argsv[]);
 
-#endif /*FILTER_H*/
+#endif /*HELP_H*/
