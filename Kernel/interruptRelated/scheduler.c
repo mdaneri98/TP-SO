@@ -118,7 +118,7 @@ void *scheduler(void *rsp) {
     uint64_t newInterval = (counterFinish - current->pcbEntry.counterInit)/TSCFrequency;
     current->pcbEntry.agingInterval += newInterval;
 
-    updateTimers();
+    updateTimers(counterFinish/TSCFrequency);
     checkBlocked();
     checkExited();
 

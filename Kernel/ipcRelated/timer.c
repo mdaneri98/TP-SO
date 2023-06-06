@@ -3,14 +3,14 @@
 #include <memoryManager.h>
 #include <libasm.h>
 #include <constants.h>
+#include <video.h>
 
 typedef struct Timer *TimerPtr;
 
 typedef struct Timer{
 	TimerPtr next;
 	
-	uint64_t startInterval;
-	uint64_t sleepAmount;
+	uint64_t endInterval;
 	ProcessControlBlockADT sleepingProcess;
 	uint32_t pid;
 } Timer;
@@ -59,13 +59,12 @@ static void removeFromList(TimerPtr timer){
 	return;
 }
 
-void updateTimers(){
-	uint64_t TSCFreq = getTSCFrequency();
-	uint64_t currentTSC = _readTimeStampCounter();
+void updateTimers(uint64_t currentMillis){
 	TimerPtr current = list.head;
-	
-	if((currentTSC - current->startInterval)/TSCFreq < current->sleepAmount){
-		setProcessState(current->sleepingProcess, READY);
+	while(current != NULL){
+		if(currentMillis >= current->endInterval){
+			setProcessState(current->sleepingProcess, READY);
+		}
 		current = current->next;
 	}
 	return;
@@ -73,15 +72,13 @@ void updateTimers(){
 
 void sleep(uint64_t millis){
 	ProcessControlBlockADT currentProcess = getCurrentProcessEntry();
-	// uint64_t TSCFreq = getTSCFrequency();
 	TimerPtr timer = (TimerPtr) allocTimer();
-	timer->sleepAmount = millis;
-	timer->startInterval = _readTimeStampCounter();
+	uint64_t TSCFreq = getTSCFrequency();
+	timer->endInterval = _readTimeStampCounter()/TSCFreq + millis;
 	timer->sleepingProcess = currentProcess;
 	timer->pid = getProcessId(currentProcess);
 	timer->next = NULL;
 	insertInList(timer);
-	// uint64_t endInterval = timer->startInterval;
 	setProcessState(currentProcess, BLOCKED);
 	_int20h();
 	removeFromList(timer);

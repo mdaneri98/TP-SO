@@ -5,6 +5,6 @@
 
 uint64_t getTimerSize();
 void sleep(uint64_t millis);
-void updateTimers();
+void updateTimers(uint64_t currentMillis);
 
 #endif
