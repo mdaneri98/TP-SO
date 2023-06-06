@@ -46,7 +46,7 @@ static void genericFreeMemory(MemoryManager_t *memoryForMemoryManager, void cons
 
 void createMemoryManager(void *const restrict init, uint64_t size) {
 	initMemory(&userMemoryManager, init, size);
-    initMemory(&kernelMemoryManager, KERNEL_MEMORY_LOCATION, KERNEL_MEMORY_SIZE);
+    initMemory(&kernelMemoryManager, (void*) KERNEL_MEMORY_LOCATION, KERNEL_MEMORY_SIZE);
     PCBNodeSize = getPCBNodeSize();
     semNodeSize = getSemNodeSize();
     IPCBufferSize = getIPCBufferSize();
