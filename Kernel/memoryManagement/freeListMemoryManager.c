@@ -3,9 +3,8 @@
 #include <scheduler.h>
 #include <sync.h>
 #include <timer.h>
+#include <constants.h>
 
-#define TRUE 1
-#define FALSE 0
 #define BLOCK_SIZE 0x1000
 #define PCB_LOCATION 0x50000
 

@@ -16,7 +16,6 @@ void stringFilterCopy(char * arg);
 int filter(int argsc, char* argsv[]) {
     //recibe por stdin o por un buffer
     if (argsc <= 1) {
-        int i = 0;
         while(((t = getChar()) != -1)){
             if(!isVocal(t)){
                 putChar(t);

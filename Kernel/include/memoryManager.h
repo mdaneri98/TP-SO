@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 
-#define NULL (void *)0
 
 void createMemoryManager(void *const restrict init, uint64_t size);
 

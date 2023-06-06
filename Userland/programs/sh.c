@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <constants.h>
 #include <string.h>
 #include <syscalls.h>
 #include <tron.h>
@@ -19,22 +20,15 @@
 #include <invalid_op_code.h>
 #include <div_zero.h>
 #include <sleep.h>
+#include <memory_dump.h>
 #include <page_fault.h>
 #include <help.h>
 
 
-#define BUFFER_MAX_LENGTH 250
-#define CMDS_COUNT 21
-#define MAX_ARGS_COUNT 25
-#define MAX_LINES 50
-
-#define TRUE 1
-#define FALSE 0
-
 // Structures for help command
 static char *commandsName[CMDS_COUNT];
 static char *commandsDesc[CMDS_COUNT];
-static void (*commandsFunction[CMDS_COUNT])(int, char **);
+static int (*commandsFunction[CMDS_COUNT])(int, char **);
 
 // Structure for the command reader
 static char lastCommand[BUFFER_MAX_LENGTH*2];
@@ -50,21 +44,18 @@ static unsigned int lineCount = 0;
 // Global variable for fontSize in this program
 static int fontSize = 1;
 
-int isBackground = FALSE;
-
 // Prototypes
 static void runProgram(int idx, int jdx);
 static void awaitCommand(int* idx, int* jdx);
 static int checkCommand(char* lastCommand);
 
-static void clear();
-static void beep(int argsc, char* argsv[]);
+static int clear();
+static int beep(int argsc, char* argsv[]);
 static void loadCommands();
-static void printRegisters(int argsc, char* argsv[]);
-static void increment(int argsc, char* argsv[]);
-static void decrement(int argsc, char* argsv[]);
-static void playTron(int argsc, char* argsv[]);
-static void memoryDump(int argsc, char* argsv[]);
+static int printRegisters(int argsc, char* argsv[]);
+static int increment(int argsc, char* argsv[]);
+static int decrement(int argsc, char* argsv[]);
+static int playTron(int argsc, char* argsv[]);
 static void refresh();
 static void clearLines();
 void clearLine(char *line);
@@ -264,25 +255,29 @@ static void runProgram(int idx, int jdx) {
 
 /* Old functions */
 
-static void clear(){
+static int clear(){
     clearLines();
 	_clear();
+    return 0;
 }
 
-static void beep(int argsc, char* argsv[]){
+static int beep(int argsc, char* argsv[]){
     char *beepMsg= "I'm supposed to be beeping...";
     printf("%s\n", beepMsg);
     clearLine(lines[lineCount % MAX_LINES]);
     stringFormat(lines[lineCount++ % MAX_LINES], BUFFER_MAX_LENGTH, "%s", beepMsg);
 	_beep(2000);
+    return 0;
 }
 
+/*
 static int getFormat(int num) {
 	int dec = num & 240;
 	dec = dec >> 4;
 	int units = num & 15;
 	return dec * 10 + units;
 }
+*/
 
 static void loadCommands() {
     commandsName[0] = "clock";
@@ -354,6 +349,16 @@ static void loadCommands() {
     commandsName[20] = "loop";
     commandsDesc[20] = "Prints a message every constant time with the process id";
     commandsFunction[20] = loop;
+    commandsName[21] = "test_sync";
+    commandsDesc[21] = "Execute test of sync";
+    commandsFunction[21] = NULL;
+    commandsName[22] = "test_prio";
+    commandsDesc[22] = "Execute test of priority";
+    commandsFunction[22] = NULL;
+    commandsName[23] = "test_mm";
+    commandsDesc[23] = "Execute test of memory manager";
+    commandsFunction[23] = NULL;
+
 }
 
 void clearLine(char *line){
@@ -383,7 +388,7 @@ static void refresh(){
     }
 }
 
-static void printRegisters(int argsc, char* argsv[]) {
+static int printRegisters(int argsc, char* argsv[]) {
     char * regsName[17] = {"RIP", "RAX", "RBX", "RCX", "RDX", "RDI", "RSI", "RBP", "RSP", "R8 ", "R9", "R10", "R11", "R12", "R13", "R14", "R15"};
 
     uint64_t regsInfo[17]; 
@@ -400,10 +405,10 @@ static void printRegisters(int argsc, char* argsv[]) {
         printf("%s = %x\n", regsName[i], regsInfo[i]);
         stringFormat(lines[lineCount++ % MAX_LINES], BUFFER_MAX_LENGTH, "%s = %x", regsName[i], regsInfo[i]);
     }
-
+    return 0;
 }
 
-static void increment(int argsc, char* argsv[]){
+static int increment(int argsc, char* argsv[]){
     if(fontSize < 5){
         _changeFont(++fontSize);
         refresh();
@@ -415,9 +420,10 @@ static void increment(int argsc, char* argsv[]){
         stringCopy(lines[lineCount++ % MAX_LINES], BUFFER_MAX_LENGTH, incErr);
         putChar('\n');
     }
+    return 0;
 }
 
-static void decrement(int argsc, char* argsv[]){
+static int decrement(int argsc, char* argsv[]){
     if(fontSize > 1){
         _changeFont(--fontSize);
         refresh();
@@ -429,12 +435,14 @@ static void decrement(int argsc, char* argsv[]){
         stringCopy(lines[lineCount++ % MAX_LINES], BUFFER_MAX_LENGTH, decErr);
         putChar('\n');
     }
+    return 0;
 }
 
-static void playTron(int argsc, char* argsv[]){
+static int playTron(int argsc, char* argsv[]){
     tron();
     _changeFont(fontSize);
     refresh();
+    return 0;
 }
 
 char **getShLines(){

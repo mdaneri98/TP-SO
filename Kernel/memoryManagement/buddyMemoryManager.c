@@ -1,5 +1,6 @@
 #include <memoryManager.h>
 #include <scheduler.h>
+#include <constants.h>
 
 #define FREE 0
 #define SPLITTED 1

@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <string.h>
 #include <syscalls.h>
 
 int sleep(int argc, char* argsv[]) {

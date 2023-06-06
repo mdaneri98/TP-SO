@@ -8,15 +8,15 @@
 extern char bss;
 extern char endOfBinary;
 
-void * memset(void * destiny, int32_t c, uint64_t length);
+// void * memset(void * destiny, int32_t c, uint64_t length);
 static void idle();
 static void init();
 
 typedef int (*processFunc)(int, char **);
 
 void _start(processFunc process, int argc, char *argv[]) {
-	if(process != NULL && (int) process != 1){
-		int returnValue = process(argc, argv);
+	if(process != NULL && (uint64_t) process != 1){
+		process(argc, argv);
 	} else if(process == NULL){
 		init();
 	} else{
@@ -35,6 +35,7 @@ static void idle(){
 	}
 }
 
+/*
 void * memset(void * destiation, int32_t c, uint64_t length) {
 	uint8_t chr = (uint8_t)c;
 	char * dst = (char*)destiation;
@@ -44,3 +45,4 @@ void * memset(void * destiation, int32_t c, uint64_t length) {
 
 	return destiation;
 }
+*/

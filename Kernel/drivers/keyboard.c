@@ -2,7 +2,7 @@
 #include <video.h>
 #include <keyboard.h>
 #include <string.h>
-#include <syscallsDispatcher.h>
+#include <interrupts.h>
 #include <bufferManagement.h>
 
 #define CODES 56
@@ -23,8 +23,6 @@
 
 static int isBuffEmpty();
 static int isMapped(unsigned char key);
-static void tab();
-static int getLength();
 static void shift();
 static void capsLock();
 static int isArrow(int index);
@@ -126,7 +124,7 @@ void addKey(uint8_t alKey) {
     }
     if(leftCntrl && key == C_CODE){
         ProcessControlBlockADT foregroundProcess = getForegroundProcess();
-        if(foregroundProcess != NULL & setProcessState(foregroundProcess, CLOSED)){
+        if(foregroundProcess != NULL && setProcessState(foregroundProcess, CLOSED)){
             _int20h();
         }
         return;
@@ -143,7 +141,7 @@ void addKey(uint8_t alKey) {
     } else{
         item = KEYS[idx][lock];
     }
-    if(item == '\t' && shift == 1){
+    if(item == '\t' && shiftKey == 1){
         return;
     }
     if(isArrow(idx)){
@@ -163,16 +161,6 @@ static int isMapped(unsigned char key){
 
 static void cntrl(){
     leftCntrl = !leftCntrl;
-}
-
-static void tab(){
-    for(int i = 0;i < 4;i++){
-        scrPrintChar(' ');
-    }
-}
-
-static int getLength(){
-    return lineLength;
 }
 
 static void shift(){

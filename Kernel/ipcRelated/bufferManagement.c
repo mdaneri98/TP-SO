@@ -1,9 +1,8 @@
 #include <stdint.h>
 #include <bufferManagement.h>
+#include <constants.h>
 #include <memoryManager.h>
 
-#define TRUE 1
-#define FALSE 0
 
 typedef struct IPCBufferCDT{
     char buffer[BUFF_SIZE];

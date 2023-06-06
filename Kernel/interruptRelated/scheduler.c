@@ -10,6 +10,7 @@
 #include <ps.h>
 #include <pipe.h>
 #include <timer.h>
+#include <constants.h>
 
 #define DEFAULT_PROCESS_STACK_SIZE 0x4000
 #define QUANTUM_SIZE 55
@@ -17,9 +18,6 @@
 
 #define INIT_ID 1
 #define IDLE_ID 2
-
-#define TRUE 1
-#define FALSE 0
 
 typedef struct PCBNodeCDT *PCBNodeADT;
 
@@ -238,7 +236,7 @@ void createInit() {
     initNode->pcbEntry.foreground = TRUE;
     level0Queue.head = initNode;
 
-    foreground = initNode;
+    foreground = &initNode->pcbEntry;
 
     idleNode->pcbEntry.stackSize = idleStack - memoryForIdle;
     idleNode->pcbEntry.baseStack = idleStack;

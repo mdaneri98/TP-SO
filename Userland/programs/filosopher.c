@@ -14,9 +14,9 @@
 /* Prototypes */
 
 static void redraw(int i, int n, phylState* state, sem_t* mutexSem);
-static void take_forks(int i, int n, phylState* state, sem_t* mutexSem, sem_t* s);
-static void put_forks(int i, int n, phylState* state, sem_t* mutexSem, sem_t* s);
-static void test(int i, int n, phylState* state, sem_t* s);
+static void take_forks(int i, int n, phylState* state, sem_t* mutexSem, sem_t* s[]);
+static void put_forks(int i, int n, phylState* state, sem_t* mutexSem, sem_t* s[]);
+static void test(int i, int n, phylState* state, sem_t* s[]);
 
 
 /* --------------------- */
@@ -39,7 +39,7 @@ int filosopher(int argsc, char* argsv[]) {
 }
 
 static void redraw(int index, int n, phylState* state, sem_t* mutexSem) {
-    _sysSemWait(mutexSem);
+    _sysSemDown(mutexSem);
     if (state[index] == EATING)
         ansiArt[index] = 'E' ;
     else 
@@ -50,29 +50,29 @@ static void redraw(int index, int n, phylState* state, sem_t* mutexSem) {
         putChar(ansiArt[j]);
     }
     printf("\n");
-    _sysSemPost(mutexSem);
+    _sysSemUp(mutexSem);
 }
 
-static void take_forks(int index, int n, phylState* state, sem_t* mutexSem, sem_t s[]) {
-    _sysSemWait(mutexSem);
+static void take_forks(int index, int n, phylState* state, sem_t* mutexSem, sem_t* s[]) {
+    _sysSemDown(mutexSem);
     state[index] = HUNGRY;
     test(index, n, state, s);
-    _sysSemPost(mutexSem);
-    _sysSemWait(s[index]);
+    _sysSemUp(mutexSem);
+    _sysSemDown(s[index]);
 }
 
-static void put_forks(int index, int n, phylState* state, sem_t* mutexSem, sem_t s[]) {
-    _sysSemWait(mutexSem);
+static void put_forks(int index, int n, phylState* state, sem_t* mutexSem, sem_t* s[]) {
+    _sysSemDown(mutexSem);
     state[index] = THINKING;
     test(LEFT, n, state, s);
     test(RIGHT, n, state, s);
-    _sysSemPost(mutexSem);
+    _sysSemUp(mutexSem);
 }
 
-static void test(int index, int n, phylState* state, sem_t s[]) {
+static void test(int index, int n, phylState* state, sem_t* s[]) {
     if (state[index] == HUNGRY && state[LEFT] != EATING && state[RIGHT] != EATING) {
         state[index] = EATING;
-        _sysSemPost(s[index]);
+        _sysSemUp(s[index]);
     }
 }
 

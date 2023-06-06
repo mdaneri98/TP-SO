@@ -2,11 +2,12 @@
 #include <bufferManagement.h>
 #include <memoryManager.h>
 #include <scheduler.h>
+#include <constants.h>
 
-#define NULL (void *)0
-
+/*
 static void updateWriteEnd(IPCBufferADT wEnd);
 static void updateOppositeEnd(IPCBufferADT bufferEnd);
+*/
 
 int openPipe(ProcessControlBlockADT process, int pipeFds[2]){
     IPCBufferADT pipe[2] = { NULL };

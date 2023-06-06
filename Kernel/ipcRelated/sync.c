@@ -2,6 +2,7 @@
 #include <sync.h>
 #include <semaphore.h>
 #include <string.h>
+#include <constants.h>
 
 typedef struct {
     char * name;

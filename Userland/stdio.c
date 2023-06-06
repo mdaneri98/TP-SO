@@ -73,7 +73,7 @@ int printf(const char *str, ...){
                 default:{
                     char *argErr = "Expected 's', 'd', 'x', 'p' or 'c' after '%'.\n";
                     _write(STDERR, argErr, stringLength(argErr));
-                    return;
+                    return -1;
                 }
             } 
         } else

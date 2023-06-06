@@ -24,8 +24,8 @@ GLOBAL _sysChangeState
 GLOBAL _wait
 GLOBAL _sysExit
 GLOBAL _sysSemOpen
-GLOBAL _sysSemPost
-GLOBAL _sysSemWait
+GLOBAL _sysSemUp
+GLOBAL _sysSemDown
 GLOBAL _sysSemClose
 GLOBAL _getPid
 GLOBAL _sysMalloc
@@ -36,6 +36,12 @@ GLOBAL _dup2
 GLOBAL _close
 GLOBAL _yield
 GLOBAL _setToBackground
+GLOBAL _sysExit
+
+_sysExit:
+    mov rax, 25
+    int 80h
+    ret
 
 _setToBackground:
     mov rax, 36
@@ -77,22 +83,17 @@ _sysRealloc:
     int 80h
     ret
 
-_sysExit:
-    mov rax, 25
-    int 80h
-    ret
-
 _sysSemOpen:
     mov rax, 26
     int 80h
     ret
 
-_sysSemPost:
+_sysSemUp:
     mov rax, 27
     int 80h
     ret
 
-_sysSemWait:
+_sysSemDown:
     mov rax, 28
     int 80h
     ret

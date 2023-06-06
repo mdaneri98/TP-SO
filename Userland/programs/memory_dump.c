@@ -11,8 +11,8 @@ int memoryDump(int argsc, char* argsv[]) {
         char *argErr = "You need to specify a memory direction in hex format.";
         printf(argErr);
         putChar('\n');
-        return;
-    } else{
+        return -1;
+    } else {
         direction = stringHexToNum(argsv[1]);
     }
 

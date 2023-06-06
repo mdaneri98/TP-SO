@@ -1,10 +1,8 @@
-#include <time.h>
 #include <scheduler.h>
 #include <interrupts.h>
 #include <memoryManager.h>
 #include <libasm.h>
-
-#define NULL (void *)0
+#include <constants.h>
 
 typedef struct Timer *TimerPtr;
 
@@ -75,7 +73,7 @@ void updateTimers(){
 
 void sleep(uint64_t millis){
 	ProcessControlBlockADT currentProcess = getCurrentProcessEntry();
-	uint64_t TSCFreq = getTSCFrequency();
+	// uint64_t TSCFreq = getTSCFrequency();
 	TimerPtr timer = (TimerPtr) allocTimer();
 	timer->sleepAmount = millis;
 	timer->startInterval = _readTimeStampCounter();
@@ -83,7 +81,7 @@ void sleep(uint64_t millis){
 	timer->pid = getProcessId(currentProcess);
 	timer->next = NULL;
 	insertInList(timer);
-	uint64_t endInterval = timer->startInterval;
+	// uint64_t endInterval = timer->startInterval;
 	setProcessState(currentProcess, BLOCKED);
 	_int20h();
 	removeFromList(timer);

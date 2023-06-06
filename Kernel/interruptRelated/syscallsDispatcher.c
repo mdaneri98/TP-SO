@@ -249,6 +249,7 @@ static uint64_t arqSysBlock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t
     return 0;
 }
 
+/*
 static uint64_t arqSysUnblock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
     ProcessControlBlockADT current = getEntry(pid);
     if(current == NULL){
@@ -258,6 +259,7 @@ static uint64_t arqSysUnblock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64
     _int20h();
     return 0;
 }
+*/
 
 static uint64_t arqSysPriority(uint64_t pid, uint64_t newPriority, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
     /* Proceso init y hlt no deben ser cambiados de prioridad. */

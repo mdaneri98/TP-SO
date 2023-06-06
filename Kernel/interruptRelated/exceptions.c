@@ -4,9 +4,7 @@
 #include <keyboard.h>
 #include <interrupts.h>
 #include <scheduler.h>
-
-#define STDIN 0
-#define NULL (void *)0
+#include <constants.h>
 
 #define REGDUMP_SIZE 18
 

@@ -4,8 +4,6 @@
 #include <stdint.h>
 #include <scheduler.h>
 
-#define NULL (void *)0
-
 typedef enum BufferState { READ, WRITE, READ_WRITE, CLOSED } BufferState;
 
 // May be util different BufferId for different pipes, FIXME: BufferType y BufferId for buffers
@@ -34,6 +32,9 @@ BufferId getBufferId(IPCBufferADT buffer);
 void setBufferOppositeEnd(IPCBufferADT buffer, IPCBufferADT buffEnd);
 IPCBufferADT getBufferOppositeEnd(IPCBufferADT buffer);
 uint16_t getBufferDim(IPCBufferADT buffer);
+
+void setBufferReferencesReady(IPCBufferADT buffer);
+uint64_t copyToBuffer(IPCBufferADT buffer, char *toCopy, uint64_t count);
 
 int setReferenceByIndex(IPCBufferADT pdBuffer, ProcessControlBlockADT toSet, uint32_t index);
 void setBufferState(IPCBufferADT buffer, BufferState state);
