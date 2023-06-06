@@ -30,9 +30,8 @@ int filosopher(int argsc, char* argsv[]) {
     
     char semName[BUFFER_MAX_LENGTH];
     stringCopy(semName, BUFFER_MAX_LENGTH, s[index]);
-    // stringFormat(semName, BUFFER_MAX_LENGTH, "filoSem_%d", index);
 
-    /* ¿Donde está el arte? */
+    /* ¿Where's the art? */
     while (TRUE) {
         take_forks(index, n, state, FILO_MUTEX, s);
         redraw(index, n, state, FILO_MUTEX);

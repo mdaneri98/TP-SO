@@ -8,7 +8,7 @@
 extern char bss;
 extern char endOfBinary;
 
-// void * memset(void * destiny, int32_t c, uint64_t length);
+
 static void idle();
 static void init();
 
@@ -22,7 +22,7 @@ void _start(processFunc process, int argc, char *argv[]) {
 	} else{
 		idle();
 	}
-	// We need to implement the exit syscall
+	
 	_sysExit();
 }
 
@@ -34,15 +34,3 @@ static void idle(){
 		_idle();
 	}
 }
-
-/*
-void * memset(void * destiation, int32_t c, uint64_t length) {
-	uint8_t chr = (uint8_t)c;
-	char * dst = (char*)destiation;
-
-	while(length--)
-		dst[length] = chr;
-
-	return destiation;
-}
-*/

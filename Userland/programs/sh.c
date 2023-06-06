@@ -152,27 +152,24 @@ static int checkCommand(char* lastCommand) {
     return -1;
 }
 
-/* Almacena los argumentos en la variable lastArguments, dada la función obtenida por idx. */
+/* Stores the arguments in the variable lastArguments, given the function obtained by idx. */
 static int getArguments(int idx, char *cadena) {
     int cantidad_argumentos = 0;
-    /*
-    stringCopy(lastArguments[cantidad_argumentos], BUFFER_MAX_LENGTH, commandsName[idx]);
-    cantidad_argumentos++;
-    */
-    // Eliminamos los espacios en blanco al comienzo y final de la cadena
+    
+    // We remove the whitespace at the beginning and end of the string.
     while (*cadena && (*cadena == ' ')) {
         cadena++;
     }
 
-    // Si la cadena está vacía, no hay argumentos
+    // If the string is empty, there are no arguments.
     if (!*cadena) {
         return cantidad_argumentos;
     }
 
-    // Utilizamos la función strtok() para separar la cadena en argumentos
+    // We use the strtok() function to separate the string into arguments.
     char *token = strtok(cadena, " ");
 
-    // Guardamos los argumentos en la variable global
+    // We save the arguments in the global variable and finish if it's a pipe.
     while (token && cantidad_argumentos < MAX_ARGS_COUNT) {
         if (*token == '|') {
             return cantidad_argumentos;
@@ -191,7 +188,7 @@ static void runProgram(int idx, int jdx) {
     int background = lastCommand[commandLength-1] == '&';
 
     if (idx >= 0 && idx < CMDS_COUNT) {
-        if (jdx >= 0 && jdx < CMDS_COUNT) { /* Caso si el input está pipeado. */
+        if (jdx >= 0 && jdx < CMDS_COUNT) { /* Case if input is piped */
             int pipefd[2];
             _pipe(pipefd);
 
@@ -233,7 +230,7 @@ static void runProgram(int idx, int jdx) {
             _close(pipefd[0]);
             _close(pipefd[1]);
         } else {
-            // El background solo funcionará para comandos sin pipe.
+            // Background only works for processes without a pipe.
             if (_sysFork() == 0) {
                 int argsc = getArguments(idx, lastCommand);
 
@@ -253,7 +250,6 @@ static void runProgram(int idx, int jdx) {
             _yield();
         }
 
-        //El proceso padre sigue ejecutando normalmente
         if (!background)    
             _wait();
     
@@ -261,8 +257,6 @@ static void runProgram(int idx, int jdx) {
 }
 
 
-
-/* Old functions */
 
 static int clear(){
     clearLines();
@@ -278,15 +272,6 @@ static int beep(int argsc, char* argsv[]){
 	_beep(2000);
     return 0;
 }
-
-/*
-static int getFormat(int num) {
-	int dec = num & 240;
-	dec = dec >> 4;
-	int units = num & 15;
-	return dec * 10 + units;
-}
-*/
 
 static void loadCommands() {
     commandsName[0] = "clock";
@@ -322,15 +307,9 @@ static void loadCommands() {
     commandsName[10] = "invalidopcodeexception";
     commandsDesc[10] = "Causes an Invalid-OpCode exception. WARNING: this will restart the shell.";
     commandsFunction[10] = invalidOpCode;
-    // commandsName[11] = "pagefaultexception";
-    // commandsDesc[11] = "Causes an Page Fault exception. WARNING: this will restart the shell.";
-    // commandsFunction[11] = pageFault;
     commandsName[11] = "help";
     commandsDesc[11] = "Prints the help manual for using the terminal.";
     commandsFunction[11] = help;
-    
-    /* Los programas nuevos no deberían ser programas built-in, por eso, no deberían estar en este arreglo.
-    Por simplicidad, usamos el mismo vector. */
     commandsName[12] = "ps";
     commandsDesc[12] = "Prints important data for each process in the system.";
     commandsFunction[12] = ps;
