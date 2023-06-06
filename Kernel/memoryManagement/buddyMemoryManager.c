@@ -26,15 +26,12 @@ typedef struct BuddyMemoryManager{
     uint64_t freeMemory;
 } BuddyMemoryManager;
 
-#pragma pack(push)
-#pragma pack (8)
 typedef struct MemNode{
     MemNodePtr right;
     MemNodePtr left;
     uint64_t size;
     MemoryStatus status;
 } MemNode;
-#pragma pack(pop)
 
 BuddyMemoryManager kernelMemoryManager;
 BuddyMemoryManager userlandMemoryManager;
@@ -265,4 +262,12 @@ static uint64_t align(uint64_t size){
     size |= size >> 8;
     size |= size >> 16;
     return size + 1;
+}
+
+uint64_t getFreeMemoryAmount(){
+    return userlandMemoryManager.freeMemory;
+}
+
+uint64_t getUsedMemoryAmount(){
+    return userlandMemoryManager.memAllocated;
 }
