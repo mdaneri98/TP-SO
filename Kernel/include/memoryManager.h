@@ -28,8 +28,6 @@ void freeBuffer(void const *bufferToFree);
 
 void freeTimer(void const *timerToFree);
 
-uint64_t getPowerOfTwo(uint64_t number);
-
 void copyBlocks(void const *target, void const *source);
 
 uint64_t getFreeMemoryAmount();

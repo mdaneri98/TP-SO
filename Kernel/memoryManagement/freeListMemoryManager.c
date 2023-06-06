@@ -6,7 +6,8 @@
 #include <constants.h>
 
 #define BLOCK_SIZE 0x1000
-#define PCB_LOCATION 0x50000
+#define KERNEL_MEMORY_LOCATION 0x50000
+#define KERNEL_MEMORY_SIZE 0x140000
 
 typedef struct node{
     struct node *next;
@@ -45,7 +46,7 @@ static void genericFreeMemory(MemoryManager_t *memoryForMemoryManager, void cons
 
 void createMemoryManager(void *const restrict init, uint64_t size) {
 	initMemory(&userMemoryManager, init, size);
-    initMemory(&kernelMemoryManager, (void* )PCB_LOCATION, 0x140000);
+    initMemory(&kernelMemoryManager, KERNEL_MEMORY_LOCATION, KERNEL_MEMORY_SIZE);
     PCBNodeSize = getPCBNodeSize();
     semNodeSize = getSemNodeSize();
     IPCBufferSize = getIPCBufferSize();
@@ -191,21 +192,4 @@ void copyBlocks(void const *target, void const *source){
         aux = s[i];
         t[i] = aux;
     }
-}
-
-uint64_t getPowerOfTwo(uint64_t number){
-    if (number == 1) { return 0; }
-    int power = 0;
-    int powerOfTwoSize = 1;
-    while(number != 1){
-        if(number%2 != 0){
-            number++;
-        } 
-        number = number/2;
-        power++;
-    }
-    for(int i = 0; i<power; i++){
-        powerOfTwoSize = powerOfTwoSize*2;
-    }
-    return powerOfTwoSize;
 }

@@ -1,191 +1,268 @@
 #include <memoryManager.h>
 #include <scheduler.h>
 #include <constants.h>
-/*
-#define FREE 0
-#define SPLITTED 1
-#define OCCUPIED 2
-#define FLOOR 4096
-#define PCB_LOCATION 0x50000
+#include <video.h>
 
-typedef struct block_t{
-    struct block_t *parent;
-    struct block_t *rBlock;
-    struct block_t *lBlock;
+#define IS_POWER_OF_2(x) (!((x)&((x)-1)))
+
+typedef enum MemoryStatus { EMPTY, PARTIAL, FULL } MemoryStatus;
+
+#define BLOCK 0x1000
+
+#define KERNEL_MEMORY_LOCATION 0x50000
+#define KERNEL_MEMORY_SIZE 0x140000
+
+#define PCB_BLOCK PCBNodeSize
+#define SEM_BLOCK semNodeSize
+#define IPC_BLOCK IPCBufferSize
+#define TIMER_BLOCK timerSize
+
+typedef struct MemNode *MemNodePtr;
+
+typedef struct BuddyMemoryManager{
+    MemNodePtr root;
+    uint64_t memAllocated;
+    uint64_t totalSize;
+    uint64_t freeMemory;
+} BuddyMemoryManager;
+
+#pragma pack(push)
+#pragma pack (8)
+typedef struct MemNode{
+    MemNodePtr right;
+    MemNodePtr left;
     uint64_t size;
-    uint8_t state;
-} block_t;
+    MemoryStatus status;
+} MemNode;
+#pragma pack(pop)
 
-#define PCB_BLOCK sizeof(block_t) + sizeof(PCBNode)
+BuddyMemoryManager kernelMemoryManager;
+BuddyMemoryManager userlandMemoryManager;
 
-typedef struct BuddyMemoryManager_t{
-    uint64_t totalMemory;
-    block_t *mainBlock;
-} BuddyMemoryManagerCDT;
+uint64_t PCBNodeSize;
+uint64_t semNodeSize;
+uint64_t IPCBufferSize;
+uint64_t timerSize;
 
-BuddyMemoryManagerCDT memoryManager;
-BuddyMemoryManagerCDT PCBMemoryManager;
+static void initMemory(BuddyMemoryManager *memoryManager, void *const init, uint64_t size);
+static void *genericAllocMemory(BuddyMemoryManager *memoryManager, uint64_t size);
+static void *genericAllocMemoryRec(BuddyMemoryManager *memoryManager, MemNodePtr node, unsigned int size);
+static void setDescendants(BuddyMemoryManager *memoryManager, MemNodePtr node);
+static int hasDescendants(MemNodePtr node);
+static void endRecursiveCall(BuddyMemoryManager *memoryManager, MemNodePtr node);
+static void genericFreeRec(BuddyMemoryManager *memoryManager, MemNodePtr node, void *memoryToFree);
+static uint64_t align(uint64_t size);
 
-static void initMemory(BuddyMemoryManagerCDT *memoryForMemoryManager, void *const restrict init, uint64_t size);
-static void *genericAllocMemory(BuddyMemoryManagerCDT *memoryForMemoryManager, const uint64_t memoryToAllocate);
-void setBlocks(block_t * block);
-void setFree(block_t * currentBlock);
-uint64_t getSize(block_t * currentBlock, int state);
-void *BSMem(block_t *currentBlock, uint64_t memoryToAllocate);
-void freeParentBlock(block_t * blockToFree);
-
-
-void createMemoryManager(void *const init, uint64_t size) {
-    initMemory(&memoryManager, init, size);
-    initMemory(&PCBMemoryManager, PCB_LOCATION, 0x140000);
+void createMemoryManager(void *const restrict init, uint64_t size){
+    initMemory(&userlandMemoryManager, init, size);
+    initMemory(&kernelMemoryManager, KERNEL_MEMORY_LOCATION, KERNEL_MEMORY_SIZE);
+    
+    PCBNodeSize = getPCBNodeSize();
+    semNodeSize = getSemNodeSize();
+    IPCBufferSize = getIPCBufferSize();
+    timerSize = getTimerSize();
 }
 
-static void initMemory(BuddyMemoryManagerCDT *memoryForMemoryManager, void *const init, uint64_t size){
-    memoryForMemoryManager->totalMemory = size;
-    memoryForMemoryManager->mainBlock = (block_t*) init;
-    memoryForMemoryManager->mainBlock->state = FREE;
-    memoryForMemoryManager->mainBlock->size = size;
-    memoryForMemoryManager->mainBlock->rBlock = NULL;
-    memoryForMemoryManager->mainBlock->lBlock = NULL;
-    memoryForMemoryManager->mainBlock->parent = NULL;
+static void initMemory(BuddyMemoryManager *memoryManager, void *const init, uint64_t size){
+    memoryManager->root = init;
+    memoryManager->root->size = size - sizeof(MemNode);
+    memoryManager->root->status = EMPTY;
+    memoryManager->root->left = NULL;
+    memoryManager->root->right = NULL;
 }
 
+static void *genericAllocMemory(BuddyMemoryManager *memoryManager, uint64_t size){
+    if(size < BLOCK){
+        size = BLOCK;
+    }
+    else if(size > memoryManager->root->size){
+        return NULL;
+    }
+    if(!IS_POWER_OF_2(size)){
+        size = align(size);
+    }
+    
+    void * allocAttempt = genericAllocMemoryRec(memoryManager, memoryManager->root, size);
+    return allocAttempt;
+}
+
+static void *genericAllocMemoryRec(BuddyMemoryManager *memoryManager, MemNodePtr node, unsigned int size){
+    if(node == NULL || node->status == FULL){
+        return NULL;
+    }
+
+    if(node->left != NULL || node->right != NULL){
+        void *auxNode = genericAllocMemoryRec(memoryManager, node->left, size);
+        if (auxNode == NULL) {
+            auxNode = genericAllocMemoryRec(memoryManager, node->right, size);
+        }
+        endRecursiveCall(memoryManager, node);
+        return auxNode;
+    } 
+    else{
+        if (size > node->size) {
+            return NULL;
+        }
+        if ((node->size / 2) >= size) {
+            setDescendants(memoryManager, node);
+            void *auxNode = genericAllocMemoryRec(memoryManager, node->left, size);
+            endRecursiveCall(memoryManager, node);
+            return auxNode;
+        }
+        node->status = FULL;
+        memoryManager->memAllocated += node->size + sizeof(MemNode);
+        memoryManager->freeMemory -= node->size + sizeof(MemNode);
+        return (void *)((uint64_t)node + sizeof(MemNode));
+    }
+}
+
+static void setDescendants(BuddyMemoryManager *memoryManager, MemNodePtr node){
+    uint64_t descendantSize = ((uint64_t)(node->size) / 2);
+    node->left = (MemNodePtr)((uint64_t)node + sizeof(MemNode));
+
+    uint64_t limit = (uint64_t)memoryManager->root + memoryManager->root->size + sizeof(MemNode);
+
+    if ((uint64_t) node->left >= limit) {
+        return;
+    }
+    node->left->size = descendantSize - sizeof(MemNode);
+    node->left->status = EMPTY;
+    memoryManager->memAllocated += sizeof(MemNode);
+    memoryManager->freeMemory -= sizeof(MemNode);
+
+    node->right = (MemNodePtr)((uint64_t)node + descendantSize + sizeof(MemNode));
+    if ((uint64_t) node->right >= limit) {
+        return;
+    }
+    node->right->size = descendantSize - sizeof(MemNode);
+    node->right->status = EMPTY;
+    
+    memoryManager->memAllocated += sizeof(MemNode);
+    memoryManager->freeMemory -= sizeof(MemNode);
+}
+
+static int hasDescendants(MemNodePtr node){
+    return node->left == NULL || node->right == NULL;
+}
+
+static void endRecursiveCall(BuddyMemoryManager *memoryManager, MemNodePtr node){
+    if (hasDescendants(node)) {
+        node->status = EMPTY;
+        memoryManager->freeMemory += node->size;
+        memoryManager->memAllocated -= node->size;
+        return;
+    }
+    if (node->left->status == FULL && node->right->status == FULL) {
+        node->status = FULL;
+    } else if (node->left->status == FULL || node->right->status == FULL
+               || node->left->status == PARTIAL || node->right->status == PARTIAL) {
+        node->status = PARTIAL;
+    } else {
+        node->status = EMPTY;
+        memoryManager->freeMemory += node->size;
+        memoryManager->memAllocated -= node->size;
+    }
+}
+
+void freeMemory(void const *memoryToFree){
+    genericFreeRec(&userlandMemoryManager, userlandMemoryManager.root, memoryToFree);
+}
+
+static void genericFreeRec(BuddyMemoryManager *memoryManager, MemNodePtr node, void *memoryToFree){
+    if(node == NULL){
+        return;
+    }
+    if (node->left != NULL || node->right != NULL){
+        if (node->right != NULL && (uint64_t) node->right + sizeof(MemNode) > (uint64_t) memoryToFree){
+            genericFreeRec(memoryManager, node->left, memoryToFree);
+        } 
+        else{
+            genericFreeRec(memoryManager, node->right, memoryToFree);
+        }
+        endRecursiveCall(memoryManager, node);
+        if (node->status == EMPTY){
+            node->right = NULL;
+            node->left = NULL;
+            memoryManager->freeMemory += 2*sizeof(MemNode);
+            memoryManager->memAllocated -= 2*sizeof(MemNode);
+        }
+    } 
+    else if (node->status == FULL) {
+        if ((void *)((uint64_t)node + sizeof(MemNode)) == memoryToFree) {
+            node->status = EMPTY;
+            memoryManager->memAllocated -= node->size;
+            memoryManager->freeMemory += node->size;
+        }
+    }
+    return;
+}
 void *allocMemory(const uint64_t memoryToAllocate){
-    return genericAllocMemory(&memoryManager, memoryToAllocate);
+    return genericAllocMemory(&userlandMemoryManager, memoryToAllocate);
 }
 
 void *allocPCB(){
-    return genericAllocMemory(&PCBMemoryManager, PCB_BLOCK);
+    return genericAllocMemory(&kernelMemoryManager, PCB_BLOCK);
 }
 
-static void *genericAllocMemory(BuddyMemoryManagerCDT *memoryForMemoryManager, const uint64_t memoryToAllocate){
-    block_t *currentBlock = memoryForMemoryManager->mainBlock;
-    return BSMem(currentBlock, memoryToAllocate);
+void *allocSemaphore(){
+    return genericAllocMemory(&kernelMemoryManager, SEM_BLOCK);
 }
 
-void *BSMem(block_t *currentBlock, uint64_t memoryToAllocate){
-    uint64_t blockSize = currentBlock->size;
-    
-    if((blockSize - sizeof(block_t))/2 < memoryToAllocate && currentBlock->state == FREE){
-        currentBlock->state = OCCUPIED;
-        block_t *parent = currentBlock->parent;
-        // if(parent->lBlock != NULL && parent->lBlock->state == OCCUPIED && parent->rBlock != NULL && parent->rBlock->state == OCCUPIED){
-        //     parent->state = OCCUPIED;
-        // }
-        return (void*)((uint64_t)currentBlock + sizeof(block_t));
-    }
-    if(blockSize < FLOOR){
-        return NULL;
-    }
-    
-    if(currentBlock->lBlock != NULL && currentBlock->lBlock->state != OCCUPIED){
-        return BSMem(currentBlock->lBlock, memoryToAllocate);
-    } else if(currentBlock->rBlock != NULL && currentBlock->rBlock->state != OCCUPIED){
-        return BSMem(currentBlock->rBlock, memoryToAllocate);
-    } else if(currentBlock->lBlock == NULL){
-        currentBlock->lBlock = (block_t *)((uint64_t) currentBlock + sizeof(block_t));
-        currentBlock->lBlock->parent = currentBlock;
-        currentBlock->lBlock->lBlock = NULL;
-        currentBlock->lBlock->rBlock = NULL;
-        currentBlock->lBlock->size = (blockSize - sizeof(block_t))/2;
-        currentBlock->lBlock->state = FREE;
-        currentBlock->state = SPLITTED;
-        return BSMem(currentBlock->lBlock, memoryToAllocate);
-    } else if(currentBlock->rBlock == NULL){
-        currentBlock->rBlock = (block_t *)((uint64_t) currentBlock + sizeof(block_t) + blockSize/2 + 1);
-        currentBlock->rBlock->parent = currentBlock;
-        currentBlock->rBlock->lBlock = NULL;
-        currentBlock->rBlock->rBlock = NULL;
-        currentBlock->rBlock->size = (blockSize - sizeof(block_t))/2 + 1;
-        currentBlock->rBlock->state = FREE;
-        currentBlock->state = SPLITTED;
-        return BSMem(currentBlock->rBlock, memoryToAllocate);
-    } else {
-        return NULL;
-    }
+void *allocBuffer(){
+    return genericAllocMemory(&kernelMemoryManager, IPC_BLOCK);
 }
 
-void freePCB(void *const PCBToFree){
-    freeMemory(PCBToFree);
+void *allocTimer(){
+    return genericAllocMemory(&kernelMemoryManager, TIMER_BLOCK);
 }
 
-void freeMemory(void *const memoryToFree){
-    block_t* blockToFree = (block_t*)(((uint64_t)memoryToFree) - sizeof(block_t));
-    blockToFree->state = FREE;
-
-    freeParentBlock(blockToFree);
-    
-    return;
+void freePCB(void const *blockToFree){
+    genericFreeRec(&kernelMemoryManager, kernelMemoryManager.root, blockToFree);
 }
 
-void freeParentBlock(block_t * blockToFree){
-    block_t* currentBlock = blockToFree->parent;
-    while(currentBlock->size <= memoryManager.mainBlock->size && currentBlock->state == OCCUPIED){
-        if(currentBlock->lBlock->state == FREE && currentBlock->rBlock->state == FREE){
-            currentBlock->state = FREE;
-        }
-        currentBlock = currentBlock->parent;
+void freeSemaphore(void const *semToFree){
+    genericFreeRec(&kernelMemoryManager, kernelMemoryManager.root, semToFree);
+}
+
+void freeBuffer(void const *bufferToFree){
+    genericFreeRec(&kernelMemoryManager, kernelMemoryManager.root, bufferToFree);
+}
+
+void freeTimer(void const *timerToFree){
+    genericFreeRec(&kernelMemoryManager, kernelMemoryManager.root, timerToFree);
+}
+
+void copyBlocks(void const *target, void const *source){
+    MemNodePtr targetNode = (MemNodePtr)((uint64_t)targetNode - sizeof(MemNode));
+    MemNodePtr sourceNode = (MemNodePtr)((uint64_t)sourceNode - sizeof(MemNode));
+
+    uint8_t *s = (uint8_t *)source;
+    uint8_t *t = (uint8_t *)target;
+    for(int i=0; i < targetNode->size && i < sourceNode->size ;i++){
+        uint8_t aux = s[i];
+        t[i] = aux;
     }
     return;
 }
 
-void *reallocMemory(void *memoryToRealloc, uint64_t newSize){
-    block_t*currentBlock = (block_t *)((uint64_t)memoryToRealloc - sizeof(block_t));
-    if(currentBlock->size > newSize){
+void *reAllocMemory(void *memoryToRealloc, uint64_t newSize){
+    MemNodePtr memoryToReallocNode = (MemNodePtr)((uint64_t)memoryToRealloc - sizeof(MemNode));
+
+    if(memoryToReallocNode->size >= newSize){
         return memoryToRealloc;
     }
-    void*newMemory = allocMemory(newSize);
-    if(newMemory == NULL){
-        freeMemory(memoryToRealloc);
-        return NULL;
-    }
-    block_t *newBlock = (block_t*)((uint64_t)newMemory - sizeof(block_t));
+    
+    void *newAllocation = allocMemory(newSize);
+    copyBlocks(newAllocation, memoryToRealloc);
+    return newAllocation;
 
-    memcpy(newMemory, memoryToRealloc,  newBlock->size > currentBlock->size ? newBlock->size : currentBlock->size);
-
-    freeMemory(memoryToRealloc);
-    return newMemory;
 }
 
-
-
-// uint64_t getFreeMemoryAmount(){
-//     uint64_t freeMemoryAmount = getSize(memoryManager.mainBlock, TRUE);
-//     return freeMemoryAmount;
-// }
-
-// uint64_t getUsedMemoryAmount(){
-//     uint64_t usedMemoryAmount = getSize(memoryManager.mainBlock, FALSE);
-//     return usedMemoryAmount;
-// }
-
-
-uint64_t getPowerOfTwo(uint64_t number){
-    if (number == 1) { return 0; }
-    int power = 0;
-    int powerOfTwoSize = 1;
-    while(number != 1){
-        if(number%2 != 0){
-            number++;
-        } 
-        number = number/2;
-        power++;
-    }
-    for(int i = 0; i<power; i++){
-        powerOfTwoSize = powerOfTwoSize*2;
-    }
-    return powerOfTwoSize;
+static uint64_t align(uint64_t size){
+    size |= size >> 1;
+    size |= size >> 2;
+    size |= size >> 4;
+    size |= size >> 8;
+    size |= size >> 16;
+    return size + 1;
 }
-
-uint64_t getSize(block_t * currentBlock, int state){
-    uint16_t size = 0;
-    if(state ? !currentBlock->state : currentBlock->state){
-        return 0;
-    } else if (currentBlock->rBlock == NULL && currentBlock->lBlock == NULL){
-        return currentBlock->size;
-    }
-    size += getSize(currentBlock->rBlock, state);
-    size += getSize(currentBlock->lBlock, state);
-    return size;
-}
-*/
