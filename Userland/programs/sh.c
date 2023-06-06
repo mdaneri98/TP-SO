@@ -356,19 +356,19 @@ static void loadCommands() {
     commandsDesc[20] = "Prints a message every constant time with the process id";
     commandsFunction[20] = loop;
     commandsName[21] = "test_sync";
-    commandsDesc[21] = "Execute test of sync";
+    commandsDesc[21] = "Execute test of sync. First argument is number of loops and second refers if should use mutex or no.";
     commandsFunction[21] = test_sync;
     commandsName[22] = "test_prio";
     commandsDesc[22] = "Execute test of priority";
     commandsFunction[22] = test_prio;
     commandsName[23] = "test_mm";
-    commandsDesc[23] = "Execute test of memory manager";
+    commandsDesc[23] = "Execute test of memory manager. First argument is the memory size to be tested.";
     commandsFunction[23] = test_mm;
     commandsName[24] = "test_processes";
-    commandsDesc[24] = "Execute test of processes";
+    commandsDesc[24] = "Execute test of processes. First argument is the max number of processes.";
     commandsFunction[24] = test_processes;
     commandsName[25] = "mem";
-    commandsDesc[25] = "Prints the state of the memory";
+    commandsDesc[25] = "Prints the state of the memory.";
     commandsFunction[25] = mem;
     
 }
