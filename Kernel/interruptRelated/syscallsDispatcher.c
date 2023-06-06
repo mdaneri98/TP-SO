@@ -168,6 +168,7 @@ static uint64_t arqSysRead(uint64_t pd, uint64_t buff, uint64_t count, uint64_t 
     if(getBufferState(buffToRead) == CLOSED){
         return 0;
     }
+      
 
     char *auxBuff = (char *) buff;
     

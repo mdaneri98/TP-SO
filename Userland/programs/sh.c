@@ -231,7 +231,6 @@ static void runProgram(int idx, int jdx) {
             _close(pipefd[1]);
         } else {
             // El background solo funcionará para comandos sin pipe.
-    
             if (_sysFork() == 0) {
                 int argsc = getArguments(idx, lastCommand);
 
@@ -248,6 +247,7 @@ static void runProgram(int idx, int jdx) {
                 
                 _sysExecve(commandsFunction[idx], argsc, (char**) lastArgumentsAux);
             }
+            _yield();
         }
 
         //El proceso padre sigue ejecutando normalmente

@@ -80,7 +80,6 @@ uint64_t readPipe(IPCBufferADT rEnd, char *buffToFill, uint64_t count){
     if(rEnd != NULL && buffToFill != NULL && count > 0 && (buffState == READ || buffState == READ_WRITE)){
         if(getBufferDim(rEnd) > 0){
             uint64_t bytesWritten = readBuffer(rEnd, buffToFill, count);
-
             updateOppositeEnd(getBufferOppositeEnd(rEnd));
             return bytesWritten;
         }
