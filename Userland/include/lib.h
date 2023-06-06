@@ -13,6 +13,7 @@ void *malloc(uint64_t size);
 void free(void *ptr);
 void *realloc(void *ptr, uint64_t size);
 
+void memset(void * destination, int32_t c, uint64_t length);
 
 
 #endif

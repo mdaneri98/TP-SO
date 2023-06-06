@@ -24,6 +24,9 @@
 #include <page_fault.h>
 #include <help.h>
 
+#include <test_mm.h>
+#include <test_prio.h>
+
 
 // Structures for help command
 static char *commandsName[CMDS_COUNT];
@@ -354,10 +357,10 @@ static void loadCommands() {
     commandsFunction[21] = NULL;
     commandsName[22] = "test_prio";
     commandsDesc[22] = "Execute test of priority";
-    commandsFunction[22] = NULL;
+    commandsFunction[22] = test_prio;
     commandsName[23] = "test_mm";
     commandsDesc[23] = "Execute test of memory manager";
-    commandsFunction[23] = NULL;
+    commandsFunction[23] = test_mm;
 
 }
 

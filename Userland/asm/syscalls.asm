@@ -37,6 +37,18 @@ GLOBAL _close
 GLOBAL _yield
 GLOBAL _setToBackground
 GLOBAL _sysExit
+GLOBAL _sysBlock
+GLOBAL _sysUnblock
+
+_sysUnblock:
+    mov rax, 39
+    int 80h
+    ret
+
+_sysBlock:
+    mov rax, 16
+    int 80h
+    ret
 
 _sysExit:
     mov rax, 25
@@ -225,6 +237,6 @@ _idle:
     ret
 
 _getPid:
-    mov rax, 35
+    mov rax, 40
     int 80h
     ret

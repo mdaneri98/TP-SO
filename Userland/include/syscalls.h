@@ -49,7 +49,9 @@ void _sysPriority(uint32_t pid, unsigned int newPriority);
 void _sysChangeState(uint32_t pid);
 void _idle();
 void _wait();
-int _getPid();
+int64_t _getPid();
+void _sysBlock(uint64_t pid);
+void _sysUnblock(uint64_t pid);
 
 void *_sysMalloc(uint64_t size);
 void _sysFree(void *ptr);

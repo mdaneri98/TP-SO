@@ -18,7 +18,7 @@
 #include <ps.h>
 #include <sync.h>
 
-#define TOTAL_SYSCALLS 39
+#define TOTAL_SYSCALLS 41
 #define AUX_BUFF_DIM 512
 
 #define DEFAULT_FREQUENCY 1500
@@ -41,6 +41,7 @@ static uint64_t arqSysGetPenX(uint64_t x, uint64_t nil1, uint64_t nil2, uint64_t
 static uint64_t arqSysGetPenY(uint64_t y, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
 static uint64_t arqSysChangeFontSize(uint64_t newSize, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
 
+static uint64_t arqSysUnblock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
 static uint64_t arqSysBlock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
 static uint64_t arqSysKill(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6);
 static uint64_t arqSysExecve(uint64_t processFunction, uint64_t argc, uint64_t argv, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t rsp);
@@ -116,8 +117,7 @@ void setSyscalls(){
     syscalls[30] = (SyscallVec) arqSysPipe;
     syscalls[31] = (SyscallVec) arqSysClosePd;
 
-    //corregir cuando agreguen mas syscalls
-    syscalls[35] = (SyscallVec) arqSysGetPid;
+    //corregir cuando agreguen mas syscalls LERO
     syscalls[32] = (SyscallVec) arqSysMalloc;
     syscalls[33] = (SyscallVec) arqSysFree;
     syscalls[34] = (SyscallVec) arqSysRealloc;
@@ -126,6 +126,9 @@ void setSyscalls(){
     syscalls[36] = (SyscallVec) arqSysSetToBackground;
     syscalls[37] = (SyscallVec) arqSysDup;
     syscalls[38] = (SyscallVec) arqSysYield;
+
+    syscalls[39] = (SyscallVec) arqSysUnblock;
+    syscalls[40] = (SyscallVec) arqSysGetPid;
 }
 
 uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t rcx, uint64_t r8, uint64_t r9, uint64_t rsp) {    
@@ -248,7 +251,6 @@ static uint64_t arqSysBlock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t
     return 0;
 }
 
-/*
 static uint64_t arqSysUnblock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
     ProcessControlBlockADT current = getEntry(pid);
     if(current == NULL){
@@ -258,7 +260,7 @@ static uint64_t arqSysUnblock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64
     _int20h();
     return 0;
 }
-*/
+
 
 static uint64_t arqSysPriority(uint64_t pid, uint64_t newPriority, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
     /* Proceso init y hlt no deben ser cambiados de prioridad. */

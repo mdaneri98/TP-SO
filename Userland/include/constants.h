@@ -2,7 +2,7 @@
 #define CONSTANTS_H
 
 #define PROMPT "user$ "
-#define CMDS_COUNT 23
+#define CMDS_COUNT 24
 #define MAX_ARGS_COUNT 5
 #define BUFFER_MAX_LENGTH 250
 #define MAX_LINES 50

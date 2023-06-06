@@ -4,6 +4,7 @@
 #include <string.h>
 #include <shared_variables.h>
 
+
 #define BUFFER_MAX_LENGTH 250
 #define MAX_PHILOSOPHERS 12
 
@@ -55,7 +56,7 @@ int phylo(int argsc, char* argsv[]) {
 
             _sysExecve(filosopher, argsc, newArgsv);
         } 
-
+        _yield();
     }
     
     _wait();
