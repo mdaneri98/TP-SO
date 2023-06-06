@@ -8,7 +8,7 @@ void createMemoryManager(void *const restrict init, uint64_t size);
 
 void *allocMemory(const uint64_t memoryToAllocate);
 
-void *reAllocMemory(void const *memoryToRealloc, uint64_t newSize);
+void *reAllocMemory(void *memoryToRealloc, uint64_t newSize);
 
 void *allocPCB();
 

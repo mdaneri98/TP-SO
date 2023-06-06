@@ -45,7 +45,7 @@ static void genericFreeMemory(MemoryManager_t *memoryForMemoryManager, void cons
 
 void createMemoryManager(void *const restrict init, uint64_t size) {
 	initMemory(&userMemoryManager, init, size);
-    initMemory(&kernelMemoryManager, PCB_LOCATION, 0x140000);
+    initMemory(&kernelMemoryManager, (void* )PCB_LOCATION, 0x140000);
     PCBNodeSize = getPCBNodeSize();
     semNodeSize = getSemNodeSize();
     IPCBufferSize = getIPCBufferSize();
@@ -135,7 +135,7 @@ void *allocTimer(){
     return genericAllocMemory(&kernelMemoryManager, TIMER_BLOCK, timerSize);
 }
 
-void *reAllocMemory(void const *memoryToRealloc, uint64_t newSize){
+void *reAllocMemory(void *memoryToRealloc, uint64_t newSize){
     MMNode *currentNode = (MMNode *)((uint64_t)memoryToRealloc - sizeof(MMNode));
     // If the new size isn't actually bigger than the amount we given in the first place
     if(currentNode->memSize >= newSize){

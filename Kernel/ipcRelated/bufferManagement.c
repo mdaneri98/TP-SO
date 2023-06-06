@@ -131,6 +131,7 @@ static int checkReferences(IPCBufferADT buffer){
         }
         return TRUE;
     }
+    return FALSE;
 }
 
 void setBufferState(IPCBufferADT buffer, BufferState status){

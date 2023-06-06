@@ -39,6 +39,8 @@ void _changeFont(uint64_t newSize);
 void _memoryDump(uint64_t *direction, uint8_t buffer[]);
 int _getRegs(uint64_t buffer[]);
 
+void _sysExit();
+
 void _sysExecve(void* function, int argc, char* argv[]);
 int _sysFork();
 int _sysPs(ProcessData (*data)[]);

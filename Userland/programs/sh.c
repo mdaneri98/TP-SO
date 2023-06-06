@@ -445,12 +445,7 @@ static int playTron(int argsc, char* argsv[]){
     return 0;
 }
 
-char **getShLines(){
-    return lines;
-}
-unsigned int *getShLinecount(){
-    return &lineCount;
-}
+
 char **getCommandsNames(){
     return commandsName;
 }

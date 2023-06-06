@@ -50,7 +50,7 @@ typedef struct ProcessControlBlockCDT {
 
 typedef struct ProcessAllocations{
     void *allocation;
-    struct ProcessAllocation *next;
+    struct ProcessAllocations *next;
 } ProcessAllocations;
 
 typedef struct PCBNodeCDT {
@@ -68,7 +68,7 @@ typedef struct queue {
 uint32_t unusedID();
 char exists(uint32_t pid);
 int add(ProcessControlBlockCDT newEntry);
-static void closePDs(pid);
+static void closePDs(ProcessControlBlockADT process);
 static void insertInQueue(PCBNodeCDT *node);
 static void insertInBlockedQueue(PCBNodeCDT *node);
 static void checkChilds(ProcessControlBlockADT pcbEntry);
@@ -79,7 +79,7 @@ static void checkExited();
 static void nextProcess();
 static int deleteProcess(PCBNodeCDT *toDelete);
 static PCBNodeADT removeFromQueue(uint32_t pid);
-static void setForegroundProcess(ProcessControlBlockADT process);
+/*static void setForegroundProcess(ProcessControlBlockADT process);*/
 static void freeAllocations(ProcessControlBlockADT process);
 
 /* Global Variables */
@@ -574,7 +574,7 @@ int changePriority(uint32_t pid, unsigned int newPriority) {
 int hasOpenChilds(ProcessControlBlockADT entry){
     for(int i=0; i<PD_SIZE ;i++){
         if(entry->childsIds[i] != 0){
-            ProcessControlBlockADT child = entry->childsIds[i];
+            ProcessControlBlockCDT* child = getEntry(entry->childsIds[i]);
             if(child->state != EXITED){
                 return TRUE;
             }
@@ -605,6 +605,7 @@ static PCBNodeCDT *removeFromQueue(uint32_t pid){
             }
         }
     }
+    return toRemove;
 }
 
 static void setParentReady(ProcessControlBlockADT pcbEntry){
@@ -670,11 +671,13 @@ uint64_t getPCBNodeSize(){
     return sizeof(PCBNodeCDT);
 }
 
+/*
 static void setForegroundProcess(ProcessControlBlockADT process){
     if(process->foreground == TRUE){
         foreground = process;
     }
 }
+*/
 
 void setProcessToForeground(ProcessControlBlockADT process){
     process->foreground = TRUE;
@@ -685,8 +688,8 @@ void setProcessToForeground(ProcessControlBlockADT process){
 
 void setProcessToBackground(ProcessControlBlockADT process){
     process->foreground = FALSE;
-    if(foreground->id == process->id){
-        foreground == NULL;
+    if(foreground != NULL && foreground->id == process->id){
+        foreground = NULL;
     }
 }
 
@@ -799,7 +802,6 @@ void sysClosePd(ProcessControlBlockADT process, IPCBufferADT toClose, uint32_t p
         if(getBufferId(toClose) == PIPE){
             removeReferences(toClose, process->id);
         }
-        return 0;
     }
 }
 

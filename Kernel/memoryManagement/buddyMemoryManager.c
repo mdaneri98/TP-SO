@@ -1,7 +1,7 @@
 #include <memoryManager.h>
 #include <scheduler.h>
 #include <constants.h>
-
+/*
 #define FREE 0
 #define SPLITTED 1
 #define OCCUPIED 2
@@ -129,7 +129,7 @@ void freeParentBlock(block_t * blockToFree){
     return;
 }
 
-void *reallocMemory(void *const memoryToRealloc, uint64_t newSize){
+void *reallocMemory(void *memoryToRealloc, uint64_t newSize){
     block_t*currentBlock = (block_t *)((uint64_t)memoryToRealloc - sizeof(block_t));
     if(currentBlock->size > newSize){
         return memoryToRealloc;
@@ -188,3 +188,4 @@ uint64_t getSize(block_t * currentBlock, int state){
     size += getSize(currentBlock->lBlock, state);
     return size;
 }
+*/

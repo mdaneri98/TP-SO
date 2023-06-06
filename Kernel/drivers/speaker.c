@@ -36,6 +36,5 @@ static void noSound(){
 
 void speaker(uint64_t millis, uint64_t frequency){
     playSound(frequency);
-    sleep(millis);
     noSound();
 }

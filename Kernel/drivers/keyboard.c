@@ -72,7 +72,7 @@ static int lock = 0;
 static int shiftKey = 0;
 static int leftCntrl = 0;
 // static int rightCntrl = 0;
-static int lineLength = 0;
+// static int lineLength = 0;
 /*SCAN CODES
 0x01    esc             0x02    1           0x03    2       0x04    3               0x05    4           0x06    5             (implementada)
 0x07    6               0x08    7           0x09    8         0x0A    9               0x0B    0           0x0C    -           (implementada)

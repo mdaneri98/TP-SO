@@ -5,8 +5,6 @@
 #include <scheduler.h>
 #include <bufferManagement.h>
 
-#define ERROR -1;
-
 /*Prototipes*/
 int openPipe(ProcessControlBlockADT process, int pipeFds[2]);
 void closePipe(IPCBufferADT bufferEnd);

@@ -1,5 +1,4 @@
 #include <video.h>
-#include <time.h>
 #include <idtLoader.h>
 #include <keyboard.h>
 #include <interrupts.h>
@@ -7,6 +6,8 @@
 #include <constants.h>
 
 #define REGDUMP_SIZE 18
+
+uint64_t syscallsDispatcher(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t rcx, uint64_t r8, uint64_t r9, uint64_t rsp);
 
 static void zeroDivision();
 static void invalidOpcode();
@@ -101,7 +102,7 @@ void exceptionDispatcher(int exception, uint64_t regdump[REGDUMP_SIZE], uint64_t
 	scrPrint("Press any key to continue");
 	char c;
 	// We wait until the user presses any key to kill this process
-	syscallsDispatcher(0, STDIN, &c, 1, (uint64_t) NULL, (uint64_t) NULL, (uint64_t) NULL,(uint64_t) NULL);
+	syscallsDispatcher(0, STDIN, (uint64_t) &c, 1, (uint64_t) NULL, (uint64_t) NULL, (uint64_t) NULL,(uint64_t) NULL);
 	scrClear();
 	setProcessState(getCurrentProcessEntry(), EXITED);
     _int20h();

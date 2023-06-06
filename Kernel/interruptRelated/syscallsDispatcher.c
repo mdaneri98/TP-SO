@@ -1,8 +1,11 @@
+
+#include <constants.h>
+#include <registers.h>
 #include <stdint.h>
 #include <video.h>
 #include <keyboard.h>
 #include <string.h>
-#include <time.h>
+#include <timer.h>
 #include <speaker.h>
 #include <libasm.h>
 #include <memory.h>
@@ -17,9 +20,6 @@
 
 #define TOTAL_SYSCALLS 39
 #define AUX_BUFF_DIM 512
-
-#define ERROR -1
-#define NULL (void *)0
 
 #define DEFAULT_FREQUENCY 1500
 
@@ -191,7 +191,6 @@ static uint64_t arqSysWrite(uint64_t pd, uint64_t buff, uint64_t count, uint64_t
     uint64_t bytesWritten = 0;
 
     if(getBufferId(buffToWrite) == STDOUT){
-        char c = auxBuff[0];
         for(int i=0; i < count && bytesWritten < count ;i++){
             scrPrintChar(auxBuff[i]);
         }
@@ -209,7 +208,7 @@ static uint64_t arqSysWrite(uint64_t pd, uint64_t buff, uint64_t count, uint64_t
 
 static uint64_t arqSysMalloc(uint64_t size, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
     ProcessControlBlockADT currentProcess = getCurrentProcessEntry();
-    return sysMalloc(currentProcess, size);
+    return (uint64_t) sysMalloc(currentProcess, size);
 }
 
 static uint64_t arqSysFree(uint64_t ptr, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
@@ -220,11 +219,11 @@ static uint64_t arqSysFree(uint64_t ptr, uint64_t nil2, uint64_t nil3, uint64_t 
 
 static uint64_t arqSysRealloc(uint64_t ptr, uint64_t size, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7) {
     ProcessControlBlockADT currentProcess = getCurrentProcessEntry();
-    return sysRealloc(currentProcess, (void*) ptr, size);
+    return (uint64_t) sysRealloc(currentProcess, (void*) ptr, size);
 }
 
 static uint64_t arqSysSemOpen(uint64_t sem_id, uint64_t initialValue, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
-    return semOpen((char*) sem_id, initialValue);
+    return (uint64_t) semOpen((char*) sem_id, initialValue);
 }
 
 static uint64_t arqSysSemWait(uint64_t sem_id, uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6) {
@@ -279,7 +278,7 @@ static uint64_t arqSysChangeState(uint64_t pid, uint64_t nil2, uint64_t nil3, ui
     } else if (isReady(current)) {
         setProcessState(current, BLOCKED);
     }
-    _int20h;
+    _int20h();
     return 0;
 }
 
@@ -420,6 +419,7 @@ static uint64_t arqSysWait(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t
 static uint64_t arqSysExit(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
     setProcessState(getCurrentProcessEntry(), EXITED);
     _int20h();
+    return 0;
 }
 
 static uint64_t arqSysPipe(uint64_t pipePds, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){

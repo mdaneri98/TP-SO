@@ -58,7 +58,7 @@ void * initializeKernelBinary(){
 }
 
 int main(){	
-	createMemoryManager(USERLAND_STACK, getUserSpaceStackBase() - USERLAND_STACK);
+	createMemoryManager((void*) USERLAND_STACK, (uint64_t) getUserSpaceStackBase() - USERLAND_STACK);
 
 	setSyscalls();
 
