@@ -226,14 +226,7 @@ _readTimeStampCounter:
 
 	rdtsc				; We read te Time-Stamp counter	- Leaves the result in EDX:EAX
 
-	xor rcx, rcx
-	mov rcx, higherMask
-	and rdx, rcx		; We override the useless data in the low order bits
-	
-	xor rcx, rcx
-	mov rcx, lowerMask
-	and rax, rcx		; We do the same thing with the high order bits
-
+	shl rdx, 32			; We shift the 32 lower bits that contains the high-value of the TSC
 	or rax, rdx			; We put the entire 64-bit number on the return-value register rax
 
 	pop rcx

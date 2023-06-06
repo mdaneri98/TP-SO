@@ -6,7 +6,7 @@
 #include <bufferManagement.h>
 
 // State for processes
-typedef enum ProcessState { READY, RUNNING, BLOCKED, EXITED } ProcessState;
+typedef enum ProcessState { READY, RUNNING, BLOCKED, YIELDED, EXITED } ProcessState;
 
 typedef struct ProcessControlBlockCDT *ProcessControlBlockADT;
 typedef struct PCBNodeCDT *PCBNodeADT;
@@ -29,6 +29,7 @@ ProcessControlBlockADT getForegroundProcess();
 ProcessControlBlockADT getCurrentProcessEntry();
 IPCBufferADT getPDEntry(ProcessControlBlockADT entry, uint32_t pd);
 uint32_t getCurrentProcessPid();
+ProcessState getProcessState(ProcessControlBlockADT process);
 int setProcessState(ProcessControlBlockADT entry, ProcessState state);
 int changePriority(uint32_t pid, unsigned int newPriority);
 int changeState(uint32_t pid);
@@ -43,7 +44,6 @@ int dupPd(ProcessControlBlockADT process, uint64_t oldPd, uint64_t newPd);
 void sysClosePd(ProcessControlBlockADT process, IPCBufferADT toClose, uint32_t pd);
 void setProcessPd(ProcessControlBlockADT process, IPCBufferADT buffer, uint64_t index);
 int isInForeground(ProcessControlBlockADT process);
-void yieldProcess(ProcessControlBlockADT process);
 
 int isBlocked(ProcessControlBlockADT process);
 int isReady(ProcessControlBlockADT process);

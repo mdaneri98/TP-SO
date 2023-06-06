@@ -3,7 +3,9 @@
 #include <string.h>
 #include <loop.h> 
 
-#define LOOP_TIME 5000
+#include <loop.h>
+
+#define LOOP_TIME 30000
 
 int loop(int argsc, char* argsv[]) {
     while(1){

@@ -124,7 +124,8 @@ void addKey(uint8_t alKey) {
     }
     if(leftCntrl && key == C_CODE){
         ProcessControlBlockADT foregroundProcess = getForegroundProcess();
-        if(foregroundProcess != NULL && setProcessState(foregroundProcess, CLOSED)){
+        if(foregroundProcess != NULL){
+            setProcessState(foregroundProcess, EXITED);
             _int20h();
         }
         return;

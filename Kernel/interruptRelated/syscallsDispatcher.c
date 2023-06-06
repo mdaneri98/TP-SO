@@ -468,7 +468,7 @@ static uint64_t arqSysDup(uint64_t oldPd, uint64_t newPd, uint64_t nil1, uint64_
 
 static uint64_t arqSysYield(uint64_t nil1, uint64_t nil2, uint64_t nil3, uint64_t nil4, uint64_t nil5, uint64_t nil6, uint64_t nil7){
     ProcessControlBlockADT currentProcess = getCurrentProcessEntry();
-    yieldProcess(currentProcess);
+    setProcessState(currentProcess, YIELDED);
     _int20h();
     return 0;
 }

@@ -42,11 +42,6 @@ static void removeFromList(TimerPtr timer){
 		return;
 	}
 	TimerPtr current = list.head;
-	if(current->pid == timer->pid){
-		list.head = current->next;
-		current->next = NULL;
-		return;
-	}
 	TimerPtr prev = NULL;
 	while(current != NULL && current->pid !=timer->pid){
 		prev = current;
@@ -55,26 +50,40 @@ static void removeFromList(TimerPtr timer){
 	if(current == NULL){
 		return;
 	}
-	prev->next = current->next;
+	if(current->pid == timer->pid){
+		if(prev != NULL){
+			prev->next = current->next;
+		} else{
+			list.head = current->next;
+		}
+	}
 	return;
 }
 
 void updateTimers(uint64_t currentMillis){
 	TimerPtr current = list.head;
 	while(current != NULL){
-		if(currentMillis >= current->endInterval){
-			setProcessState(current->sleepingProcess, READY);
+		if(getProcessState(current->sleepingProcess) == EXITED){
+			TimerPtr toRemove = current;
+			current = current->next;
+			removeFromList(toRemove);
+			freeTimer(toRemove);
+		} else{
+			if(currentMillis >= current->endInterval){
+				setProcessState(current->sleepingProcess, READY);
+			}
+			current = current->next;
 		}
-		current = current->next;
 	}
 	return;
 }
 
 void sleep(uint64_t millis){
+	
 	ProcessControlBlockADT currentProcess = getCurrentProcessEntry();
 	TimerPtr timer = (TimerPtr) allocTimer();
 	uint64_t TSCFreq = getTSCFrequency();
-	timer->endInterval = _readTimeStampCounter()/TSCFreq + millis;
+	timer->endInterval = (_readTimeStampCounter()/TSCFreq) + millis;
 	timer->sleepingProcess = currentProcess;
 	timer->pid = getProcessId(currentProcess);
 	timer->next = NULL;

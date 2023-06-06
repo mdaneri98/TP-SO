@@ -55,7 +55,6 @@ typedef struct ProcessAllocations{
 
 typedef struct PCBNodeCDT {
     PCBNodeADT next;
-    PCBNodeADT previous;
     ProcessControlBlockCDT pcbEntry;
 } PCBNodeCDT;
 
@@ -79,8 +78,9 @@ static void checkExited();
 static void nextProcess();
 static int deleteProcess(PCBNodeCDT *toDelete);
 static PCBNodeADT removeFromQueue(uint32_t pid);
-/*static void setForegroundProcess(ProcessControlBlockADT process);*/
+static void insertLast(PCBNodeADT process);
 static void freeAllocations(ProcessControlBlockADT process);
+static void setForegroundProcess(ProcessControlBlockADT process);
 
 /* Global Variables */
 queue_t level0Queue = {NULL, 1};
@@ -136,42 +136,46 @@ void *scheduler(void *rsp) {
 }
 
 static void checkBlocked(){
-    PCBNodeCDT *aux = multipleQueues[6]->head;
-    while(aux != NULL){
-        if(aux->pcbEntry.state != BLOCKED){
-            PCBNodeCDT *toInsert = aux;
-            aux = aux->next;
-            insertInQueue(toInsert);
-            if(toInsert == multipleQueues[6]->head){
-                multipleQueues[6]->head = toInsert->next;
-                toInsert->next->previous = NULL;
+    PCBNodeADT current = multipleQueues[6]->head;
+    PCBNodeADT previous = NULL;
+    while(current != NULL){
+        if(current->pcbEntry.state != BLOCKED){
+            PCBNodeCDT *toInsert = current;
+            current = current->next;
+            if(previous == NULL){
+                multipleQueues[6]->head = current;
             } else{
-                toInsert->previous->next = toInsert->next;
-                if(toInsert->next != NULL){
-                    toInsert->next->previous = toInsert->previous;
-                }
+                previous->next = current;
             }
+            insertInQueue(toInsert);
         } else{
-            aux = aux->next;
+            previous = current;
+            current = current->next;
         }
     }
 }
 
 static void checkExited(){
-    PCBNodeCDT *toRemove;
+    PCBNodeADT auxCurrent;
+    PCBNodeADT previous;
     for(int i=0; i<7 ;i++){
-        toRemove = multipleQueues[i]->head;
-        while(toRemove != NULL){
-            if(toRemove->pcbEntry.state == EXITED){
-                if(multipleQueues[i]->head == toRemove){
-                    multipleQueues[i]->head = toRemove->next;
+        auxCurrent = multipleQueues[i]->head;
+        previous = NULL;
+        while(auxCurrent != NULL){
+            if(auxCurrent->pcbEntry.state == EXITED){
+                PCBNodeADT toRemove = auxCurrent;
+                auxCurrent = auxCurrent->next;
+                if(previous == NULL){
+                    multipleQueues[i]->head = auxCurrent;
                 } else{
-                    toRemove->previous->next = toRemove->next;
+                    previous->next = auxCurrent;
                 }
-                toRemove->next->previous = toRemove->previous;
                 deleteProcess(toRemove);
+
+            } else{
+                previous = auxCurrent;
+                auxCurrent = auxCurrent->next;
             }
-            toRemove = toRemove->next;
         }
     }
     if(current->pcbEntry.state == EXITED){
@@ -194,9 +198,7 @@ void createInit() {
     initNode->pcbEntry.firstAlloc = NULL;
     idleNode->pcbEntry.firstAlloc = NULL;
     
-    initNode->previous = NULL;
     initNode->next = NULL;
-    idleNode->previous = NULL;
     idleNode->next = NULL;
 
     initStandardBuffers();
@@ -269,14 +271,14 @@ static void nextProcess(){
     if(current->pcbEntry.id == idle->pcbEntry.id){
             current->pcbEntry.state = READY;
             current = NULL;
-    } else if(current->pcbEntry.state == BLOCKED){
-        insertInBlockedQueue(current);
-    } else if(current->pcbEntry.state == RUNNING){
-        current->pcbEntry.state = READY;
-        insertInQueue(current);
+    }
+    switch(current->pcbEntry.state){
+        case BLOCKED: insertInBlockedQueue(current); break;
+        case RUNNING: current->pcbEntry.state = READY; insertInQueue(current); break;
+        case YIELDED: current->pcbEntry.state = READY; insertLast(current); break;
     }
 
-    PCBNodeCDT *next;
+    PCBNodeADT next;
     for(int i=0; i<6 ;i++){
         next = multipleQueues[i]->head;
         if(next != NULL){
@@ -294,12 +296,9 @@ static void nextProcess(){
         return;
     }
 
-    if(current->pcbEntry.foreground == TRUE){
-        foreground = &current->pcbEntry;
-    }
+    setForegroundProcess(&current->pcbEntry);
 
     current->next = NULL;
-    current->previous = NULL;
     current->pcbEntry.state = RUNNING;
 }
 
@@ -319,32 +318,51 @@ static void insertInQueue(PCBNodeCDT *node){
     } else {
         i = 5;
     }
-    PCBNodeCDT *aux = multipleQueues[i]->head;
-    if(aux == NULL){
+    PCBNodeADT current = multipleQueues[i]->head;
+    PCBNodeADT previous = NULL;
+    while(current != NULL){
+        previous = current;
+        current = current->next;
+    }
+    if(previous == NULL){
         multipleQueues[i]->head = node;
     } else{
-        while(aux->next != NULL){
-            aux = aux->next;
-        }
-        aux->next = node;
+        previous->next = node;
     }
     node->next = NULL;
     node->pcbEntry.quantums = multipleQueues[i]->defaultQuantums;
     node->pcbEntry.priority = i;
 }
 
-static void insertInBlockedQueue(PCBNodeCDT *node){
-    PCBNodeCDT *first = multipleQueues[6]->head;
-    node->previous = NULL;
-    node->next = NULL;
-    while(first != NULL && first->next != NULL){
-        first = first->next;
+static void insertLast(PCBNodeADT process){
+    PCBNodeADT current = multipleQueues[5]->head;
+    PCBNodeADT previous;
+    while(current != NULL){
+        previous = current;
+        current = current->next;
     }
-    if(first == NULL){
+    if(previous == NULL){
+        multipleQueues[5]->head = process;
+    } else{
+        previous->next = process;
+    }
+    process->next = NULL;
+}
+
+static void insertInBlockedQueue(PCBNodeCDT *node){
+    PCBNodeADT current = multipleQueues[6]->head;
+    PCBNodeADT previous = NULL;
+
+    node->next = NULL;
+    while(current != NULL){
+        previous = current;
+        current = current->next;
+    }
+
+    if(previous == NULL){
         multipleQueues[6]->head = node;
     } else{
-        first->next = node;
-        node->previous = first;
+        previous->next = node;
     }
 }
 
@@ -352,6 +370,7 @@ static int deleteProcess(PCBNodeADT toDelete){
     if(foreground == &toDelete->pcbEntry){
         foreground = NULL;
     }
+    updateTimers(_readTimeStampCounter()/TSCFrequency);
     freeAllocations(&toDelete->pcbEntry);
     closePDs(&toDelete->pcbEntry);
     checkChilds(&toDelete->pcbEntry);
@@ -584,28 +603,27 @@ int hasOpenChilds(ProcessControlBlockADT entry){
 }
 
 static PCBNodeCDT *removeFromQueue(uint32_t pid){
-    PCBNodeCDT *toRemove;
+    PCBNodeADT toRemove;
+    PCBNodeADT previous;
     for(int i=0; i<7 ;i++){
         toRemove = multipleQueues[i]->head;
+        previous = NULL;
         while(toRemove != NULL){
             if(toRemove->pcbEntry.id == pid){
-                if(toRemove->pcbEntry.id == multipleQueues[i]->head->pcbEntry.id){
+                if(previous == NULL){
                     multipleQueues[i]->head = toRemove->next;
-                    toRemove->next->previous = NULL;
-                    toRemove->next = NULL;
                 } else{
-                    toRemove->previous->next = toRemove->next;
-                    if(toRemove->next != NULL){
-                        toRemove->next->previous = toRemove->previous;
-                    }
+                    previous->next = toRemove->next;
                 }
+                toRemove->next = NULL;
                 return toRemove;
             } else{
+                previous = toRemove;
                 toRemove = toRemove->next;
             }
         }
     }
-    return toRemove;
+    return NULL;
 }
 
 static void setParentReady(ProcessControlBlockADT pcbEntry){
@@ -613,10 +631,9 @@ static void setParentReady(ProcessControlBlockADT pcbEntry){
     for(int i=0; i<PD_SIZE ;i++){
         parent->childsIds[i] = parent->childsIds[i] == pcbEntry->id ? 0 : parent->childsIds[i];
     }
+    
     setProcessState(parent, READY);
-    if(pcbEntry->foreground == FALSE){
-        setProcessToForeground(parent);
-    }
+    setProcessToForeground(parent);
     return;
 }
 
@@ -671,13 +688,13 @@ uint64_t getPCBNodeSize(){
     return sizeof(PCBNodeCDT);
 }
 
-/*
+
 static void setForegroundProcess(ProcessControlBlockADT process){
     if(process->foreground == TRUE){
         foreground = process;
     }
 }
-*/
+
 
 void setProcessToForeground(ProcessControlBlockADT process){
     process->foreground = TRUE;
@@ -816,17 +833,14 @@ int isInForeground(ProcessControlBlockADT process){
     return process->foreground;
 }
 
-void yieldProcess(ProcessControlBlockADT process){
-    process->quantums = 1;
-    process->priority = 5;
-    process->agingInterval = QUANTUM_SIZE*32;
-    return;
-}
-
 int isBlocked(ProcessControlBlockADT process) {
     return process->state == BLOCKED;
 }
 
 int isReady(ProcessControlBlockADT process) {
     return process->state == READY;
+}
+
+ProcessState getProcessState(ProcessControlBlockADT process){
+    return process->state;
 }
