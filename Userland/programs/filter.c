@@ -38,7 +38,7 @@ void stringFilterCopy(char * arg){
     int sourceIndex = 0;
     int destIndex = 0;
     while((arg[sourceIndex] != '\0') && destIndex < BUFFER_MAX_LENGTH){
-        if(isVocal(arg[sourceIndex])){
+        if(!isVocal(arg[sourceIndex])){
             filterBuff[destIndex] = arg[sourceIndex];
             destIndex++;
         }
@@ -61,6 +61,7 @@ void cleanBuffer(char * buffer){
     int i = 0;
     while((buffer[i] != '\0')&& i < BUFFER_MAX_LENGTH){
         buffer[i] = '\0';
+        i++;
     }
     return;
 }
