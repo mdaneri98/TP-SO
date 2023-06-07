@@ -14,7 +14,7 @@ int wc(int argsc, char* argsv[]) {
     //Recives from stdin or buffer
     if (argsc <= 1) {
         count = 1;  /* Starts in 1 line. */
-        while((i = getChar()) != '&'){
+        while((i = getChar()) != -1){
             if(i == '\n'){
                 count++;
             }
