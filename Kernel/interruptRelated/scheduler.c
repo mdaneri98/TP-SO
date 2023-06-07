@@ -542,6 +542,10 @@ ProcessControlBlockADT getEntry(uint32_t pid) {
         return NULL;
     }
 
+    if(current->pcbEntry.id == pid){
+        return &current->pcbEntry;
+    }
+
     PCBNodeCDT *toReturn;
     for(int i=0; i<7 ;i++){
         toReturn = multipleQueues[i]->head;
