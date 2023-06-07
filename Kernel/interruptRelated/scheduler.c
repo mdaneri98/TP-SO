@@ -31,7 +31,7 @@ typedef struct ProcessControlBlockCDT {
     uint8_t priority;
 
     // Variables neccesary for computing priority scheduling
-    int8_t quantums;
+    int quantums;
     uint64_t agingInterval;
     uint64_t counterInit;
 
@@ -129,7 +129,7 @@ void *scheduler(void *rsp) {
         Get the nextProcess process with a READY state and run it.
     */
     current->pcbEntry.quantums--;
-    if(current->pcbEntry.quantums < 1 || current->pcbEntry.state == BLOCKED){
+    if(current->pcbEntry.quantums < 1 || current->pcbEntry.state == BLOCKED || current->pcbEntry.state == YIELDED){
         nextProcess();
     }
     current->pcbEntry.counterInit = _readTimeStampCounter();
@@ -276,7 +276,7 @@ static void nextProcess(){
     }
     switch(current->pcbEntry.state){
         case BLOCKED: insertInBlockedQueue(current); break;
-        case RUNNING: current->pcbEntry.state = READY; insertInQueue(current); break;
+        case RUNNING: current->pcbEntry.state = READY; current->next = NULL; insertInQueue(current); break;
         case YIELDED: current->pcbEntry.state = READY; insertLast(current); break;
         default: break;
     }
@@ -305,7 +305,7 @@ static void nextProcess(){
     current->pcbEntry.state = RUNNING;
 }
 
-static void insertInQueue(PCBNodeCDT *node){
+static void insertInQueue(PCBNodeADT node){
     uint64_t agingTime = node->pcbEntry.agingInterval;
     int i;
     if(agingTime <= QUANTUM_SIZE){
@@ -339,7 +339,7 @@ static void insertInQueue(PCBNodeCDT *node){
 
 static void insertLast(PCBNodeADT process){
     PCBNodeADT auxCurrent = multipleQueues[5]->head;
-    PCBNodeADT previous;
+    PCBNodeADT previous = NULL;
     while(auxCurrent != NULL){
         previous = auxCurrent;
         auxCurrent = auxCurrent->next;
@@ -597,7 +597,7 @@ int hasOpenChilds(ProcessControlBlockADT entry){
     for(int i=0; i<PD_SIZE ;i++){
         if(entry->childsIds[i] != 0){
             ProcessControlBlockADT child = getEntry(entry->childsIds[i]);
-            if(child->state != EXITED){
+            if(child->state != EXITED && child->foreground == TRUE){
                 return TRUE;
             }
         }
