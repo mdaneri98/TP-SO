@@ -44,6 +44,10 @@ int dupPd(ProcessControlBlockADT process, uint64_t oldPd, uint64_t newPd);
 void sysClosePd(ProcessControlBlockADT process, IPCBufferADT toClose, uint32_t pd);
 void setProcessPd(ProcessControlBlockADT process, IPCBufferADT buffer, uint64_t index);
 int isInForeground(ProcessControlBlockADT process);
+int isManualBlocked(ProcessControlBlockADT process);
+
+void sysUnBlock(ProcessControlBlockADT process);
+void sysBlock(ProcessControlBlockADT process);
 
 int isBlocked(ProcessControlBlockADT process);
 int isReady(ProcessControlBlockADT process);

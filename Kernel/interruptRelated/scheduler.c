@@ -28,6 +28,7 @@ typedef struct ProcessControlBlockCDT {
     uint32_t id;
     uint8_t foreground;
     ProcessState state;
+    int manualBlocked;
     uint8_t priority;
 
     // Variables neccesary for computing priority scheduling
@@ -458,6 +459,7 @@ int sysFork(void *currentProcessStack){
 
     newNode->pcbEntry.foreground = currentNode->pcbEntry.foreground;
     newNode->pcbEntry.state = currentNode->pcbEntry.state;
+    newNode->pcbEntry.manualBlocked = currentNode->pcbEntry.manualBlocked;
     newNode->pcbEntry.priority = currentNode->pcbEntry.priority;
 
     newNode->pcbEntry.quantums = currentNode->pcbEntry.quantums;
@@ -689,6 +691,7 @@ int setProcessState(ProcessControlBlockADT process, ProcessState state){
         return FALSE;
     }
     process->state = state;
+    process->manualBlocked = FALSE;
     return TRUE;
 }
 
@@ -729,6 +732,24 @@ void removeFromPDs(ProcessControlBlockADT process, IPCBufferADT buffToRemove){
         }
     }
 }
+
+void sysBlock(ProcessControlBlockADT process) {
+    if(!exists(process->id) || (process->id <= IDLE_ID)){
+        return;
+    }
+    process->state = BLOCKED;
+    process->manualBlocked = TRUE;
+    return;
+}
+
+void sysUnBlock(ProcessControlBlockADT process) {
+    if(!exists(process->id) || (process->id <= IDLE_ID)){
+        return;
+    }
+    process->state = READY;
+    process->manualBlocked = FALSE;
+}
+
 
 void *sysMalloc(ProcessControlBlockADT process, uint64_t size){
     void *allocation = allocMemory(size + sizeof(ProcessAllocations));
@@ -847,6 +868,10 @@ int isBlocked(ProcessControlBlockADT process) {
 
 int isReady(ProcessControlBlockADT process) {
     return process->state == READY;
+}
+
+int isManualBlocked(ProcessControlBlockADT process) {
+    return process->manualBlocked == TRUE;
 }
 
 ProcessState getProcessState(ProcessControlBlockADT process){

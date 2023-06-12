@@ -72,7 +72,9 @@ void updateTimers(uint64_t currentMillis){
 			freeTimer(toRemove);
 		} else{
 			if(currentMillis >= current->endInterval){
-				setProcessState(current->sleepingProcess, READY);
+				if (isManualBlocked(current->sleepingProcess) == FALSE) {
+					setProcessState(current->sleepingProcess, READY);
+				}
 			}
 			current = current->next;
 		}

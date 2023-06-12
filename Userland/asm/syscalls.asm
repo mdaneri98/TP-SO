@@ -48,6 +48,7 @@ _setToForeground:
     mov rax, 35
     int 80h
     ret
+    
 _sysUnblock:
     mov rax, 39
     int 80h

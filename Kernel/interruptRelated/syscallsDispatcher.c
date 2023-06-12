@@ -254,7 +254,7 @@ static uint64_t arqSysBlock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64_t
     if(current == NULL){
         return -1;
     }
-    setProcessState(current, BLOCKED);
+    sysBlock(current);
     _int20h();
     return 0;
 }
@@ -264,7 +264,7 @@ static uint64_t arqSysUnblock(uint64_t pid, uint64_t nil1, uint64_t nil2, uint64
     if(current == NULL){
         return -1;
     }
-    setProcessState(current, READY);
+    sysUnBlock(current);
     _int20h();
     return 0;
 }

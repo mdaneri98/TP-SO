@@ -4,12 +4,13 @@
 
 #include <syscalls.h>
 #include <lib.h>
+#include <stdio.h>
 
-int block(int argsc, char* argsv[]) {
+int unblock(int argsc, char* argsv[]) {
     if (argsc < 2) {
         return 1;
     }
-    _sysBlock(stringToInt(argsv[1]));
+    _sysUnblock(stringToInt(argsv[1]));
 
     return 0;
 }

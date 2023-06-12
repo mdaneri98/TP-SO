@@ -12,6 +12,7 @@
 #include <ps.h>
 #include <kill.h>
 #include <block.h>
+#include <unblock.h>
 #include <phylo.h>
 #include <loop.h>
 #include <nice.h>
@@ -32,6 +33,7 @@
 #include <test_processes.h>
 #include <test_sync.h>
 
+int block(int argsc, char* argsv[]);
 
 // Structures for help command
 static char *commandsName[CMDS_COUNT];
@@ -320,7 +322,7 @@ static void loadCommands() {
     commandsFunction[13] = kill;
     commandsName[14] = "block";
     commandsDesc[14] = "Blocks the process that matches with the id given.";
-    commandsFunction[14] = kill;
+    commandsFunction[14] = block;
     commandsName[15] = "nice";
     commandsDesc[15] = "Changes the priority of the process with the id given to the new priority.";
     commandsFunction[15] = nice;
@@ -354,6 +356,9 @@ static void loadCommands() {
     commandsName[25] = "mem";
     commandsDesc[25] = "Prints the state of the memory.";
     commandsFunction[25] = mem;
+    commandsName[26] = "unblock";
+    commandsDesc[26] = "Prints the state of the memory.";
+    commandsFunction[26] = unblock;
     
 }
 
