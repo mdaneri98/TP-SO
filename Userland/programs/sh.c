@@ -193,7 +193,7 @@ static int getArguments(int idx, char *cadena) {
 
 static void runProgram(int idx, int jdx) {    
     
-    int commandLength = stringLength(lastCommand);
+    //int commandLength = stringLength(lastCommand);
 
     if (idx >= 0 && idx < CMDS_COUNT) {
         if (jdx >= 0 && jdx < CMDS_COUNT) { /* Case if input is piped */
