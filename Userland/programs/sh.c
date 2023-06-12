@@ -54,6 +54,8 @@ static unsigned int lineCount = 0;
 // Global variable for fontSize in this program
 static int fontSize = 1;
 
+static int isBackground = FALSE;
+
 // Prototypes
 static void runProgram(int idx, int jdx);
 static void awaitCommand(int* idx, int* jdx);
@@ -96,6 +98,7 @@ void sh(int argsc, char* argsv[]) {
             stringCopy(lines[lineCount++ % MAX_LINES], BUFFER_MAX_LENGTH, errMsg);
         }
 
+        isBackground = FALSE;
     }
 
 }
@@ -103,13 +106,15 @@ void sh(int argsc, char* argsv[]) {
 static void awaitCommand(int* idx, int* jdx) {
     int c;
     clearLine(lastCommand);
-    while ((c = getChar()) != '\n') { 
+    while ((c = getChar()) != '\n') {
         if (c != -1) {
             if(c == '\b' && bufferCount > 0){
                 lastCommand[bufferCount--] = '\0';
                 putChar(c);
-            }
-            else if(c != '\b'){
+            } else if (c == '&') {
+                putChar(c);
+                isBackground = TRUE;
+            } else if(c != '\b'){
                 // Add spaces instead, tab in video mode doesn't work very well yet
                 if(c == '\t'){
                     c = ' ';
@@ -189,7 +194,6 @@ static int getArguments(int idx, char *cadena) {
 static void runProgram(int idx, int jdx) {    
     
     int commandLength = stringLength(lastCommand);
-    int background = lastCommand[commandLength-1] == '&';
 
     if (idx >= 0 && idx < CMDS_COUNT) {
         if (jdx >= 0 && jdx < CMDS_COUNT) { /* Case if input is piped */
@@ -237,7 +241,7 @@ static void runProgram(int idx, int jdx) {
             // Background only works for processes without a pipe.
             if (_sysFork() == 0) {
                 int argsc = getArguments(idx, lastCommand);
-
+                
                 char** lastArgumentsAux = malloc(sizeof(char*) * MAX_ARGS_COUNT);
                 for (int i = 0; i < argsc; i++) {
                     lastArgumentsAux[i] = malloc(sizeof(char) * BUFFER_MAX_LENGTH);
@@ -246,7 +250,7 @@ static void runProgram(int idx, int jdx) {
                     }
                 }
                 
-                if (background != 0)
+                if (isBackground != 0)
                     _setToBackground();
                 
                 _sysExecve(commandsFunction[idx], argsc, (char**) lastArgumentsAux);
@@ -254,7 +258,7 @@ static void runProgram(int idx, int jdx) {
             _yield();
         }
 
-        if (!background)    
+        if (!isBackground)    
             _wait();
     
     }
