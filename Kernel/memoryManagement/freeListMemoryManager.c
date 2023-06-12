@@ -6,8 +6,9 @@
 #include <sync.h>
 #include <timer.h>
 #include <constants.h>
+#include <stdint.h>
 
-#define BLOCK_SIZE 0x1000
+#define BLOCK_SIZE 0x500
 #define KERNEL_MEMORY_LOCATION 0x50000
 #define KERNEL_MEMORY_SIZE 0x140000
 

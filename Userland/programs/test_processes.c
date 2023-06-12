@@ -20,11 +20,13 @@ int test_processes(int argc, char *argv[]) {
   uint64_t max_processes;
   char *argvAux[] = {0};
 
-  if (argc != 2)
-    return -1;
+  // if (argc != 2)
+  //   return -1;
 
-  if ((max_processes = satoi(argv[1])) <= 0)
-    return -1;
+  // if ((max_processes = satoi(argv[1])) <= 0)
+  // return -1;
+
+  max_processes = 5;
 
   p_rq p_rqs[max_processes];
 
@@ -33,13 +35,13 @@ int test_processes(int argc, char *argv[]) {
     // Create max_processes processes
     for (rq = 0; rq < max_processes; rq++) {
         int i = _sysFork();
-        if (i != 0) {
-            p_rqs[rq].pid = i;
-            _yield();
-        }
-        
         if (i == 0) {
             _sysExecve(endless_loop, 0, argvAux);
+        }
+
+        if (i != 0) {
+            p_rqs[rq].pid = i;
+            // _yield();
         }
 
       if (p_rqs[rq].pid == -1) {
@@ -50,6 +52,7 @@ int test_processes(int argc, char *argv[]) {
         alive++;
       }
     }
+    _yield();
     _setToBackground();
     // Randomly kills, blocks or unblocks processes until every one has been killed
     while (alive > 0) {

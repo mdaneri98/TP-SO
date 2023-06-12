@@ -88,10 +88,10 @@ static void setForegroundProcess(ProcessControlBlockADT process);
 /* Global Variables */
 queue_t level0Queue = {NULL, 1};
 queue_t level1Queue = {NULL, 2};
-queue_t level2Queue = {NULL, 4};
-queue_t level3Queue = {NULL, 8};
-queue_t level4Queue = {NULL, 16};
-queue_t level5Queue = {NULL, 32};
+queue_t level2Queue = {NULL, 3};
+queue_t level3Queue = {NULL, 4};
+queue_t level4Queue = {NULL, 5};
+queue_t level5Queue = {NULL, 6};
 queue_t blockedList = {NULL, 0};
 
 PCBNodeADT current = NULL;
@@ -313,11 +313,11 @@ static void insertInQueue(PCBNodeADT node){
         i = 0;
     } else if(agingTime <= QUANTUM_SIZE*2){
         i = 1;
-    } else if(agingTime <= QUANTUM_SIZE*4){
+    } else if(agingTime <= QUANTUM_SIZE*3){
         i = 2;
-    } else if(agingTime <= QUANTUM_SIZE*8){
+    } else if(agingTime <= QUANTUM_SIZE*4){
         i = 3;
-    } else if(agingTime <= QUANTUM_SIZE*16){
+    } else if(agingTime <= QUANTUM_SIZE*5){
         i = 4;
     } else {
         i = 5;
